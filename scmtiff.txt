@@ -1,13 +1,16 @@
 
-INVARIANT: SCM TIFF files are always BigTIFFs.
+INVARIANT: SCM TIFF files are BigTIFFs.
 
-INVARIANT: SCM TIFF files always represent a complete, correct, usable spherical cube map file, regardless of data process progress.
+INVARIANT: SCM TIFF files represent a complete, correct, usable spherical cube map file, regardless of data process progress.
 
  - The number of pages is 2^(2d+3)-2, even if most pages are empty.
- - The page size is n+2, even if the borders are unfilled.
+ - The page size is n+2, even if the borders are empty.
 
-scm-pds ....... Convert a NASA PDS file to a (leafy) SCM TIFF.
-scm-merge ..... Combine multiple SCM TIFF files.
-scm-sample .... Sample parent pages for an SCM TIFF wherever possible.
-scm-border .... Fill the borders of all non-empty pages of an SCM TIFF.
-scm-normal .... Generate a normal SCM TIFF from a height SCM TIFF.
+scm-convert ..... Convert a PDS, PNG, TIFF, or JPG file to a (leafy) SCM TIFF.
+scm-combine ..... Combine multiple SCM TIFF files into one.
+scm-mipmap  ..... Sample parent pages for an SCM TIFF wherever possible.
+scm-border  ..... Fill the borders of an SCM TIFF wherever possible.
+scm-normal  ..... Generate a normal SCM TIFF from a height SCM TIFF.
+
+Mix LROC GLD100 with LOLA?
+	
