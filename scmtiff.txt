@@ -3,8 +3,7 @@ INVARIANT: SCM TIFF files are BigTIFFs.
 
 INVARIANT: SCM TIFF files represent a complete, correct, usable spherical cube map file, regardless of data process progress.
 
- - The number of pages is 2^(2d+3)-2, even if most pages are empty.
- - The page size is n+2, even if the borders are empty.
+INVARIANT: An SCM TIFF file covers the entire sphere without gaps. As a consequence of this, an SCM TIFF contains at least six pages and each page has either zero or four sub-pages.
 
 scm-convert ..... Convert a PDS, PNG, TIFF, or JPG file to a (leafy) SCM TIFF.
 scm-combine ..... Combine multiple SCM TIFF files into one.
@@ -13,4 +12,24 @@ scm-border  ..... Fill the borders of an SCM TIFF wherever possible.
 scm-normal  ..... Generate a normal SCM TIFF from a height SCM TIFF.
 
 Mix LROC GLD100 with LOLA?
-	
+
+
+Convert
+
+	Queue the six root pages
+	While there is a page in the queue
+
+		If the page touches the input image
+			If the page is a leaf
+				Sample the page
+				Write the filled page
+			Else
+				Write the empty page
+				Queue the four sub-pages
+		Else
+			Write the empty page
+
+	Note: A page write is always an append operation, however it must always include rewriting the parent.
+
+	Invariant: When a page is queued, it WILL be written.
+
