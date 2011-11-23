@@ -15,15 +15,23 @@ void scm_close(scm *);
 
 //------------------------------------------------------------------------------
 
+int scm_read_page(scm *, off_t, off_t *, double *);
+int scm_read_next(scm *,        off_t *, double *);
+
+int scm_append(scm *, off_t, const double *);
+
+//------------------------------------------------------------------------------
+
 int  scm_get_n(scm *);                  // Page sample count excluding border
 int  scm_get_d(scm *);                  // Page subdivision count
 int  scm_get_c(scm *);                  // Sample channel count
 int  scm_get_b(scm *);                  // Channel bit count
 int  scm_get_s(scm *);                  // Channel signed flag
 
-void scm_set_pixel(scm *, int, int, int, const double *);
-void scm_get_pixel(scm *, int, int, int,       double *);
-void scm_get_bound(scm *, int, int, int,       double *);
+//void scm_set_pixel(scm *, int, int, int, const double *);
+//void scm_get_pixel(scm *, int, int, int,       double *);
+
+void scm_get_bound(scm *, int, int, int, double *);
 
 //------------------------------------------------------------------------------
 

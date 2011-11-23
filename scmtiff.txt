@@ -17,7 +17,7 @@ Mix LROC GLD100 with LOLA?
 Convert
 
 	Queue the six root pages
-	While there is a page in the queue
+	While there is a page to dequeue
 
 		If the page touches the input image
 			If the page is a leaf
@@ -33,3 +33,25 @@ Convert
 
 	Invariant: When a page is queued, it WILL be written.
 
+Combine
+
+	Create an array of scms.
+	Enqueue it six times.
+
+	While there is an array to dequeue
+
+		Copy the array of scms.
+
+		For each non-NULL element of the array
+			Read and accumulate the next page
+			If the page has NO children
+				NULL this element in the copied array
+
+		Append the accumulated page to the output
+
+		If the array has at least one non-NULL element,
+			Enqueue the copied array four times
+
+Border
+
+	Make an array of the offsets of all pages.
