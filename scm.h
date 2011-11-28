@@ -1,35 +1,34 @@
-#ifndef SCM_H
-#define SCM_H
+// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+
+#ifndef SCMTIFF_SCM_H
+#define SCMTIFF_SCM_H
 
 //------------------------------------------------------------------------------
 
 typedef struct scm scm;
 
-scm *scm_write_file(const char *, int, int, int);
-int  scm_write_page(int);
-
-scm *scm_read_file(const char *);
-int  scm_read_page(int);
+scm *scm_ofile(const char *, int, int, int, int, int);
+scm *scm_ifile(const char *);
 
 void scm_close(scm *);
 
 //------------------------------------------------------------------------------
 
-int scm_read_page(scm *, off_t, off_t *, double *);
-int scm_read_next(scm *,        off_t *, double *);
+off_t scm_append(scm *, off_t, const double *);
 
-int scm_append(scm *, off_t, const double *);
+off_t scm_read_head(scm *, off_t, off_t *);
+int   scm_read_data(scm *, off_t, double *);
 
 //------------------------------------------------------------------------------
 
-int  scm_get_n(scm *);                  // Page sample count excluding border
-int  scm_get_d(scm *);                  // Page subdivision count
-int  scm_get_c(scm *);                  // Sample channel count
-int  scm_get_b(scm *);                  // Channel bit count
-int  scm_get_s(scm *);                  // Channel signed flag
+int scm_get_n(scm *);
+int scm_get_d(scm *);
+int scm_get_c(scm *);
+int scm_get_b(scm *);
+int scm_get_s(scm *);
 
-//void scm_set_pixel(scm *, int, int, int, const double *);
-//void scm_get_pixel(scm *, int, int, int,       double *);
+const char *scm_get_copyright(scm *);
+void        scm_set_copyright(scm *, const char *);
 
 void scm_get_bound(scm *, int, int, int, double *);
 
