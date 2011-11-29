@@ -80,6 +80,11 @@ struct ifd
 
 //------------------------------------------------------------------------------
 
+static int align2(int t)
+{
+    return (t & 1) ? (t + 1) : t;
+}
+
 // Initialize an SCM TIFF header. TIFF copyright text is specified per IFD, but
 // SCM TIFF copyright is the same for all IFDs and the text is included in the
 // file exactly once, immediately following the header. The length of this text
@@ -208,69 +213,63 @@ static int is_ifd(struct ifd *ip)
 
 //------------------------------------------------------------------------------
 
-// Parse the image size, channel count, bits per channel, and/or signedness
-// from the given IFD structure. Confirm that each value makes sense.
+// Validate and return the page size.
 
-static int get_ifd(struct ifd *ip, int *n, int *c, int *b, int *s)
+static int get_ifd_n(struct ifd *ip)
 {
-    const int spp = (int) ip->samples_per_pixel.offset;
+    if (ip->image_width.offset != ip->image_length.offset)
+        return app_err_zero("TIFF page is not square");
+    else
+        return (int) ip->image_width.offset;
+}
 
-    // Image size.
+// Validate and return the channel count.
 
-    if (n)
-    {
-        *n = (int) ip->image_width.offset;
+static int get_ifd_c(struct ifd *ip)
+{
+    if (ip->samples_per_pixel.offset < 1 ||
+        ip->samples_per_pixel.offset > 4)
+        return app_err_zero("Unsuported sample count");
+    else
+        return (int) ip->samples_per_pixel.offset;
+}
 
-        if (ip->image_width.offset != ip->image_length.offset)
-            return app_err_zero("TIFF page is not square");
-    }
+// Validate and return the channel depth.
 
-    // Channel count.
+static int get_ifd_b(struct ifd *ip)
+{
+    uint16_t *p = (uint16_t *) (&ip->bits_per_sample.offset);
 
-    if (c)
-    {
-        *c = (int) ip->samples_per_pixel.offset;
+    if ((ip->samples_per_pixel.offset > 1 && p[1] != p[0]) ||
+        (ip->samples_per_pixel.offset > 2 && p[2] != p[0]) ||
+        (ip->samples_per_pixel.offset > 3 && p[3] != p[0]))
+        return app_err_zero("TIFF samples do not have equal depth");
+    else
+        return (int) p[0];
+}
 
-        if (spp < 1 || spp > 4)
-            return app_err_zero("Unsuported sample count");
-    }
+// Validate and return the signedness.
 
-    // Bits per channel.
+static int get_ifd_s(struct ifd *ip)
+{
+    uint16_t *p = (uint16_t *) (&ip->sample_format.offset);
 
-    if (b)
-    {
-        uint16_t *p = (uint16_t *) (&ip->bits_per_sample.offset);
+    if ((ip->samples_per_pixel.offset > 1 && p[1] != p[0]) ||
+        (ip->samples_per_pixel.offset > 2 && p[2] != p[0]) ||
+        (ip->samples_per_pixel.offset > 3 && p[3] != p[0]))
+        return app_err_zero("TIFF samples do not have equal signedness");
 
-        *b = (int) p[0];
-
-        if ((spp > 1 && p[1] != p[0]) ||
-            (spp > 2 && p[2] != p[0]) ||
-            (spp > 3 && p[3] != p[0]))
-            return app_err_zero("TIFF samples do not have equal depth");
-    }
-
-    // Signedness.
-
-    if (s)
-    {
-        uint16_t *p = (uint16_t *) (&ip->sample_format.offset);
-
-        if      (p[0] == 1) *s = 0;
-        else if (p[0] == 2) *s = 1;
-        else return app_err_zero("Unknown sample format");
-
-        if ((spp > 1 && p[1] != p[0]) ||
-            (spp > 2 && p[2] != p[0]) ||
-            (spp > 3 && p[3] != p[0]))
-            return app_err_zero("TIFF samples do not have equal sign");
-    }
-
-    return 1;
+    if      (p[0] == 1) return 0;
+    else if (p[0] == 2) return 1;
+    else return app_err_zero("Unknown sample format");
 }
 
 //------------------------------------------------------------------------------
 
-scm *scm_ofile(const char *name, int n, int c, int b, int s)
+// Open an SCM TIFF output file. Initialize and return an SCM structure with the
+// given parameters. Write the TIFF header with padded copyright text.
+
+scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
 {
     FILE *fp = NULL;
     scm  *sp = NULL;
@@ -278,24 +277,42 @@ scm *scm_ofile(const char *name, int n, int c, int b, int s)
     assert(name);
     assert(n > 0);
     assert(c > 0);
+    assert(c < 5);
     assert(b > 0);
+    assert(text);
+
+    const  size_t t = align2(strlen(text));
+    struct header h;
+
+    set_header(&h, t);
 
     if ((fp = fopen(name, "wb")))
     {
-        if ((sp = (scm *) calloc(sizeof (scm), 1)))
+        if (fwrite(&h, sizeof (h), 1, fp) == sizeof (h))
         {
-            sp->fp = fp;
-            sp->n  = n;
-            sp->c  = c;
-            sp->b  = b;
-            sp->s  = s;
+            if (fwrite(text, t, 1, fp) == t)
+            {
+                if ((sp = (scm *) calloc(sizeof (scm), 1)))
+                {
+                    sp->fp = fp;
+                    sp->n  = n;
+                    sp->c  = c;
+                    sp->b  = b;
+                    sp->s  = s;
+                }
+                else sys_err_mesg("Failed to allocate SCM");
+            }
+            else sys_err_mesg("Failed to write '%s'", name);
         }
-        else sys_err_mesg("Failed to allocate SCM '%s'", name);
+        else sys_err_mesg("Failed to write '%s'", name);
     }
-    else sys_err_mesg("Failed to open output '%s'", name);
+    else sys_err_mesg("Failed to open '%s'", name);
 
     return sp;
 }
+
+// Open an SCM TIFF input file. Validate the header. Read and validate the first
+// IFD. Initialize and return an SCM structure using the first IFD's parameters.
 
 scm *scm_ifile(const char *name)
 {
@@ -304,11 +321,6 @@ scm *scm_ifile(const char *name)
 
     struct header h;
     struct ifd    i;
-
-    int n;
-    int c;
-    int b;
-    int s;
 
     assert(name);
 
@@ -324,19 +336,15 @@ scm *scm_ifile(const char *name)
                     {
                         if (is_ifd(&i))
                         {
-                            if (get_ifd(&i, &n, &c, &b, &s))
+                            if ((sp = (scm *) calloc(sizeof (scm), 1)))
                             {
-                                if ((sp = (scm *) calloc(sizeof (scm), 1)))
-                                {
-                                    sp->fp = fp;
-                                    sp->n  = n;
-                                    sp->c  = c;
-                                    sp->b  = b;
-                                    sp->s  = s;
-                                }
-                                else sys_err_mesg("Failed to allocate SCM");
+                                sp->n  = get_ifd_n(&i);
+                                sp->c  = get_ifd_c(&i);
+                                sp->b  = get_ifd_b(&i);
+                                sp->s  = get_ifd_s(&i);
+                                sp->fp = fp;
                             }
-                            else app_err_mesg("'%s' is not an SCM TIFF", name);
+                            else sys_err_mesg("Failed to allocate SCM");
                         }
                         else app_err_mesg("'%s' is not an SCM TIFF", name);
                     }
@@ -363,9 +371,46 @@ void scm_close(scm *s)
 
 //------------------------------------------------------------------------------
 
-// Read the SCM TIFF IFD at offset o. Return the offset of the bread-first next
-// IFD. If p is non-null, assume it provides storage for four offsets and copy
-// the offsets of any child IFDs there.
+// Append a page at the current SCM TIFF file pointer. Offset o gives the parent
+// page. The parent will be updated to include the new page as child x. Assume p
+// points to a page of data to be converted to raw, compressed, and written.
+
+off_t scm_append(scm *s, off_t o, int x, const double *p)
+{
+}
+
+// Move the SCM TIFF file pointer to the first IFD and return its offset.
+
+off_t scm_rewind(scm *s)
+{
+    assert(s);
+
+    if (fseeko(s->fp, 0, SEEK_LET) == 0)
+    {
+        if (fread(&h, sizeof (h), 1, fp) == sizeof (h))
+        {
+            if (is_header(&h))
+            {
+                if (fseeko(fp, (off_t) h.first_ifd, SEEK_SET) == 0)
+                {
+                    return (off_t) h.first_ifd;
+                }
+                else sys_err_mesg("Failed to seeks SCM");
+            }
+            else app_err_mesg("File is not an SCM TIFF");
+        }
+        else sys_err_mesg("Failed to read SCM");
+    }
+    else sys_err_mesg("Failed to seek SCM");
+
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+
+// Read the SCM TIFF IFD at offset o. Return the offset of the next IFD. If p is
+// non-null, assume it provides storage for four offsets and copy the offsets of
+// any child IFDs there.
 
 off_t scm_read_head(scm *s, off_t o, off_t *p)
 {
@@ -390,9 +435,9 @@ off_t scm_read_head(scm *s, off_t o, off_t *p)
             }
             else app_err_mesg("File is not an SCM TIFF");
         }
-        else sys_err_mesg("Failed to read SCM head");
+        else sys_err_mesg("Failed to read SCM");
     }
-    else sys_err_mesg("Failed to seek SCM head");
+    else sys_err_mesg("Failed to seek SCM");
 
     return 0;
 }
