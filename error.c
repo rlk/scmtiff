@@ -72,6 +72,26 @@ void sys_err_mesg(const char *fmt, ...)
     va_end(ap);
 }
 
+int app_err_zero(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    do_error(ap, fmt, "Error", 0);
+    va_end(ap);
+    return 0;
+}
+
+int sys_err_zero(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    do_error(ap, fmt, "Error", errno);
+    va_end(ap);
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+
 void app_wrn_mesg(const char *fmt, ...)
 {
     va_list ap;

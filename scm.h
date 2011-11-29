@@ -7,7 +7,7 @@
 
 typedef struct scm scm;
 
-scm *scm_ofile(const char *, int, int, int, int, int);
+scm *scm_ofile(const char *, int, int, int, int);
 scm *scm_ifile(const char *);
 
 void scm_close(scm *);
@@ -22,7 +22,6 @@ int   scm_read_data(scm *, off_t, double *);
 //------------------------------------------------------------------------------
 
 int scm_get_n(scm *);
-int scm_get_d(scm *);
 int scm_get_c(scm *);
 int scm_get_b(scm *);
 int scm_get_s(scm *);

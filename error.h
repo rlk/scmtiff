@@ -17,6 +17,9 @@ void sys_wrn_mesg(const char *, ...);
 void app_log_mesg(const char *, ...);
 void sys_log_mesg(const char *, ...);
 
+int  app_err_zero(const char *, ...);
+int  sys_err_zero(const char *, ...);
+
 //------------------------------------------------------------------------------
 
 #endif
