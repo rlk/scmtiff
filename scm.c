@@ -213,14 +213,41 @@ static int is_ifd(struct ifd *ip)
 
 //------------------------------------------------------------------------------
 
+// Read and return a newly-allocated copy of the copyright string.
+
+static char *get_ifd_copyright(struct ifd *ip, FILE *fp)
+{
+    const size_t len = ip->copyright.count;
+    const off_t  off = ip->copyright.offset;
+
+    char  *str;
+
+    if ((str = (char *) calloc(len + 1, 1)))
+    {
+        if (fseeko(fp, SEEK_SET, off) == 0)
+        {
+            if (fread(str, 1, len, fp) == len)
+            {
+                return str;
+            }
+            else syserr("Failed to read copyright text");
+        }
+        else syserr("Failed to seek copyright text");
+    }
+    else syserr("Failed to allocate copyright text");
+
+    free(str);
+    return NULL;
+}
+
 // Validate and return the page size.
 
 static int get_ifd_n(struct ifd *ip)
 {
     if (ip->image_width.offset != ip->image_length.offset)
-        return app_err_zero("TIFF page is not square");
-    else
-        return (int) ip->image_width.offset;
+        apperr("TIFF page is not square");
+
+    return (int) ip->image_width.offset;
 }
 
 // Validate and return the channel count.
@@ -229,9 +256,9 @@ static int get_ifd_c(struct ifd *ip)
 {
     if (ip->samples_per_pixel.offset < 1 ||
         ip->samples_per_pixel.offset > 4)
-        return app_err_zero("Unsuported sample count");
-    else
-        return (int) ip->samples_per_pixel.offset;
+        apperr("Unsupported sample count");
+
+    return (int) ip->samples_per_pixel.offset;
 }
 
 // Validate and return the channel depth.
@@ -243,9 +270,9 @@ static int get_ifd_b(struct ifd *ip)
     if ((ip->samples_per_pixel.offset > 1 && p[1] != p[0]) ||
         (ip->samples_per_pixel.offset > 2 && p[2] != p[0]) ||
         (ip->samples_per_pixel.offset > 3 && p[3] != p[0]))
-        return app_err_zero("TIFF samples do not have equal depth");
-    else
-        return (int) p[0];
+        apperr("TIFF samples do not have equal depth");
+
+    return (int) p[0];
 }
 
 // Validate and return the signedness.
@@ -257,11 +284,13 @@ static int get_ifd_s(struct ifd *ip)
     if ((ip->samples_per_pixel.offset > 1 && p[1] != p[0]) ||
         (ip->samples_per_pixel.offset > 2 && p[2] != p[0]) ||
         (ip->samples_per_pixel.offset > 3 && p[3] != p[0]))
-        return app_err_zero("TIFF samples do not have equal signedness");
+        apperr("TIFF samples do not have equal signedness");
 
     if      (p[0] == 1) return 0;
     else if (p[0] == 2) return 1;
-    else return app_err_zero("Unknown sample format");
+    else apperr("Unknown sample format");
+
+    return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -288,9 +317,9 @@ scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
 
     if ((fp = fopen(name, "wb")))
     {
-        if (fwrite(&h, sizeof (h), 1, fp) == sizeof (h))
+        if (fwrite(&h, sizeof (h), 1, fp) == 1)
         {
-            if (fwrite(text, t, 1, fp) == t)
+            if (fwrite(text, 1, t, fp) == t)
             {
                 if ((sp = (scm *) calloc(sizeof (scm), 1)))
                 {
@@ -300,13 +329,13 @@ scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
                     sp->b  = b;
                     sp->s  = s;
                 }
-                else sys_err_mesg("Failed to allocate SCM");
+                else syserr("Failed to allocate SCM");
             }
-            else sys_err_mesg("Failed to write '%s'", name);
+            else syserr("Failed to write '%s'", name);
         }
-        else sys_err_mesg("Failed to write '%s'", name);
+        else syserr("Failed to write '%s'", name);
     }
-    else sys_err_mesg("Failed to open '%s'", name);
+    else syserr("Failed to open '%s'", name);
 
     return sp;
 }
@@ -326,37 +355,38 @@ scm *scm_ifile(const char *name)
 
     if ((fp = fopen(name, "rb")))
     {
-        if (fread(&h, sizeof (h), 1, fp) == sizeof (h))
+        if (fread(&h, sizeof (h), 1, fp) == 1)
         {
             if (is_header(&h))
             {
                 if (fseeko(fp, (off_t) h.first_ifd, SEEK_SET) == 0)
                 {
-                    if (fread(&i, sizeof (i), 1, fp) == sizeof (i))
+                    if (fread(&i, sizeof (i), 1, fp) == 1)
                     {
                         if (is_ifd(&i))
                         {
                             if ((sp = (scm *) calloc(sizeof (scm), 1)))
                             {
-                                sp->n  = get_ifd_n(&i);
-                                sp->c  = get_ifd_c(&i);
-                                sp->b  = get_ifd_b(&i);
-                                sp->s  = get_ifd_s(&i);
-                                sp->fp = fp;
+                                sp->copyright = get_ifd_copyright(&i, fp);
+                                sp->n         = get_ifd_n(&i);
+                                sp->c         = get_ifd_c(&i);
+                                sp->b         = get_ifd_b(&i);
+                                sp->s         = get_ifd_s(&i);
+                                sp->fp        = fp;
                             }
-                            else sys_err_mesg("Failed to allocate SCM");
+                            else syserr("Failed to allocate SCM");
                         }
-                        else app_err_mesg("'%s' is not an SCM TIFF", name);
+                        else apperr("'%s' is not an SCM TIFF", name);
                     }
-                    else sys_err_mesg("Failed to read '%s' IFD", name);
+                    else syserr("Failed to read '%s' IFD", name);
                 }
-                else sys_err_mesg("Failed to seek '%s' IFD", name);
+                else syserr("Failed to seek '%s' IFD", name);
             }
-            else app_err_mesg("'%s' is not an SCM TIFF", name);
+            else apperr("'%s' is not an SCM TIFF", name);
         }
-        else sys_err_mesg("Failed to read '%s'", name);
+        else syserr("Failed to read '%s'", name);
     }
-    else sys_err_mesg("Failed to open '%s'", name);
+    else syserr("Failed to open '%s'", name);
 
     return sp;
 }
@@ -377,31 +407,34 @@ void scm_close(scm *s)
 
 off_t scm_append(scm *s, off_t o, int x, const double *p)
 {
+    return 0;
 }
 
 // Move the SCM TIFF file pointer to the first IFD and return its offset.
 
 off_t scm_rewind(scm *s)
 {
+    struct header h;
+
     assert(s);
 
-    if (fseeko(s->fp, 0, SEEK_LET) == 0)
+    if (fseeko(s->fp, 0, SEEK_SET) == 0)
     {
-        if (fread(&h, sizeof (h), 1, fp) == sizeof (h))
+        if (fread(&h, sizeof (h), 1, s->fp) == 1)
         {
             if (is_header(&h))
             {
-                if (fseeko(fp, (off_t) h.first_ifd, SEEK_SET) == 0)
+                if (fseeko(s->fp, (off_t) h.first_ifd, SEEK_SET) == 0)
                 {
                     return (off_t) h.first_ifd;
                 }
-                else sys_err_mesg("Failed to seeks SCM");
+                else syserr("Failed to seeks SCM");
             }
-            else app_err_mesg("File is not an SCM TIFF");
+            else apperr("File is not an SCM TIFF");
         }
-        else sys_err_mesg("Failed to read SCM");
+        else syserr("Failed to read SCM");
     }
-    else sys_err_mesg("Failed to seek SCM");
+    else syserr("Failed to seek SCM");
 
     return 0;
 }
@@ -414,13 +447,13 @@ off_t scm_rewind(scm *s)
 
 off_t scm_read_head(scm *s, off_t o, off_t *p)
 {
-    assert(s);
-
     struct ifd i;
+
+    assert(s);
 
     if (fseeko(s->fp, o, SEEK_SET) == 0)
     {
-        if (fread(&i, sizeof (i), 1, s->fp) == sizeof (i))
+        if (fread(&i, sizeof (i), 1, s->fp) == 1)
         {
             if (is_ifd(&i))
             {
@@ -433,11 +466,11 @@ off_t scm_read_head(scm *s, off_t o, off_t *p)
                 }
                 return (off_t) i.next;
             }
-            else app_err_mesg("File is not an SCM TIFF");
+            else apperr("File is not an SCM TIFF");
         }
-        else sys_err_mesg("Failed to read SCM");
+        else syserr("Failed to read SCM");
     }
-    else sys_err_mesg("Failed to seek SCM");
+    else syserr("Failed to seek SCM");
 
     return 0;
 }
@@ -447,9 +480,16 @@ off_t scm_read_head(scm *s, off_t o, off_t *p)
 
 int scm_read_data(scm *s, off_t o, double *p)
 {
+    return 0;
 }
 
 //------------------------------------------------------------------------------
+
+const char *scm_get_copyright(scm *sp)
+{
+    assert(sp);
+    return sp->copyright;
+}
 
 int scm_get_n(scm *sp)
 {
@@ -473,29 +513,6 @@ int scm_get_s(scm *sp)
 {
     assert(sp);
     return sp->s;
-}
-
-//------------------------------------------------------------------------------
-
-const char *scm_get_copyright(scm *sp)
-{
-    assert(sp);
-    return sp->copyright;
-}
-
-void scm_set_copyright(scm *sp, const char *str)
-{
-    assert(sp);
-    assert(str);
-
-    char *cpy;
-
-    if ((cpy = (char *) malloc(strlen(str) + 1)))
-    {
-        strcpy(cpy, str);
-        free(sp->copyright);
-        sp->copyright = cpy;
-    }
 }
 
 //------------------------------------------------------------------------------

@@ -17,17 +17,17 @@ void scm_close(scm *);
 off_t scm_append(scm *, off_t, int, const double *);
 off_t scm_rewind(scm *);
 
-off_t scm_read_head(scm *, off_t, off_t *);
-int   scm_read_data(scm *, off_t, double *);
+off_t scm_read_node(scm *, off_t, off_t *);
+int   scm_read_page(scm *, off_t, double *);
 
 //------------------------------------------------------------------------------
+
+const char *scm_get_copyright(scm *);
 
 int scm_get_n(scm *);
 int scm_get_c(scm *);
 int scm_get_b(scm *);
 int scm_get_s(scm *);
-
-const char *scm_get_copyright(scm *);
 
 void scm_get_bound(scm *, int, int, int, double *);
 

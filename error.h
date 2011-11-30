@@ -3,22 +3,18 @@
 #ifndef SCMTIFF_ERROR_H
 #define SCMTIFF_ERROR_H
 
+#include <errno.h>
+
 //------------------------------------------------------------------------------
 
-void set_executable(const char *);
+void printerr(const char *, int, int, const char *, ...);
 
-void app_err_exit(const char *, ...);
-void sys_err_exit(const char *, ...);
+//------------------------------------------------------------------------------
 
-void app_err_mesg(const char *, ...);
-void sys_err_mesg(const char *, ...);
-void app_wrn_mesg(const char *, ...);
-void sys_wrn_mesg(const char *, ...);
-void app_log_mesg(const char *, ...);
-void sys_log_mesg(const char *, ...);
+void setexe(const char *);
 
-int  app_err_zero(const char *, ...);
-int  sys_err_zero(const char *, ...);
+#define apperr(...) printerr(__FILE__, __LINE__, 0,     __VA_ARGS__)
+#define syserr(...) printerr(__FILE__, __LINE__, errno, __VA_ARGS__)
 
 //------------------------------------------------------------------------------
 
