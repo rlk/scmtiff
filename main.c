@@ -5,12 +5,14 @@
 
 int main(int argc, char **argv)
 {
+	double p[(64 + 2) * (64 + 2) * 3];
 	scm *s;
 
 	setexe(argv[0]);
 
-	if ((s = scm_ofile("test.tif", 512, 3, 1, 0, "Copyright (C) 2011 Foo")))
+	if ((s = scm_ofile("test.tif", 64, 3, 1, 0, "Copyright (C) 2011 Foo")))
 	{
+		scm_append(s, 0, 0, p);
 		scm_close(s);
 	}
 

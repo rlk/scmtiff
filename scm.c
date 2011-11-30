@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <time.h>
+#include <zlib.h>
 
 #include "scm.h"
 #include "error.h"
@@ -15,13 +16,16 @@
 
 struct scm
 {
-    FILE *fp;
-    char *copyright;
+    FILE *fp;                 // I/O file pointer
+    char *copyright;          // Copyright string
 
     int n;                    // Page sample count
     int c;                    // Sample channel count
     int b;                    // Channel bit count
     int s;                    // Channel signed flag
+
+    void  *bin;               // Bin scratch buffer pointer
+    void  *zip;               // Zip scratch buffer pointer
 };
 
 //------------------------------------------------------------------------------
@@ -270,7 +274,7 @@ static int get_ifd_b(struct ifd *ip)
     if ((ip->samples_per_pixel.offset > 1 && p[1] != p[0]) ||
         (ip->samples_per_pixel.offset > 2 && p[2] != p[0]) ||
         (ip->samples_per_pixel.offset > 3 && p[3] != p[0]))
-        apperr("TIFF samples do not have equal depth");
+        apperr("TIFF samples do not have same depth");
 
     return (int) p[0];
 }
@@ -284,7 +288,7 @@ static int get_ifd_s(struct ifd *ip)
     if ((ip->samples_per_pixel.offset > 1 && p[1] != p[0]) ||
         (ip->samples_per_pixel.offset > 2 && p[2] != p[0]) ||
         (ip->samples_per_pixel.offset > 3 && p[3] != p[0]))
-        apperr("TIFF samples do not have equal signedness");
+        apperr("TIFF samples do not have same signedness");
 
     if      (p[0] == 1) return 0;
     else if (p[0] == 2) return 1;
@@ -294,6 +298,99 @@ static int get_ifd_s(struct ifd *ip)
 }
 
 //------------------------------------------------------------------------------
+
+static void ftob(void *p, const double *f, int n, int b, int s)
+{
+}
+
+static void btof(double *f, const void *p, int n, int b, int s)
+{
+}
+
+static void hdif(void *p, int n)
+{
+}
+
+//------------------------------------------------------------------------------
+
+// Write IFD ip and data buffer p to FILE fp at offset o.
+
+static void make_page(FILE *fp, off_t o, struct ifd *ip, void *p, size_t n)
+{
+    if (fseeko(fp, o, SEEK_SET) == 0)
+    {
+        if (fwrite(ip, sizeof (struct ifd), 1, fp) == 1)
+        {
+            if (fwrite(p, 1, n, fp) == n)
+            {
+                pad2(fp);
+            }
+            else syserr("Failed to write SCM data");
+        }
+        else syserr("Failed to write SCM IFD");
+    }
+    else syserr("Failed to seek SCM");
+}
+
+// Update the IFD at offset p of FILE fp, setting child j to offset c.
+
+static void link_page(FILE *fp, off_t c, off_t o, int j)
+{
+    struct ifd i;
+
+    if (fseeko(fp, o, SEEK_SET) == 0)
+    {
+        if (fread(ip, sizeof (struct ifd), 1, fp) == 1)
+        {
+            i.ifds[j] = c;
+
+            if (fseeko(fp, o, SEEK_SET) == 0)
+            {
+                if (fwrite(ip, sizeof (struct ifd), 1, fp) == 1)
+                {
+                    if (fseeko(fp, 0, SEEK_END))
+                    {
+                    }
+                    else syserr("Failed to seek SCM");
+                }
+                else syserr("Failed to write SCM IFD");
+            }
+            else syserr("Failed to seek SCM");
+        }
+        else syserr("Failed to read SCM IFD");
+    }
+    else syserr("Failed to seek SCM");
+}
+
+//------------------------------------------------------------------------------
+
+// Allocate bin and zip scratch buffers for the given SCM.
+
+static int scm_buffers(scm *s)
+{
+    size_t bs = (s->n + 2) * (s->n + 2) * s->c * s->b;
+    size_t zs = compressBound(bs);
+
+    assert(bs);
+    assert(zs);
+
+    if ((s->bin = malloc(bs)))
+    {
+        if ((s->zip = malloc(zs)))
+        {
+            return 1;
+        }
+        else apperr("Failed to allocate zip scratch buffer");
+    }
+    else apperr("Failed to allocate bin scratch buffer");
+
+    free(s->zip);
+    s->zip = 0;
+    free(s->bin);
+    s->bin = 0;
+
+    return 0;
+}
 
 // Open an SCM TIFF output file. Initialize and return an SCM structure with the
 // given parameters. Write the TIFF header with padded copyright text.
@@ -396,17 +493,45 @@ void scm_close(scm *s)
     assert(s);
     fclose(s->fp);
     free(s->copyright);
+    free(s->binp);
+    free(s->zipp);
     free(s);
 }
 
 //------------------------------------------------------------------------------
 
-// Append a page at the current SCM TIFF file pointer. Offset o gives the parent
-// page. The parent will be updated to include the new page as child x. Assume p
-// points to a page of data to be converted to raw, compressed, and written.
+// Append a page at the current SCM TIFF file pointer. Offset p gives the parent
+// page. The parent will be updated to include the new page as child j. Assume d
+// points to a page of data to be converted to binary, compressed, and written.
 
-off_t scm_append(scm *s, off_t o, int x, const double *p)
+off_t scm_append(scm *s, off_t p, int j, const double *d)
 {
+    assert(s);
+    assert(d);
+    assert(j >= 0);
+    assert(j <= 3);
+
+    const size_t N = (s->n + 2) * (s->n + 2) * s->c;
+    struct ifd   i;
+
+    ftob(s->bin, p, N, s->s);
+    hdif(s->bin, N);
+
+    uLong zs = compressBound(N * s->b);
+
+    if (compress2(s->zip, &zs, s->bin, N * s->b, 9) == Z_OK)
+    {
+        if ((c = ftello(s->fp)) != -1)
+        {
+            set_ifd(&i, o, zs, strlen(s->copyright), s->n, s->c, s->b, s->s);
+
+            make_page(s, c, &i, s->zip, zs);
+            link_page(s, c, p, j);
+        }
+        else syserr("Failed to tell SCM");
+    }
+    else apperr("Failed to compress data");
+
     return 0;
 }
 
@@ -428,13 +553,13 @@ off_t scm_rewind(scm *s)
                 {
                     return (off_t) h.first_ifd;
                 }
-                else syserr("Failed to seeks SCM");
+                else syserr("Failed to seek SCM TIFF");
             }
             else apperr("File is not an SCM TIFF");
         }
-        else syserr("Failed to read SCM");
+        else syserr("Failed to read SCM TIFF");
     }
-    else syserr("Failed to seek SCM");
+    else syserr("Failed to seek SCM TIFF");
 
     return 0;
 }
@@ -468,9 +593,9 @@ off_t scm_read_head(scm *s, off_t o, off_t *p)
             }
             else apperr("File is not an SCM TIFF");
         }
-        else syserr("Failed to read SCM");
+        else syserr("Failed to read SCM TIFF");
     }
-    else syserr("Failed to seek SCM");
+    else syserr("Failed to seek SCM TIFF");
 
     return 0;
 }
