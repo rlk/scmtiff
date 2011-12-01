@@ -33,6 +33,10 @@ struct scm
 // specific set of fifteen fields in each IFD. LibTIFF4 has no trouble reading
 // this format, but its SubIFD API is not sufficient to write it.
 
+typedef struct header header;
+typedef struct field  field;
+typedef struct ifd    ifd;
+
 #pragma pack(push)
 #pragma pack(2)
 
@@ -57,22 +61,22 @@ struct ifd
 {
     uint64_t count;
 
-    struct field subfile_type;
-    struct field image_width;
-    struct field image_length;
-    struct field bits_per_sample;
-    struct field compression;
-    struct field interpretation;
-    struct field strip_offsets;
-    struct field orientation;
-    struct field samples_per_pixel;
-    struct field strip_byte_counts;
-    struct field configuration;
-    struct field datetime;
-    struct field predictor;
-    struct field sub_ifds;
-    struct field sample_format;
-    struct field copyright;
+    field subfile_type;
+    field image_width;
+    field image_length;
+    field bits_per_sample;
+    field compression;
+    field interpretation;
+    field strip_offsets;
+    field orientation;
+    field samples_per_pixel;
+    field strip_byte_counts;
+    field configuration;
+    field datetime;
+    field predictor;
+    field sub_ifds;
+    field sample_format;
+    field copyright;
 
     uint64_t next;
 
@@ -84,7 +88,7 @@ struct ifd
 
 //------------------------------------------------------------------------------
 
-static int align2(int t)
+static size_t align2(size_t t)
 {
     return (t & 1) ? (t + 1) : t;
 }
@@ -94,7 +98,7 @@ static int align2(int t)
 // file exactly once, immediately following the header. The length of this text
 // must be a multiple of two to meet TIFF alignment requirements.
 
-static void set_header(struct header *hp, size_t t)
+static void set_header(header *hp, size_t t)
 {
     assert((t & 1) == 0);
 
@@ -102,12 +106,12 @@ static void set_header(struct header *hp, size_t t)
     hp->version    = 0x002B;
     hp->offsetsize = 0x0008;
     hp->zero       = 0x0000;
-    hp->first_ifd  = (uint64_t) (sizeof (struct header) + t);
+    hp->first_ifd  = (uint64_t) (sizeof (header) + t);
 }
 
 // Initialize an SCM TIFF field.
 
-static void set_field(struct field *fp, int t, int y, size_t c, off_t o)
+static void set_field(field *fp, int t, int y, size_t c, off_t o)
 {
     fp->tag    = (uint16_t) t;
     fp->type   = (uint16_t) y;
@@ -121,20 +125,20 @@ static void set_field(struct field *fp, int t, int y, size_t c, off_t o)
 // bit count per channel. Some fields are assigned magic numbers defined in the
 // TIFF Specification Revision 6.0.
 
-static void set_ifd(struct ifd *ip, off_t o, size_t d, size_t t,
-                                     int n, int c, int b, int s)
+static void set_ifd(ifd *ip, off_t o, off_t x, size_t d, size_t t,
+                                       int n, int c, int b, int s)
 {
-    assert(s > 0);
+    assert(n > 0);
     assert(c > 0);
     assert(c < 5);
     assert(b > 0);
 
-    const size_t oi = o + offsetof (struct ifd, ifds);
-    const size_t od = o + offsetof (struct ifd, date);
-    const size_t os = o +   sizeof (struct ifd);
+    const size_t oi = o + offsetof (ifd, ifds);
+    const size_t od = o + offsetof (ifd, date);
+    const size_t os = o +   sizeof (ifd);
 
     ip->count   = 16;
-    ip->next    =  0;
+    ip->next    =  x;
     ip->ifds[0] =  0;
     ip->ifds[1] =  0;
     ip->ifds[2] =  0;
@@ -152,10 +156,10 @@ static void set_ifd(struct ifd *ip, off_t o, size_t d, size_t t,
     set_field(&ip->strip_byte_counts, 0x0117,  4,  1,  d);
     set_field(&ip->configuration,     0x011C,  3,  1,  1);
     set_field(&ip->datetime,          0x0132,  2, 20, od);
-    set_field(&ip->predictor,         0x013D,  3,  1,  2);
+    set_field(&ip->predictor,         0x013D,  3,  1,  1); // 2
     set_field(&ip->sub_ifds,          0x014A, 18,  4, oi);
     set_field(&ip->sample_format,     0x0153,  3,  c,  0);
-    set_field(&ip->copyright,         0x8298,  2,  t, sizeof (struct header));
+    set_field(&ip->copyright,         0x8298,  2,  t, sizeof (header));
 
     uint16_t *p;
 
@@ -185,7 +189,7 @@ static void set_ifd(struct ifd *ip, off_t o, size_t d, size_t t,
 
 //------------------------------------------------------------------------------
 
-static int is_header(struct header *hp)
+static int is_header(header *hp)
 {
     return (hp->endianness == 0x4949
         &&  hp->version    == 0x002B
@@ -193,7 +197,7 @@ static int is_header(struct header *hp)
         &&  hp->zero       == 0x0000);
 }
 
-static int is_ifd(struct ifd *ip)
+static int is_ifd(ifd *ip)
 {
     return (ip->count == 16
 
@@ -219,7 +223,7 @@ static int is_ifd(struct ifd *ip)
 
 // Read and return a newly-allocated copy of the copyright string.
 
-static char *get_ifd_copyright(struct ifd *ip, FILE *fp)
+static char *get_ifd_copyright(ifd *ip, FILE *fp)
 {
     const size_t len = ip->copyright.count;
     const off_t  off = ip->copyright.offset;
@@ -228,7 +232,7 @@ static char *get_ifd_copyright(struct ifd *ip, FILE *fp)
 
     if ((str = (char *) calloc(len + 1, 1)))
     {
-        if (fseeko(fp, SEEK_SET, off) == 0)
+        if (fseeko(fp, off, SEEK_SET) == 0)
         {
             if (fread(str, 1, len, fp) == len)
             {
@@ -246,17 +250,17 @@ static char *get_ifd_copyright(struct ifd *ip, FILE *fp)
 
 // Validate and return the page size.
 
-static int get_ifd_n(struct ifd *ip)
+static int get_ifd_n(ifd *ip)
 {
     if (ip->image_width.offset != ip->image_length.offset)
         apperr("TIFF page is not square");
 
-    return (int) ip->image_width.offset;
+    return (int) ip->image_width.offset - 2;
 }
 
 // Validate and return the channel count.
 
-static int get_ifd_c(struct ifd *ip)
+static int get_ifd_c(ifd *ip)
 {
     if (ip->samples_per_pixel.offset < 1 ||
         ip->samples_per_pixel.offset > 4)
@@ -267,7 +271,7 @@ static int get_ifd_c(struct ifd *ip)
 
 // Validate and return the channel depth.
 
-static int get_ifd_b(struct ifd *ip)
+static int get_ifd_b(ifd *ip)
 {
     uint16_t *p = (uint16_t *) (&ip->bits_per_sample.offset);
 
@@ -281,7 +285,7 @@ static int get_ifd_b(struct ifd *ip)
 
 // Validate and return the signedness.
 
-static int get_ifd_s(struct ifd *ip)
+static int get_ifd_s(ifd *ip)
 {
     uint16_t *p = (uint16_t *) (&ip->sample_format.offset);
 
@@ -299,76 +303,60 @@ static int get_ifd_s(struct ifd *ip)
 
 //------------------------------------------------------------------------------
 
-static void ftob(void *p, const double *f, int n, int b, int s)
+static void ftob(void *p, const double *f, size_t n, int b, int s)
 {
+    size_t i;
+
+    if      (b ==  8 && s == 0)
+        for (i = 0; i < n; ++i)
+            ((unsigned char  *) p)[i] = (unsigned char)  (f[i] * 255);
+
+    else if (b == 16 && s == 0)
+        for (i = 0; i < n; ++i)
+            ((unsigned short *) p)[i] = (unsigned short) (f[i] * 65535);
+
+    else if (b ==  8 && s == 1)
+        for (i = 0; i < n; ++i)
+            ((char  *) p)[i] = (char)  (f[i] * 127);
+
+    else if (b == 16 && s == 1)
+        for (i = 0; i < n; ++i)
+            ((short *) p)[i] = (short) (f[i] * 32767);
+
 }
 
-static void btof(double *f, const void *p, int n, int b, int s)
+static void btof(const void *p, double *f, size_t n, int b, int s)
 {
+    size_t i;
+
+    if      (b ==  8 && s == 0)
+        for (i = 0; i < n; ++i)
+            f[i] = ((unsigned char  *) p)[i] / 255.0;
+
+    else if (b == 16 && s == 0)
+        for (i = 0; i < n; ++i)
+            f[i] = ((unsigned short *) p)[i] / 65535.0;
+
+    else if (b ==  8 && s == 1)
+        for (i = 0; i < n; ++i)
+            f[i] = ((char  *) p)[i] / 127.0;
+
+    else if (b == 16 && s == 1)
+        for (i = 0; i < n; ++i)
+            f[i] = ((short *) p)[i] / 32767.0;
 }
 
-static void hdif(void *p, int n)
+static void hdif(void *p, size_t n)
 {
-}
-
-//------------------------------------------------------------------------------
-
-// Write IFD ip and data buffer p to FILE fp at offset o.
-
-static void make_page(FILE *fp, off_t o, struct ifd *ip, void *p, size_t n)
-{
-    if (fseeko(fp, o, SEEK_SET) == 0)
-    {
-        if (fwrite(ip, sizeof (struct ifd), 1, fp) == 1)
-        {
-            if (fwrite(p, 1, n, fp) == n)
-            {
-                pad2(fp);
-            }
-            else syserr("Failed to write SCM data");
-        }
-        else syserr("Failed to write SCM IFD");
-    }
-    else syserr("Failed to seek SCM");
-}
-
-// Update the IFD at offset p of FILE fp, setting child j to offset c.
-
-static void link_page(FILE *fp, off_t c, off_t o, int j)
-{
-    struct ifd i;
-
-    if (fseeko(fp, o, SEEK_SET) == 0)
-    {
-        if (fread(ip, sizeof (struct ifd), 1, fp) == 1)
-        {
-            i.ifds[j] = c;
-
-            if (fseeko(fp, o, SEEK_SET) == 0)
-            {
-                if (fwrite(ip, sizeof (struct ifd), 1, fp) == 1)
-                {
-                    if (fseeko(fp, 0, SEEK_END))
-                    {
-                    }
-                    else syserr("Failed to seek SCM");
-                }
-                else syserr("Failed to write SCM IFD");
-            }
-            else syserr("Failed to seek SCM");
-        }
-        else syserr("Failed to read SCM IFD");
-    }
-    else syserr("Failed to seek SCM");
 }
 
 //------------------------------------------------------------------------------
 
-// Allocate bin and zip scratch buffers for the given SCM.
+// Allocate properly-sized bin and zip scratch buffers for SCM s.
 
-static int scm_buffers(scm *s)
+static int scm_alloc(scm *s)
 {
-    size_t bs = (s->n + 2) * (s->n + 2) * s->c * s->b;
+    size_t bs = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
     size_t zs = compressBound(bs);
 
     assert(bs);
@@ -380,9 +368,7 @@ static int scm_buffers(scm *s)
         {
             return 1;
         }
-        else apperr("Failed to allocate zip scratch buffer");
     }
-    else apperr("Failed to allocate bin scratch buffer");
 
     free(s->zip);
     s->zip = 0;
@@ -392,13 +378,170 @@ static int scm_buffers(scm *s)
     return 0;
 }
 
+// Ensure that the current SCM TIFF position falls on a TIFF word boundary.
+
+static off_t scm_align(scm *s)
+{
+    char  c = 0;
+    off_t o;
+
+    if ((o = ftello(s->fp)) >= 0)
+    {
+        if ((o & 1))
+        {
+            if (fwrite(&c, 1, 1, s->fp) == 1)
+            {
+                return o + 1;
+            }
+            else syserr("Failed to align SCM");
+        }
+        return o;
+    }
+    else syserr("Failed to seek SCM");
+
+    return -1;
+}
+
+// Read an IFD at offset o of SCM TIFF s.
+
+static int scm_read_ifd(scm *s, ifd *i, off_t o)
+{
+    assert(s);
+    assert(i);
+
+    if (fseeko(s->fp, o, SEEK_SET) == 0)
+    {
+        if (fread(i, sizeof (ifd), 1, s->fp) == 1)
+        {
+            if (is_ifd(i))
+            {
+                return 1;
+            }
+            else apperr("File is not an SCM TIFF");
+        }
+        else syserr("Failed to read SCM IFD");
+    }
+    else syserr("Failed to seek SCM");
+
+    return -1;
+}
+
+// Write an IFD at offset o of SCM TIFF s.
+
+static int scm_write_ifd(scm *s, ifd *i, off_t o)
+{
+    assert(s);
+    assert(i);
+
+    if (fseeko(s->fp, o, SEEK_SET) == 0)
+    {
+        if (fwrite(i, sizeof (ifd), 1, s->fp) == 1)
+        {
+            return 1;
+        }
+        else syserr("Failed to write SCM IFD");
+    }
+    else syserr("Failed to seek SCM");
+
+    return -1;
+}
+
+// Update the IFD at offset o, setting child j to offset c.
+
+static int scm_link_ifd(scm *s, off_t o, int j, off_t c)
+{
+    if (o)
+    {
+        ifd i;
+
+        if (scm_read_ifd(s, &i, o))
+        {
+            i.ifds[j] = c;
+
+            if (scm_write_ifd(s, &i, o))
+            {
+                return 1;
+            }
+            else apperr("Failed to write parent IFD");
+        }
+        else apperr("Failed to read parent IFD");
+
+        return -1;
+    }
+    return 0;
+}
+
+// Encode, compress, and write buffer p at the current position in SCM TIFF s.
+
+static size_t scm_write_data(scm *s, const double *p)
+{
+    const size_t l = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
+    const size_t n = (s->n + 2) * (s->n + 2) * s->c;
+
+    ftob(s->bin, p, n, s->b, s->s);
+    hdif(s->bin, n);
+
+    uLong z = compressBound(l);
+
+    if (compress(s->zip, &z, s->bin, l) == Z_OK)
+    {
+        if (fwrite(s->zip, 1, z, s->fp) == z)
+        {
+            return z;
+        }
+        else syserr("Failed to write compressed data");
+    }
+    else apperr("Failed to compress data");
+
+    return 0;
+}
+
+// Read, uncompress, and decode the data at the current position in SCM TIFF s.
+
+static size_t scm_read_data(scm *s, double *p, size_t z)
+{
+    const size_t l = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
+    const size_t n = (s->n + 2) * (s->n + 2) * s->c;
+
+    uLong b = (uLong) l;
+
+    if (fread(s->zip, 1, z, s->fp) == z)
+    {
+        if (uncompress(s->bin, &b, s->zip, z) == Z_OK)
+        {
+            hdif(s->bin, n);
+            btof(s->bin, p, n, s->b, s->s);
+
+            return b;
+        }
+        else apperr("Failed to uncompress data");
+    }
+    else syserr("Failed to read compressed data");
+
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+
+void scm_close(scm *s)
+{
+    if (s)
+    {
+        fclose(s->fp);
+        free(s->copyright);
+        free(s->bin);
+        free(s->zip);
+        free(s);
+    }
+}
+
 // Open an SCM TIFF output file. Initialize and return an SCM structure with the
 // given parameters. Write the TIFF header with padded copyright text.
 
-scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
+scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
 {
     FILE *fp = NULL;
-    scm  *sp = NULL;
+    scm  *s  = NULL;
 
     assert(name);
     assert(n > 0);
@@ -408,23 +551,34 @@ scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
     assert(text);
 
     const  size_t t = align2(strlen(text));
-    struct header h;
+    header h;
 
     set_header(&h, t);
 
-    if ((fp = fopen(name, "wb")))
+    if ((fp = fopen(name, "w+b")))
     {
         if (fwrite(&h, sizeof (h), 1, fp) == 1)
         {
             if (fwrite(text, 1, t, fp) == t)
             {
-                if ((sp = (scm *) calloc(sizeof (scm), 1)))
+                if ((s = (scm *) calloc(sizeof (scm), 1)))
                 {
-                    sp->fp = fp;
-                    sp->n  = n;
-                    sp->c  = c;
-                    sp->b  = b;
-                    sp->s  = s;
+                    s->fp = fp;
+                    s->n  = n;
+                    s->c  = c;
+                    s->b  = b;
+                    s->s  = g;
+
+                    if (scm_alloc(s))
+                    {
+                        if ((s->copyright = calloc(t + 1, 1)))
+                        {
+                            strcpy(s->copyright, text);
+                            return s;
+                        }
+                        else syserr("Failed to allocate copyright text");
+                    }
+                    else syserr("Failed to allocate SCM scratch buffers");
                 }
                 else syserr("Failed to allocate SCM");
             }
@@ -434,7 +588,8 @@ scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
     }
     else syserr("Failed to open '%s'", name);
 
-    return sp;
+    scm_close(s);
+    return NULL;
 }
 
 // Open an SCM TIFF input file. Validate the header. Read and validate the first
@@ -443,10 +598,10 @@ scm *scm_ofile(const char *name, int n, int c, int b, int s, const char *text)
 scm *scm_ifile(const char *name)
 {
     FILE *fp = NULL;
-    scm  *sp = NULL;
+    scm  *s  = NULL;
 
-    struct header h;
-    struct ifd    i;
+    header h;
+    ifd    i;
 
     assert(name);
 
@@ -456,28 +611,27 @@ scm *scm_ifile(const char *name)
         {
             if (is_header(&h))
             {
-                if (fseeko(fp, (off_t) h.first_ifd, SEEK_SET) == 0)
+                if ((s = (scm *) calloc(sizeof (scm), 1)))
                 {
-                    if (fread(&i, sizeof (i), 1, fp) == 1)
+                    s->fp = fp;
+
+                    if (scm_read_ifd(s, &i, (off_t) h.first_ifd) == 1)
                     {
-                        if (is_ifd(&i))
+                        s->copyright = get_ifd_copyright(&i, fp);
+                        s->n         = get_ifd_n(&i);
+                        s->c         = get_ifd_c(&i);
+                        s->b         = get_ifd_b(&i);
+                        s->s         = get_ifd_s(&i);
+
+                        if (scm_alloc(s))
                         {
-                            if ((sp = (scm *) calloc(sizeof (scm), 1)))
-                            {
-                                sp->copyright = get_ifd_copyright(&i, fp);
-                                sp->n         = get_ifd_n(&i);
-                                sp->c         = get_ifd_c(&i);
-                                sp->b         = get_ifd_b(&i);
-                                sp->s         = get_ifd_s(&i);
-                                sp->fp        = fp;
-                            }
-                            else syserr("Failed to allocate SCM");
+                            return s;
                         }
-                        else apperr("'%s' is not an SCM TIFF", name);
+                        else syserr("Failed to allocate SCM scratch buffers");
                     }
-                    else syserr("Failed to read '%s' IFD", name);
+                    else syserr("Failed to read '%s' first IFD", name);
                 }
-                else syserr("Failed to seek '%s' IFD", name);
+                else syserr("Failed to allocate SCM");
             }
             else apperr("'%s' is not an SCM TIFF", name);
         }
@@ -485,17 +639,8 @@ scm *scm_ifile(const char *name)
     }
     else syserr("Failed to open '%s'", name);
 
-    return sp;
-}
-
-void scm_close(scm *s)
-{
-    assert(s);
-    fclose(s->fp);
-    free(s->copyright);
-    free(s->binp);
-    free(s->zipp);
-    free(s);
+    scm_close(s);
+    return NULL;
 }
 
 //------------------------------------------------------------------------------
@@ -504,33 +649,52 @@ void scm_close(scm *s)
 // page. The parent will be updated to include the new page as child j. Assume d
 // points to a page of data to be converted to binary, compressed, and written.
 
-off_t scm_append(scm *s, off_t p, int j, const double *d)
+off_t scm_append(scm *s, off_t o, int j, const double *p)
 {
     assert(s);
-    assert(d);
+    assert(p);
     assert(j >= 0);
     assert(j <= 3);
 
-    const size_t N = (s->n + 2) * (s->n + 2) * s->c;
-    struct ifd   i;
+    size_t t = s->copyright ? strlen(s->copyright) : 0;
+    size_t d;
+    off_t  c;
+    off_t  x;
+    ifd    i;
 
-    ftob(s->bin, p, N, s->s);
-    hdif(s->bin, N);
-
-    uLong zs = compressBound(N * s->b);
-
-    if (compress2(s->zip, &zs, s->bin, N * s->b, 9) == Z_OK)
+    if ((c = ftello(s->fp)) >= 0)
     {
-        if ((c = ftello(s->fp)) != -1)
-        {
-            set_ifd(&i, o, zs, strlen(s->copyright), s->n, s->c, s->b, s->s);
+        set_ifd(&i, c, 0, 0, t, s->n, s->c, s->b, s->s);
 
-            make_page(s, c, &i, s->zip, zs);
-            link_page(s, c, p, j);
+        if (scm_write_ifd(s, &i, c) == 1)
+        {
+            if ((d = scm_write_data(s, p)) > 0)
+            {
+                if ((x = scm_align(s)))
+                {
+                    set_ifd(&i, c, x, d, t, s->n, s->c, s->b, s->s);
+
+                    if (scm_write_ifd(s, &i, c) == 1)
+                    {
+                        if (scm_link_ifd(s, o, j, c) >= 0)
+                        {
+                            if (fseeko(s->fp, 0, SEEK_END) == 0)
+                            {
+                                return c;
+                            }
+                            else syserr("Failed to seek SCM");
+                        }
+                        else apperr("Failed to link parent IFD");
+                    }
+                    else apperr("Failed to re-write IFD");
+                }
+                else syserr("Failed to align SCM");
+            }
+            else apperr("Failed to write data");
         }
-        else syserr("Failed to tell SCM");
+        else apperr("Failed to pre-write IFD");
     }
-    else apperr("Failed to compress data");
+    else syserr("Failed to tell SCM");
 
     return 0;
 }
@@ -539,7 +703,7 @@ off_t scm_append(scm *s, off_t p, int j, const double *d)
 
 off_t scm_rewind(scm *s)
 {
-    struct header h;
+    header h;
 
     assert(s);
 
@@ -566,46 +730,46 @@ off_t scm_rewind(scm *s)
 
 //------------------------------------------------------------------------------
 
+
 // Read the SCM TIFF IFD at offset o. Return the offset of the next IFD. If p is
 // non-null, assume it provides storage for four offsets and copy the offsets of
 // any child IFDs there.
 
-off_t scm_read_head(scm *s, off_t o, off_t *p)
+off_t scm_read_node(scm *s, off_t o, off_t *p)
 {
-    struct ifd i;
+    ifd i;
 
     assert(s);
 
-    if (fseeko(s->fp, o, SEEK_SET) == 0)
+    if (scm_read_ifd(s, &i, o) == 1)
     {
-        if (fread(&i, sizeof (i), 1, s->fp) == 1)
+        if (p)
         {
-            if (is_ifd(&i))
-            {
-                if (p)
-                {
-                    p[0] = (off_t) i.ifds[0];
-                    p[1] = (off_t) i.ifds[1];
-                    p[2] = (off_t) i.ifds[2];
-                    p[3] = (off_t) i.ifds[3];
-                }
-                return (off_t) i.next;
-            }
-            else apperr("File is not an SCM TIFF");
+            p[0] = (off_t) i.ifds[0];
+            p[1] = (off_t) i.ifds[1];
+            p[2] = (off_t) i.ifds[2];
+            p[3] = (off_t) i.ifds[3];
         }
-        else syserr("Failed to read SCM TIFF");
     }
-    else syserr("Failed to seek SCM TIFF");
+    else apperr("Failed to read SCM TIFF IFD");
 
     return 0;
 }
 
-// Read the SCM TIFF IFD at offset o. If p is non-null, assume it provides space
-// for one page of data to be decompressed, converted to double, and stored.
+// Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
+// data to be decompressed, converted to double, and stored. If the offset is
+// invalid, quietly return failure.
 
-int scm_read_data(scm *s, off_t o, double *p)
+int scm_read_page(scm *s, off_t o, double *p)
 {
-    return 0;
+    ifd i;
+
+    assert(s);
+
+    if (scm_read_ifd(s, &i, o) == 1)
+        return scm_read_data(s, p, (size_t) i.strip_byte_counts.offset);
+    else
+        return 0;
 }
 
 //------------------------------------------------------------------------------
