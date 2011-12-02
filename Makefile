@@ -4,7 +4,7 @@ CP = cp
 TARG = scmtiff
 OPTS = -g -Wall
 LIBS = -ljpeg -ltiff -lpng -lz
-OBJS = error.o scm.o main.o
+OBJS = error.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o normal.o main.o
 
 ifneq ($(wildcard /opt/local),)
 	OPTS += -I/opt/local/include
