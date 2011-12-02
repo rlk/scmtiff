@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <math.h>
 #include <time.h>
 #include <zlib.h>
 
@@ -939,23 +940,149 @@ void scm_get_catalog(scm *s, int d, off_t *v)
 
 //------------------------------------------------------------------------------
 
+// Calculate the number of pages in an SCM of depth d.
+
 int scm_get_page_count(int d)
 {
     return (1 << (2 * d + 3)) - 2;
 }
+
+// Calculate the breadth-first index of the ith child of page p.
 
 int scm_get_page_child(int p, int i)
 {
     return 6 + 4 * p + i;
 }
 
+// Calculate the breadth-first index of the parent of page i.
+
 int scm_get_page_parent(int i)
 {
     return (i - 6) / 4;
 }
 
-void scm_get_sample_corners(int i, int r, int c, int n, double *p)
+// Calculate the order (child index) of page i.
+
+int scm_get_page_order(int i)
 {
+    return (i - 6) - ((i - 6) / 4) * 4;
+}
+
+//------------------------------------------------------------------------------
+
+#define NORM3 0.5773502691896258
+
+static const double page_v[8][3] = {
+    {  NORM3,  NORM3,  NORM3 },
+    { -NORM3,  NORM3,  NORM3 },
+    {  NORM3, -NORM3,  NORM3 },
+    { -NORM3, -NORM3,  NORM3 },
+    {  NORM3,  NORM3, -NORM3 },
+    { -NORM3,  NORM3, -NORM3 },
+    {  NORM3, -NORM3, -NORM3 },
+    { -NORM3, -NORM3, -NORM3 },
+};
+
+static const int page_i[6][4] = {
+    { 0, 4, 2, 6 },
+    { 5, 1, 7, 3 },
+    { 5, 4, 1, 0 },
+    { 3, 2, 7, 6 },
+    { 1, 0, 3, 2 },
+    { 4, 5, 6, 7 },
+};
+
+static void _get_page_corners(int i, int d, const double *A,
+                                            const double *B,
+                                            const double *C,
+                                            const double *D, double *p)
+{
+    memcpy(p + i * 12 + 0, A, 3 * sizeof (double));
+    memcpy(p + i * 12 + 3, B, 3 * sizeof (double));
+    memcpy(p + i * 12 + 6, C, 3 * sizeof (double));
+    memcpy(p + i * 12 + 9, D, 3 * sizeof (double));
+
+    if (d)
+    {
+        double N[3];
+        double S[3];
+        double W[3];
+        double E[3];
+        double M[3];
+
+        mid2(N, A, B);
+        mid2(S, C, D);
+        mid2(W, A, C);
+        mid2(E, B, D);
+        mid4(M, A, B, C, D);
+
+        _get_page_corners(scm_get_page_child(i, 0), d - 1, A, N, W, M, p);
+        _get_page_corners(scm_get_page_child(i, 1), d - 1, N, B, M, E, p);
+        _get_page_corners(scm_get_page_child(i, 2), d - 1, W, M, C, S, p);
+        _get_page_corners(scm_get_page_child(i, 3), d - 1, M, E, S, D, p);
+    }
+}
+
+void scm_get_page_corners(int d, double *p)
+{
+    int i;
+
+    for (i = 0; i < 6; ++i)
+        _get_page_corners(i, d, page_v[page_i[i][0]],
+                                page_v[page_i[i][1]],
+                                page_v[page_i[i][2]],
+                                page_v[page_i[i][3]], p);
+}
+
+//------------------------------------------------------------------------------
+
+void mid2(double *m, const double *a, const double *b)
+{
+    m[0] = a[0] + b[0];
+    m[1] = a[1] + b[1];
+    m[2] = a[2] + b[2];
+
+    double k = 1.0 / sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
+
+    m[0] *= k;
+    m[1] *= k;
+    m[2] *= k;
+}
+
+void mid4(double *m, const double *a, const double *b,
+                     const double *c, const double *d)
+{
+    m[0] = a[0] + b[0] + c[0] + d[0];
+    m[1] = a[1] + b[1] + c[1] + d[1];
+    m[2] = a[2] + b[2] + c[2] + d[2];
+
+    double k = 1.0 / sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
+
+    m[0] *= k;
+    m[1] *= k;
+    m[2] *= k;
+}
+
+void slerp1(double *a, const double *b, const double *c, double t)
+{
+    const double k = acos(b[0] * c[0] + b[1] * c[1] + b[2] * c[2]);
+    const double u = sin(k - t * k) / sin(k);
+    const double v = sin(    t * k) / sin(k);
+
+    a[0] = b[0] * u + c[0] * v;
+    a[1] = b[1] * u + c[1] * v;
+    a[2] = b[2] * u + c[2] * v;
+}
+
+void slerp2(double *v, const double *a, const double *b,
+                       const double *c, const double *d, double x, double y)
+{
+    double t[3];
+    double u[3];
+
+    slerp1(t, a, b, x);
+    slerp1(u, c, d, x);
+    slerp1(v, t, u, y);
 }
 
 //------------------------------------------------------------------------------

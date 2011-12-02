@@ -7,6 +7,20 @@
 
 typedef struct img img;
 
+struct img
+{
+    void *p;
+    int   w;
+    int   h;
+    int   c;
+    int   b;
+    int   s;
+
+    void (*sample)(img *, const double *, double *);
+};
+
+//------------------------------------------------------------------------------
+
 img *jpg_load(const char *);
 img *png_load(const char *);
 img *tif_load(const char *);
@@ -17,11 +31,7 @@ void img_close(img *);
 
 //------------------------------------------------------------------------------
 
-void img_sample(const double *);
-
-int img_get_c(img *);
-int img_get_b(img *);
-int img_get_s(img *);
+void img_sample_test(img *, const double *, double *);
 
 //------------------------------------------------------------------------------
 

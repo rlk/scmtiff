@@ -39,11 +39,22 @@ void scm_get_catalog(scm *, int, off_t *);
 //------------------------------------------------------------------------------
 // SCM TIFF breadth-first page index relationships
 
-int scm_get_page_count (int);
-int scm_get_page_child (int, int);
-int scm_get_page_parent(int);
+int  scm_get_page_count  (int);
+int  scm_get_page_child  (int, int);
+int  scm_get_page_parent (int);
+int  scm_get_page_order  (int);
+void scm_get_page_corners(int, double *);
 
-void scm_get_sample_corners(int, int, int, int, double *);
+//------------------------------------------------------------------------------
+// Midpoint and spherical linear interpolation calculator utilities
+
+void mid2(double *, const double *, const double *);
+void mid4(double *, const double *, const double *,
+                    const double *, const double *);
+
+void slerp1(double *, const double *, const double *, double);
+void slerp2(double *, const double *, const double *,
+                      const double *, const double *, double, double);
 
 //------------------------------------------------------------------------------
 
