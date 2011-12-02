@@ -24,8 +24,8 @@ struct scm
     int b;                    // Channel bit count
     int s;                    // Channel signed flag
 
-    void  *bin;               // Bin scratch buffer pointer
-    void  *zip;               // Zip scratch buffer pointer
+    void *bin;                // Bin scratch buffer pointer
+    void *zip;                // Zip scratch buffer pointer
 };
 
 //------------------------------------------------------------------------------
@@ -614,6 +614,10 @@ static size_t scm_read_data(scm *s, double *p, size_t z)
 
 //------------------------------------------------------------------------------
 
+// Release all resources associated with SCM s. This function may be used to
+// clean up an error during initialization, so don't assume that the structure
+// is fully populated.
+
 void scm_close(scm *s)
 {
     if (s)
@@ -873,34 +877,85 @@ size_t scm_read_page(scm *s, off_t o, double *p)
 
 //------------------------------------------------------------------------------
 
-const char *scm_get_copyright(scm *sp)
+const char *scm_get_copyright(scm *s)
 {
-    assert(sp);
-    return sp->copyright;
+    assert(s);
+    return s->copyright;
 }
 
-int scm_get_n(scm *sp)
+int scm_get_n(scm *s)
 {
-    assert(sp);
-    return sp->n;
+    assert(s);
+    return s->n;
 }
 
-int scm_get_c(scm *sp)
+int scm_get_c(scm *s)
 {
-    assert(sp);
-    return sp->c;
+    assert(s);
+    return s->c;
 }
 
-int scm_get_b(scm *sp)
+int scm_get_b(scm *s)
 {
-    assert(sp);
-    return sp->b;
+    assert(s);
+    return s->b;
 }
 
-int scm_get_s(scm *sp)
+int scm_get_s(scm *s)
 {
-    assert(sp);
-    return sp->s;
+    assert(s);
+    return s->s;
+}
+
+//------------------------------------------------------------------------------
+
+// Recursively traverse an SCM TIFF file to determine the offset of each page.
+// Populate an array giving a mapping from page index to file offset. This
+// mapping may be sparse, and a zero offset indicates a missing page.
+
+static void _get_catalog(scm *s, int i, off_t *v, off_t o)
+{
+    if (o)
+    {
+        off_t c[4];
+
+        v[i] = o;
+
+        scm_read_node(s, o, c);
+
+        _get_catalog(s, scm_get_page_child(o, 0), v, c[0]);
+        _get_catalog(s, scm_get_page_child(o, 1), v, c[1]);
+        _get_catalog(s, scm_get_page_child(o, 2), v, c[2]);
+        _get_catalog(s, scm_get_page_child(o, 3), v, c[3]);
+    }
+}
+
+void scm_get_catalog(scm *s, int d, off_t *v)
+{
+    memset(v, 0, scm_get_page_count(d) * sizeof (off_t));
+
+    _get_catalog(s, 0, v, scm_rewind(s));
+}
+
+//------------------------------------------------------------------------------
+
+int scm_get_page_count(int d)
+{
+    return (1 << (2 * d + 3)) - 2;
+}
+
+int scm_get_page_child(int p, int i)
+{
+    return 6 + 4 * p + i;
+}
+
+int scm_get_page_parent(int i)
+{
+    return (i - 6) / 4;
+}
+
+void scm_get_sample_corners(int i, int r, int c, int n, double *p)
+{
 }
 
 //------------------------------------------------------------------------------
