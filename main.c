@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "scm.h"
-#include "error.h"
+#include "err.h"
 
 //------------------------------------------------------------------------------
 

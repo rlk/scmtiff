@@ -11,7 +11,7 @@
 #include <zlib.h>
 
 #include "scm.h"
-#include "error.h"
+#include "err.h"
 
 //------------------------------------------------------------------------------
 
@@ -571,7 +571,7 @@ static size_t scm_write_data(scm *s, const double *p)
     const size_t n = (s->n + 2) * (s->n + 2) * s->c;
 
     ftob(s->bin, p, n, s->b, s->s);
-    hdif(s->bin, n);
+    // hdif(s->bin, n);
 
     uLong z = compressBound(l);
 
@@ -601,7 +601,7 @@ static size_t scm_read_data(scm *s, double *p, size_t z)
     {
         if (uncompress(s->bin, &b, s->zip, z) == Z_OK)
         {
-            hdif(s->bin, n);
+            // hdif(s->bin, n);
             btof(s->bin, p, n, s->b, s->s);
 
             return b;
