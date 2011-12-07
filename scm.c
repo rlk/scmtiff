@@ -78,6 +78,7 @@ struct ifd
     field sub_ifds;
     field sample_format;
     field copyright;
+    field page_index;
 
     uint64_t next;
 
@@ -127,7 +128,7 @@ static void set_field(field *fp, int t, int y, size_t c, off_t o)
 // TIFF Specification Revision 6.0.
 
 static void set_ifd(ifd *ip, off_t o, size_t d, size_t t,
-                             int n, int c, int b, int s)
+                    int x, int n, int c, int b, int s)
 {
     assert(n > 0);
     assert(c > 0);
@@ -138,7 +139,7 @@ static void set_ifd(ifd *ip, off_t o, size_t d, size_t t,
     const size_t od = o + offsetof (ifd, date);
     const size_t os = o +   sizeof (ifd);
 
-    ip->count   = 16;
+    ip->count   = 17;
     ip->next    =  0;
     ip->ifds[0] =  0;
     ip->ifds[1] =  0;
@@ -161,6 +162,7 @@ static void set_ifd(ifd *ip, off_t o, size_t d, size_t t,
     set_field(&ip->sub_ifds,          0x014A, 18,  4, oi);
     set_field(&ip->sample_format,     0x0153,  3,  c,  0);
     set_field(&ip->copyright,         0x8298,  2,  t, sizeof (header));
+    set_field(&ip->page_index,        0xFFB1,  4,  1,  x);
 
     uint16_t *p;
 
@@ -200,7 +202,7 @@ static int is_header(header *hp)
 
 static int is_ifd(ifd *ip)
 {
-    return (ip->count == 16
+    return (ip->count == 17
 
         &&  ip->subfile_type.tag      == 0x00FE
         &&  ip->image_width.tag       == 0x0100
@@ -217,7 +219,8 @@ static int is_ifd(ifd *ip)
         &&  ip->predictor.tag         == 0x013D
         &&  ip->sub_ifds.tag          == 0x014A
         &&  ip->sample_format.tag     == 0x0153
-        &&  ip->copyright.tag         == 0x8298);
+        &&  ip->copyright.tag         == 0x8298
+        &&  ip->page_index.tag        == 0xFFB1);
 }
 
 //------------------------------------------------------------------------------
@@ -746,7 +749,7 @@ scm *scm_ifile(const char *name)
 // be updated to include the new page as child n. dat points to a page of data
 // to be written. Return the offset of the end of the new page (the next IFD).
 
-off_t scm_append(scm *s, off_t l, off_t p, int n, const double *dat)
+off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *dat)
 {
     assert(s);
     assert(dat);
@@ -760,7 +763,7 @@ off_t scm_append(scm *s, off_t l, off_t p, int n, const double *dat)
 
     if ((o = ftello(s->fp)) >= 0)
     {
-        set_ifd(&i, o, 0, t, s->n, s->c, s->b, s->s);
+        set_ifd(&i, o, 0, t, x, s->n, s->c, s->b, s->s);
 
         if (scm_write_ifd(s, &i, o) == 1)
         {
@@ -768,11 +771,11 @@ off_t scm_append(scm *s, off_t l, off_t p, int n, const double *dat)
             {
                 if (scm_align(s) >= 0)
                 {
-                    set_ifd(&i, o, d, t, s->n, s->c, s->b, s->s);
+                    set_ifd(&i, o, d, t, x, s->n, s->c, s->b, s->s);
 
                     if (scm_write_ifd(s, &i, o) == 1)
                     {
-                        if (scm_link_list(s, o, l) >= 0)
+                        if (scm_link_list(s, o, b) >= 0)
                         {
                             if (scm_link_tree(s, o, p, n) >= 0)
                             {
@@ -823,26 +826,36 @@ off_t scm_rewind(scm *s)
 //------------------------------------------------------------------------------
 
 // Read the SCM TIFF IFD at offset o. Return the offset of the next IFD. If p is
-// non-null, assume it can store four offsets and copy the SubIFDs there.
+// non-null, assume it can store four offsets and copy the SubIFDs there. If d
+// is non-null, store the page index there. If o is zero, read the first node,
+// as given by the TIFF header.
 
-off_t scm_read_node(scm *s, off_t o, off_t *p)
+off_t scm_read_node(scm *s, off_t o, off_t *v, int *d)
 {
     ifd i;
 
     assert(s);
 
-    if (scm_read_ifd(s, &i, o) == 1)
+    if (o)
     {
-        if (p)
+        if (scm_read_ifd(s, &i, o) == 1)
         {
-            p[0] = (off_t) i.ifds[0];
-            p[1] = (off_t) i.ifds[1];
-            p[2] = (off_t) i.ifds[2];
-            p[3] = (off_t) i.ifds[3];
+            if (d)
+                d[0] = (int) i.page_index.offset;
+            if (v)
+            {
+                v[0] = (off_t) i.ifds[0];
+                v[1] = (off_t) i.ifds[1];
+                v[2] = (off_t) i.ifds[2];
+                v[3] = (off_t) i.ifds[3];
+            }
+            return (off_t) i.next;
         }
-        return (off_t) i.next;
+        else apperr("Failed to read SCM TIFF IFD");
     }
-    else apperr("Failed to read SCM TIFF IFD");
+    else
+        if ((o = scm_rewind(s)))
+            return scm_read_node(s, o, v, d);
 
     return 0;
 }
@@ -873,6 +886,34 @@ size_t scm_read_page(scm *s, off_t o, double *p)
     }
     else apperr("Failed to read SCM TIFF IFD");
 
+    return 0;
+}
+
+// Scan the given SCM and count the pages. Allocate and initialize arrays
+// giving the breadth-first index and file offset of each page.
+
+int scm_catalog(scm *s, int **xv, off_t **ov)
+{
+    int c = 0;
+    int j = 0;
+    int x;
+
+    off_t o;
+
+    for (o = scm_read_node(s, 0, 0, &x); o; o = scm_read_node(s, o, 0, &x))
+        c++;
+
+    if ((*ov = (off_t *) calloc(c, sizeof (off_t))) &&
+        (*xv = (int   *) calloc(c, sizeof (int))))
+    {
+        for (o = scm_read_node(s, 0, 0, &x); o; o = scm_read_node(s, o, 0, &x))
+        {
+            (*ov)[j] = o;
+            (*xv)[j] = x;
+            j++;
+        }
+        return c;
+    }
     return 0;
 }
 
@@ -913,7 +954,7 @@ int scm_get_s(scm *s)
 // Recursively traverse an SCM TIFF file to determine the offset of each page.
 // Populate an array giving a mapping from page index to file offset. This
 // mapping may be sparse, and a zero offset indicates a missing page.
-
+#if 0
 static void _get_catalog(scm *s, int i, off_t *v, off_t o)
 {
     if (o)
@@ -931,13 +972,13 @@ static void _get_catalog(scm *s, int i, off_t *v, off_t o)
     }
 }
 
-void scm_get_catalog(scm *s, int d, off_t *v)
+int scm_get_catalog(scm *s, int *iv off_t *ov)
 {
     memset(v, 0, scm_get_page_count(d) * sizeof (off_t));
 
     _get_catalog(s, 0, v, scm_rewind(s));
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 // Calculate the number of pages in an SCM of depth d.

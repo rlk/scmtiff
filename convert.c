@@ -38,6 +38,40 @@ static double avg5(double a, double b, double c, double d, double e)
 
 //------------------------------------------------------------------------------
 
+// Compute the corner vectors of the pixel at row i column j of the n-by-n page
+// with corners c. Sample that pixel by projection into image p using a quincunx
+// filtering patterns. This do-it-all function forms the kernel of the OpenMP
+// parallelization.
+
+static int sample(img *p, int i, int j, int n, const double *c, double *x)
+{
+    double v[12];
+    double w[15];
+    double t[20];
+
+    int k = 0;
+
+    corner_vectors(v, c, i, j, n);
+    sample_vectors(w, v);
+
+    k += p->sample(p, w + 12, t + 16);
+    k += p->sample(p, w +  9, t + 12);
+    k += p->sample(p, w +  6, t +  8);
+    k += p->sample(p, w +  3, t +  4);
+    k += p->sample(p, w +  0, t +  0);
+
+    if (k)
+        switch (p->c)
+        {
+            case 4: x[3] = avg5(t[3], t[7], t[11], t[15], t[19]);
+            case 3: x[2] = avg5(t[2], t[6], t[10], t[14], t[18]);
+            case 2: x[1] = avg5(t[1], t[5], t[ 9], t[13], t[17]);
+            case 1: x[0] = avg5(t[0], t[4], t[ 8], t[12], t[16]);
+        }
+
+    return k;
+}
+
 int process(scm *s, img *p, int d)
 {
     const int M = scm_get_page_count(d);
@@ -45,57 +79,38 @@ int process(scm *s, img *p, int d)
     const int N = scm_get_n(s) + 2;
     const int C = scm_get_c(s);
 
-    off_t  *cat;
-    double *dat;
     double *vec;
+    double *dat;
 
     if ((vec = (double *) calloc(M * 12,    sizeof (double))) &&
         (dat = (double *) calloc(N * N * C, sizeof (double))))
     {
-        if ((cat = (off_t *) calloc(M, sizeof (off_t))))
+        const int x0 = d ? scm_get_page_count(d - 1) : 0;
+        const int x1 = d ? scm_get_page_count(d)     : 6;
+
+        off_t b = 0;
+        int   x;
+
+        scm_get_page_corners(d, vec);
+
+        for (x = x0; x < x1; ++x)
         {
-            int i;
+            int k = 0;
             int r;
             int c;
 
-            scm_get_page_corners(d, vec);
+            memset(dat, 0, N * N * C * sizeof (double));
 
-            for (i = 0; i < M; ++i)
-            {
-                memset(dat, 0, N * N * C * sizeof (double));
+            #pragma omp parallel for private(c) reduction(+:k)
 
-                for     (r = 0; r < n; ++r)
-                    for (c = 0; c < n; ++c)
-                    {
-                        double v[12];
-                        double w[15];
-                        double t[20];
+            for     (r = 0; r < n; ++r)
+                for (c = 0; c < n; ++c)
+                    k += sample(p, r, c, N, vec + x * 12,
+                                            dat + C * ((r + 1) * N + (c + 1)));
 
-                        corner_vectors(v, vec + i * 12, r, c, n);
-                        sample_vectors(w, v);
-
-                        p->sample(p, w + 12, t + 16);
-                        p->sample(p, w +  9, t + 12);
-                        p->sample(p, w +  6, t +  8);
-                        p->sample(p, w +  3, t +  4);
-                        p->sample(p, w +  0, t +  0);
-
-                        double *x = dat + C * ((r + 1) * N + (c + 1));
-
-                        if (C > 0) x[0] = avg5(t[0], t[4], t[ 8], t[12], t[16]);
-                        if (C > 1) x[1] = avg5(t[1], t[5], t[ 9], t[13], t[17]);
-                        if (C > 2) x[2] = avg5(t[2], t[6], t[10], t[14], t[18]);
-                        if (C > 3) x[3] = avg5(t[3], t[7], t[11], t[15], t[19]);
-                    }
-
-                const off_t l = (i < 1) ? 0 : cat[i - 1];
-                const off_t p = (i < 6) ? 0 : cat[scm_get_page_parent(i)];
-                const int   n = (i < 6) ? 0 :     scm_get_page_order (i);
-
-                cat[i] = scm_append(s, l, p, n, dat);
-            }
-            free(cat);
+            if (k) b = scm_append(s, b, 0, 0, x, dat);
         }
+
         free(dat);
         free(vec);
     }

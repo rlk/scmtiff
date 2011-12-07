@@ -1,10 +1,13 @@
+
+EXES= scmtiff scmview
+
+#-------------------------------------------------------------------------------
+
 CC = cc
 CP = cp
+RM = rm -f
 
-TARG = scmtiff
-OPTS = -g -Wall
-LIBS = -ljpeg -ltiff -lpng -lz
-OBJS = err.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o normal.o main.o
+CFLAGS = -g -Wall
 
 ifneq ($(wildcard /opt/local),)
 	OPTS += -I/opt/local/include
@@ -12,13 +15,22 @@ ifneq ($(wildcard /opt/local),)
 endif
 
 %.o : %.c
-	$(CC) $(OPTS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
-$(TARG) : $(OBJS)
-	$(CC) $(OPTS) -o $(TARG) $(OBJS) $(LIBS)
+#-------------------------------------------------------------------------------
 
-install : $(TARG)
-	$(CP) $(TARG) $(HOME)/bin
+all : $(EXES);
+
+install : $(EXES)
+	$(CP) $(EXES) $(HOME)/bin
 
 clean :
-	$(RM) $(TARG) $(OBJS)
+	$(RM) $(EXES) *.o
+
+#-------------------------------------------------------------------------------
+
+scmtiff : err.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o normal.o scmtiff.o
+	$(CC) $(CFLAGS) -o $@ $^ -ljpeg -ltiff -lpng -lz
+
+scmview : err.o scm.o img.o scmview.o
+	$(CC) $(CFLAGS) -o $@ $^ -framework OpenGL -framework GLUT -lz

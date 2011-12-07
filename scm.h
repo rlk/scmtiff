@@ -18,11 +18,12 @@ void scm_close(scm *);
 //------------------------------------------------------------------------------
 // SCM TIFF file read/write.
 
-off_t scm_append(scm *, off_t, off_t, int, const double *);
-off_t scm_rewind(scm *);
+off_t  scm_append(scm *, off_t, off_t, int, int, const double *);
 
-off_t  scm_read_node(scm *, off_t, off_t *);
+off_t  scm_read_node(scm *, off_t, off_t *, int *);
 size_t scm_read_page(scm *, off_t, double *);
+
+int    scm_catalog(scm *, int **, off_t **);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries
@@ -33,8 +34,6 @@ int scm_get_n(scm *);
 int scm_get_c(scm *);
 int scm_get_b(scm *);
 int scm_get_s(scm *);
-
-void scm_get_catalog(scm *, int, off_t *);
 
 //------------------------------------------------------------------------------
 // SCM TIFF breadth-first page index relationships

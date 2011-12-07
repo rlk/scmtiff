@@ -16,9 +16,9 @@ struct img
     int   b;
     int   s;
 
-    void (*get)(img *, int, int, double *);
+    int (*get)(img *, int, int, double *);
 
-    void (*sample)(img *, const double *, double *);
+    int (*sample)(img *, const double *, double *);
 };
 
 //------------------------------------------------------------------------------
@@ -36,8 +36,8 @@ void img_close(img *);
 
 void *img_scanline(img *, int);
 
-void img_sample_spheremap(img *, const double *, double *);
-void img_sample_test     (img *, const double *, double *);
+int img_sample_spheremap(img *, const double *, double *);
+int img_sample_test     (img *, const double *, double *);
 
 //------------------------------------------------------------------------------
 
