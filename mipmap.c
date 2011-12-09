@@ -135,15 +135,14 @@ static int process(scm *s, scm *t)
 int mipmap(int argc, char **argv)
 {
     const char *out = "out.tif";
-    const char *in;
+    const char *in  = "in.tif";
 
     scm *s = NULL;
     scm *t = NULL;
 
     int r = EXIT_FAILURE;
-    int i;
 
-    for (i = 1; i < argc; ++i)
+    for (int i = 1; i < argc; ++i)
         if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
         else if (extcmp(argv[i], ".tif") == 0) in  = argv[  i];
 
