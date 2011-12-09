@@ -12,6 +12,7 @@
 
 #include "scm.h"
 #include "err.h"
+#include "util.h"
 
 //------------------------------------------------------------------------------
 
@@ -82,7 +83,7 @@ struct ifd
 
     uint64_t next;
 
-    uint64_t ifds[4];
+    uint64_t ifds[4];  // TODO: eliminate this.  page_index is more efficient.
     char     date[20];
 };
 
@@ -95,15 +96,10 @@ static size_t align2(size_t t)
     return (t & 1) ? (t + 1) : t;
 }
 
-// Initialize an SCM TIFF header. TIFF copyright text is specified per IFD, but
-// SCM TIFF copyright is the same for all IFDs and the text is included in the
-// file exactly once, immediately following the header. The length of this text
-// must be a multiple of two to meet TIFF alignment requirements.
+// Initialize an SCM TIFF header.
 
-static void set_header(header *hp, size_t t)
+static void set_header(header *hp)
 {
-    assert((t & 1) == 0);
-
     hp->endianness = 0x4949;
     hp->version    = 0x002B;
     hp->offsetsize = 8;
@@ -122,10 +118,10 @@ static void set_field(field *fp, int t, int y, size_t c, off_t o)
 }
 
 // Initialize an SCM TIFF Image File Directory. o gives the file offset of this
-// IFD. d gives the data buffer size. t gives the text buffer size. n gives the
-// image width and height. c gives the image channel count. b gives the image
-// bit count per channel. Some fields are assigned magic numbers defined in the
-// TIFF Specification Revision 6.0.
+// IFD. d gives the data buffer size. t gives the text buffer size. x gives the
+// page index. n gives the image width and height. c gives the image channel
+// count. b gives the image bit count per channel. Some fields are assigned
+// magic numbers defined in the TIFF Specification Revision 6.0.
 
 static void set_ifd(ifd *ip, off_t o, size_t d, size_t t,
                     int x, int n, int c, int b, int s)
@@ -356,9 +352,11 @@ static void btof(const void *p, double *f, size_t n, int b, int s)
             f[i] = ((short *) p)[i] / 32767.0;
 }
 
+#if 0
 static void hdif(void *p, size_t n)
 {
 }
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -537,8 +535,9 @@ static int scm_link_list(scm *s, off_t c, off_t p)
             else apperr("Failed to write header");
         }
         else apperr("Failed to write header");
+
+        return -1;
     }
-    return 0;
 }
 
 // Set IFD c to be the nth "child" of IFD p.
@@ -619,8 +618,8 @@ static size_t scm_read_data(scm *s, double *p, size_t z)
 //------------------------------------------------------------------------------
 
 // Release all resources associated with SCM s. This function may be used to
-// clean up an error during initialization, so don't assume that the structure
-// is fully populated.
+// clean up after an error during initialization, and does not assume that the
+// structure is fully populated.
 
 void scm_close(scm *s)
 {
@@ -649,10 +648,10 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
     assert(b > 0);
     assert(text);
 
-    const  size_t t = align2(strlen(text));
+    const  size_t t = align2(strlen(text) + 1);
     header h;
 
-    set_header(&h, t);
+    set_header(&h);
 
     if ((fp = fopen(name, "w+b")))
     {
@@ -670,7 +669,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
 
                     if (scm_alloc(s))
                     {
-                        if ((s->copyright = calloc(t + 1, 1)))
+                        if ((s->copyright = (char *) malloc(t)))
                         {
                             strcpy(s->copyright, text);
                             return s;
@@ -693,6 +692,8 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
 
 // Open an SCM TIFF input file. Validate the header. Read and validate the first
 // IFD. Initialize and return an SCM structure using the first IFD's parameters.
+// Note that this leaves the file pointer at the second IFD, so the file must be
+// rewound before being scanned.
 
 scm *scm_ifile(const char *name)
 {
@@ -744,10 +745,11 @@ scm *scm_ifile(const char *name)
 
 //------------------------------------------------------------------------------
 
-// Append a page at the current SCM TIFF file pointer. IFD l gives the previous
-// page in the breadth-first list. IFD p gives the parent page. The parent will
-// be updated to include the new page as child n. dat points to a page of data
-// to be written. Return the offset of the end of the new page (the next IFD).
+// Append a page at the current SCM TIFF file pointer. Offset b is the previous
+// IFD, which will be updated to include the new page as next. Offset p is the
+// parent page, which will be updated to include the new page as child n. x is
+// the breadth-first page index. dat points to a page of data to be written.
+// Return the offset of the new page.
 
 off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *dat)
 {
@@ -825,41 +827,6 @@ off_t scm_rewind(scm *s)
 
 //------------------------------------------------------------------------------
 
-// Read the SCM TIFF IFD at offset o. Return the offset of the next IFD. If p is
-// non-null, assume it can store four offsets and copy the SubIFDs there. If d
-// is non-null, store the page index there. If o is zero, read the first node,
-// as given by the TIFF header.
-
-off_t scm_read_node(scm *s, off_t o, off_t *v, int *d)
-{
-    ifd i;
-
-    assert(s);
-
-    if (o)
-    {
-        if (scm_read_ifd(s, &i, o) == 1)
-        {
-            if (d)
-                d[0] = (int) i.page_index.offset;
-            if (v)
-            {
-                v[0] = (off_t) i.ifds[0];
-                v[1] = (off_t) i.ifds[1];
-                v[2] = (off_t) i.ifds[2];
-                v[3] = (off_t) i.ifds[3];
-            }
-            return (off_t) i.next;
-        }
-        else apperr("Failed to read SCM TIFF IFD");
-    }
-    else
-        if ((o = scm_rewind(s)))
-            return scm_read_node(s, o, v, d);
-
-    return 0;
-}
-
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
 // data to be stored.
 
@@ -889,8 +856,38 @@ size_t scm_read_page(scm *s, off_t o, double *p)
     return 0;
 }
 
-// Scan the given SCM and count the pages. Allocate and initialize arrays
-// giving the breadth-first index and file offset of each page.
+// Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
+// null, store the next IFD offset there. If p is not null, assume it can store
+// four offsets and copy the SubIFDs there.
+
+int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
+{
+    ifd i;
+
+    assert(s);
+
+    if (o)
+    {
+        if (scm_read_ifd(s, &i, o) == 1)
+        {
+            if (n)
+                n[0] = (off_t) i.next;
+            if (v)
+            {
+                v[0] = (off_t) i.ifds[0];
+                v[1] = (off_t) i.ifds[1];
+                v[2] = (off_t) i.ifds[2];
+                v[3] = (off_t) i.ifds[3];
+            }
+            return (int) i.page_index.offset;
+        }
+        else apperr("Failed to read SCM TIFF IFD");
+    }
+    return -1;
+}
+
+// Scan the given SCM TIFF and count the IFDs. Allocate and initialize arrays
+// giving the page index and file offset of each.
 
 int scm_catalog(scm *s, int **xv, off_t **ov)
 {
@@ -899,17 +896,20 @@ int scm_catalog(scm *s, int **xv, off_t **ov)
     int x;
 
     off_t o;
+    off_t n;
 
-    for (o = scm_read_node(s, 0, 0, &x); o; o = scm_read_node(s, o, 0, &x))
+    assert(s);
+
+    for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
         c++;
 
     if ((*ov = (off_t *) calloc(c, sizeof (off_t))) &&
         (*xv = (int   *) calloc(c, sizeof (int))))
     {
-        for (o = scm_read_node(s, 0, 0, &x); o; o = scm_read_node(s, o, 0, &x))
+        for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
         {
-            (*ov)[j] = o;
             (*xv)[j] = x;
+            (*ov)[j] = o;
             j++;
         }
         return c;
@@ -951,35 +951,25 @@ int scm_get_s(scm *s)
 
 //------------------------------------------------------------------------------
 
-// Recursively traverse an SCM TIFF file to determine the offset of each page.
-// Populate an array giving a mapping from page index to file offset. This
-// mapping may be sparse, and a zero offset indicates a missing page.
-#if 0
-static void _get_catalog(scm *s, int i, off_t *v, off_t o)
+int log2i(int n)
 {
-    if (o)
-    {
-        off_t c[4];
+    int r = 0;
 
-        v[i] = o;
+    if (n >= (1 << 16)) { n >>= 16; r += 16; }
+    if (n >= (1 <<  8)) { n >>=  8; r +=  8; }
+    if (n >= (1 <<  4)) { n >>=  4; r +=  4; }
+    if (n >= (1 <<  2)) { n >>=  2; r +=  2; }
+    if (n >= (1 <<  1)) {           r +=  1; }
 
-        scm_read_node(s, o, c);
-
-        _get_catalog(s, scm_get_page_child(o, 0), v, c[0]);
-        _get_catalog(s, scm_get_page_child(o, 1), v, c[1]);
-        _get_catalog(s, scm_get_page_child(o, 2), v, c[2]);
-        _get_catalog(s, scm_get_page_child(o, 3), v, c[3]);
-    }
+    return r;
 }
 
-int scm_get_catalog(scm *s, int *iv off_t *ov)
-{
-    memset(v, 0, scm_get_page_count(d) * sizeof (off_t));
+// Calculate the recursion level at which page i appears.
 
-    _get_catalog(s, 0, v, scm_rewind(s));
+int scm_get_page_level(int i)
+{
+    return (log2i(i + 2) - 1) / 2;
 }
-#endif
-//------------------------------------------------------------------------------
 
 // Calculate the number of pages in an SCM of depth d.
 
@@ -1064,6 +1054,10 @@ static void _get_page_corners(int i, int d, const double *A,
     }
 }
 
+// Recursively compute the corner vectors of all pages down to depth d. Assume
+// array p provides storage for scm_get_page_count(d) pages, where each page
+// is four 3D vectors (12 doubles).
+
 void scm_get_page_corners(int d, double *p)
 {
     int i;
@@ -1073,57 +1067,6 @@ void scm_get_page_corners(int d, double *p)
                                 page_v[page_i[i][1]],
                                 page_v[page_i[i][2]],
                                 page_v[page_i[i][3]], p);
-}
-
-//------------------------------------------------------------------------------
-
-void mid2(double *m, const double *a, const double *b)
-{
-    m[0] = a[0] + b[0];
-    m[1] = a[1] + b[1];
-    m[2] = a[2] + b[2];
-
-    double k = 1.0 / sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
-
-    m[0] *= k;
-    m[1] *= k;
-    m[2] *= k;
-}
-
-void mid4(double *m, const double *a, const double *b,
-                     const double *c, const double *d)
-{
-    m[0] = a[0] + b[0] + c[0] + d[0];
-    m[1] = a[1] + b[1] + c[1] + d[1];
-    m[2] = a[2] + b[2] + c[2] + d[2];
-
-    double k = 1.0 / sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
-
-    m[0] *= k;
-    m[1] *= k;
-    m[2] *= k;
-}
-
-void slerp1(double *a, const double *b, const double *c, double t)
-{
-    const double k = acos(b[0] * c[0] + b[1] * c[1] + b[2] * c[2]);
-    const double u = sin(k - t * k) / sin(k);
-    const double v = sin(    t * k) / sin(k);
-
-    a[0] = b[0] * u + c[0] * v;
-    a[1] = b[1] * u + c[1] * v;
-    a[2] = b[2] * u + c[2] * v;
-}
-
-void slerp2(double *v, const double *a, const double *b,
-                       const double *c, const double *d, double x, double y)
-{
-    double t[3];
-    double u[3];
-
-    slerp1(t, a, b, x);
-    slerp1(u, c, d, x);
-    slerp1(v, t, u, y);
 }
 
 //------------------------------------------------------------------------------

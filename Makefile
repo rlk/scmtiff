@@ -3,7 +3,7 @@ EXES= scmtiff scmview
 
 #-------------------------------------------------------------------------------
 
-CC = cc
+CC = cc -std=c99
 CP = cp
 RM = rm -f
 
@@ -29,8 +29,8 @@ clean :
 
 #-------------------------------------------------------------------------------
 
-scmtiff : err.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o normal.o scmtiff.o
+scmtiff : err.o util.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o normal.o scmtiff.o
 	$(CC) $(CFLAGS) -o $@ $^ -ljpeg -ltiff -lpng -lz
 
-scmview : err.o scm.o img.o scmview.o
+scmview : err.o util.o scm.o img.o scmview.o
 	$(CC) $(CFLAGS) -o $@ $^ -framework OpenGL -framework GLUT -lz

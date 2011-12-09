@@ -6,6 +6,7 @@
 
 #include "scm.h"
 #include "img.h"
+#include "util.h"
 
 //------------------------------------------------------------------------------
 
@@ -116,11 +117,6 @@ int process(scm *s, img *p, int d)
     }
 
     return 0;
-}
-
-static int extcmp(const char *name, const char *ext)
-{
-    return strcasecmp(name + strlen(name) - strlen(ext), ext);
 }
 
 int convert(int argc, char **argv)

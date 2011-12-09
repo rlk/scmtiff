@@ -7,3 +7,6 @@ scmtiff -combine ... Combine multiple SCM TIFF files into one.
 scmtiff -mipmap  ... Sample parent pages for an SCM TIFF wherever possible.
 scmtiff -border  ... Fill the borders of an SCM TIFF wherever possible.
 scmtiff -normal  ... Generate a normal SCM TIFF from a height SCM TIFF.
+
+
+Invariant: SCM TIFF page indices are always given in increasing order. That is, an SCM TIFF always presents a subset of a breadth-first traversal.

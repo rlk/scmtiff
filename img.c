@@ -8,8 +8,13 @@
 
 #include "img.h"
 #include "err.h"
+#include "util.h"
 
 //------------------------------------------------------------------------------
+// Access a raw image buffer. Convert from the image's internal format to double
+// precision floating point. Assume the return buffer c has the same or greater
+// channel count as the image. Expect out-of-bounds references to be made in the
+// normal process of linear-filtered multisampling, and return zero if necessary.
 
 static int get8u(img *p, int i, int j, double *c)
 {
@@ -93,6 +98,10 @@ static int get16s(img *p, int i, int j, double *c)
 
 //------------------------------------------------------------------------------
 
+// Allocate, initialize, and return an image structure representing a pixel
+// buffer with width w, height h, channel count c, bits-per-channel count b,
+// and signedness s.
+
 img *img_alloc(int w, int h, int c, int b, int s)
 {
     img *p = NULL;
@@ -131,6 +140,9 @@ void img_close(img *p)
     }
 }
 
+// Calculate and return a pointer to scanline r of the given image. This is
+// useful during image I/O.
+
 void *img_scanline(img *p, int r)
 {
     assert(p);
@@ -139,15 +151,8 @@ void *img_scanline(img *p, int r)
 
 //------------------------------------------------------------------------------
 
-static double lerp1(double a, double b, double t)
-{
-    return b * t + a * (1 - t);
-}
-
-static double lerp2(double a, double b, double c, double d, double s, double t)
-{
-    return lerp1(lerp1(a, b, t), lerp1(c, d, t), s);
-}
+// Perform a linearly-filtered sampling of the image p. The filter position
+// i, j is smoothly-varying in the range [0, w), [0, h).
 
 int img_linear(img *p, double i, double j, double *c)
 {
@@ -184,6 +189,8 @@ int img_linear(img *p, double i, double j, double *c)
 }
 
 //------------------------------------------------------------------------------
+
+// Perform a spherically-projected linearly-filtered sampling of image p.
 
 int img_sample_spheremap(img *p, const double *v, double *c)
 {
