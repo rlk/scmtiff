@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	apperr("\nUsage:"
 		   "\t%s -convert [-o outfile] [-n samples] [-d depth] infile\n"
 		   "\t%s -combine [-o outfile]                         infile...\n"
-		   "\t%s -mipmap  [-o outfile] [-l level]              infile\n"
+		   "\t%s -mipmap  [-o outfile]                         infile\n"
 		   "\t%s -border  [-o outfile]                         infile\n"
 		   "\t%s -normal  [-o outfile] [-r radius]             infile",
 		argv[0], argv[0], argv[0], argv[0], argv[0]);

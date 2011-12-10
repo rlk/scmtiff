@@ -40,7 +40,10 @@ static int catalog(scm *s, off_t **map)
     return 0;
 }
 
-static void copy(double *p, int ki, int kj, int c, int n, double *q)
+// Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
+// the c-channel n-by-n image buffer p, downsampling 2-to-1.
+
+static void box(double *p, int ki, int kj, int c, int n, double *q)
 {
     for     (int qi = 0; qi < n; ++qi)
         for (int qj = 0; qj < n; ++qj)
@@ -65,10 +68,11 @@ static void copy(double *p, int ki, int kj, int c, int n, double *q)
 // child present. Fill such pages using down-sampled child data and append them
 // to SCM t.
 
-static int sample(scm *s, scm *t)
+static off_t sample(scm *s, scm *t)
 {
-    int    d, r = EXIT_FAILURE;
-    off_t *m, b = 0;
+    off_t  b = 0;
+    off_t *m;
+    int    d;
 
     if ((d = catalog(s, &m)))
     {
@@ -80,8 +84,7 @@ static int sample(scm *s, scm *t)
         double *p;
         double *q;
 
-        if ((p = (double *) malloc(N * N * c * sizeof (double))) &&
-            (q = (double *) malloc(N * N * c * sizeof (double))))
+        if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
             for (int x = 0; x < M; ++x)
             {
@@ -94,26 +97,38 @@ static int sample(scm *s, scm *t)
                 {
                     memset(p, 0, N * N * c * sizeof (double));
 
-                    if (m[i] && scm_read_page(s, m[i], q)) copy(p, 0, 0, c, n, q);
-                    if (m[j] && scm_read_page(s, m[j], q)) copy(p, 0, 1, c, n, q);
-                    if (m[k] && scm_read_page(s, m[k], q)) copy(p, 1, 0, c, n, q);
-                    if (m[l] && scm_read_page(s, m[l], q)) copy(p, 1, 1, c, n, q);
+                    if (m[i] && scm_read_page(s, m[i], q)) box(p, 0, 0, c, n, q);
+                    if (m[j] && scm_read_page(s, m[j], q)) box(p, 0, 1, c, n, q);
+                    if (m[k] && scm_read_page(s, m[k], q)) box(p, 1, 0, c, n, q);
+                    if (m[l] && scm_read_page(s, m[l], q)) box(p, 1, 1, c, n, q);
 
                     b = scm_append(t, b, 0, 0, x, p);
-                    r = EXIT_SUCCESS;
                 }
             }
             free(q);
             free(p);
         }
     }
-    return r;
+    return b;
 }
 
-// Append the contents of SCM s to SCM t.
+// Append the full contents of SCM s to the current contents of SCM t.
 
-static void append(scm *s, scm *t)
+static void append(scm *s, scm *t, off_t b)
 {
+    double *p;
+
+    if ((p = scm_alloc_buffer(s)))
+    {
+        off_t o;
+        off_t n;
+
+        int x;
+
+        for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
+            if (scm_read_page(s, o, p))
+                b = scm_append(t, b, 0, 0, x, p);
+    }
 }
 
 // Mipmap SCM s to the fullest extent possible. To do so,  When finished,
@@ -122,9 +137,11 @@ static void append(scm *s, scm *t)
 
 static int process(scm *s, scm *t)
 {
-    if (sample(s, t) == EXIT_SUCCESS)
+    off_t b;
+
+    if ((b = sample(s, t)))
     {
-        append(s, t);
+        append(s, t, b);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;

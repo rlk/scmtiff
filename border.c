@@ -1,8 +1,11 @@
 // Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "scm.h"
+#include "util.h"
 
 //------------------------------------------------------------------------------
 
@@ -31,7 +34,7 @@ int border(int argc, char **argv)
                                 scm_get_b(s), scm_get_s(s),
                                 scm_get_copyright(s))))
         {
-            r = process(s, t);
+//          r = process(s, t);
             scm_close(t);
         }
         scm_close(s);

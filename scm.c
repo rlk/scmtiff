@@ -949,6 +949,11 @@ int scm_get_s(scm *s)
     return s->s;
 }
 
+double *scm_alloc_buffer(scm *s)
+{
+    return (double *) malloc((s->n + 2) * (s->n + 2) * s->c * sizeof (double));
+}
+
 //------------------------------------------------------------------------------
 
 int log2i(int n)

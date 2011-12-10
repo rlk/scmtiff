@@ -11,6 +11,7 @@
 #include "err.h"
 
 //------------------------------------------------------------------------------
+// SCM TIFF file and page state
 
 #define MAX 4
 
@@ -18,17 +19,31 @@ static int     n;
 static scm    *s[MAX];
 static GLuint  o[MAX];
 
-static GLfloat posx    = 0.f;
-static GLfloat posy    = 0.f;
-static GLfloat scale   = 1.f;
-
 static int     pagei;
 static int     pagec[MAX];
 static int    *pagex[MAX];
 static off_t  *pageo[MAX];
 
+//------------------------------------------------------------------------------
+// Image loading and texture uploading buffers
+
 static double *dbuf;
 static void   *bbuf;
+
+//------------------------------------------------------------------------------
+// Viewing and interaction state
+
+static GLfloat pos_x = -0.5f;
+static GLfloat pos_y = -0.5f;
+static GLfloat scale =  1.0f;
+
+static int     drag_modifier;
+static int     drag_button;
+static int     drag_x;
+static int     drag_y;
+static GLfloat drag_pos_x;
+static GLfloat drag_pos_y;
+static GLfloat drag_scale;
 
 //------------------------------------------------------------------------------
 
@@ -134,7 +149,15 @@ static int start(int argc, char **argv)
 
 static void keyboard(unsigned char key, int x, int y)
 {
-    if (key == 27) exit(EXIT_SUCCESS);
+    if (key == 27)
+        exit(EXIT_SUCCESS);
+    if (key == 13)
+    {
+        pos_x = -0.5f;
+        pos_y = -0.5f;
+        scale =  1.0f;
+        glutPostRedisplay();
+    }
 }
 
 static void special(int key, int x, int y)
@@ -159,8 +182,9 @@ static void display(void)
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glScalef(scale, scale, scale);
-    glTranslatef(posx, posy, 0);
+    glTranslatef(0.5f, 0.5f, 0.0f);
+    glScalef(1.0f / scale, 1.0f / scale, 1.0f);
+    glTranslatef(pos_x, pos_y, 0);
 
     for (int i = 0; i < n; ++i)
     {
@@ -186,10 +210,34 @@ static void display(void)
 
 static void motion(int x, int y)
 {
+    if (drag_button == GLUT_LEFT_BUTTON)
+    {
+        const int w = glutGet(GLUT_WINDOW_WIDTH) / n;
+        const int h = glutGet(GLUT_WINDOW_HEIGHT);
+
+        if (drag_modifier == GLUT_ACTIVE_ALT)
+        {
+            scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
+        }
+        else
+        {
+            pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
+            pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
+        }
+        glutPostRedisplay();
+    }
 }
 
 static void mouse(int button, int state, int x, int y)
 {
+    drag_modifier = glutGetModifiers();
+    drag_button   = button;
+    drag_x        = x;
+    drag_y        = y;
+    drag_pos_x    = pos_x;
+    drag_pos_y    = pos_y;
+    drag_scale    = scale;
+    glutPostRedisplay();
 }
 
 //------------------------------------------------------------------------------
