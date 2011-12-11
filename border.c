@@ -160,6 +160,8 @@ static int process(scm *s, scm *t)
     return EXIT_FAILURE;
 }
 
+//------------------------------------------------------------------------------
+
 int border(int argc, char **argv)
 {
     const char *out = "out.tif";

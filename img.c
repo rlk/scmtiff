@@ -110,6 +110,7 @@ img *img_alloc(int w, int h, int c, int b, int s)
     {
         if ((p->p = calloc(w * h, c * b)))
         {
+            p->sample = img_sample_spheremap;
             p->w = w;
             p->h = h;
             p->c = c;

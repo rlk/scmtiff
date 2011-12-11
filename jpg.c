@@ -2,13 +2,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <jpeglib.h>
 
 #include "img.h"
 #include "err.h"
 
 //------------------------------------------------------------------------------
-
-#include <jpeglib.h>
 
 img *jpg_load(const char *name)
 {
@@ -36,7 +35,6 @@ img *jpg_load(const char *name)
                 JSAMPLE *b = (JSAMPLE *) img_scanline(p, cinfo.output_scanline);
                 jpeg_read_scanlines(&cinfo, &b, 1);
             }
-            p->sample = img_sample_spheremap;
         }
 
         jpeg_finish_decompress (&cinfo);
