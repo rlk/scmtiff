@@ -887,9 +887,9 @@ int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
 }
 
 // Scan the given SCM TIFF and count the IFDs. Allocate and initialize arrays
-// giving the page index and file offset of each.
+// giving the file offset and page indexof each.
 
-int scm_catalog(scm *s, int **xv, off_t **ov)
+int scm_catalog(scm *s, off_t **ov, int **xv)
 {
     int c = 0;
     int j = 0;
@@ -917,6 +917,36 @@ int scm_catalog(scm *s, int **xv, off_t **ov)
     return 0;
 }
 
+int scm_mapping(scm *s, off_t **mv)
+{
+    int c = 0;
+    int l = 0;
+    int x;
+
+    off_t o;
+    off_t n;
+
+    assert(s);
+
+    // Count the pages. Note the index of the last page.
+
+    for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; l = x, o = n)
+        c++;
+
+    // Determine the index and offset of each page and initialize a mapping.
+
+    int d = scm_get_page_depth(l);
+    int m = scm_get_page_count(d);
+
+    if ((*mv = (off_t *) calloc(m, sizeof (off_t))))
+    {
+        for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
+            (*mv)[x] = o;
+
+        return d;
+    }
+    return -1;
+}
 //------------------------------------------------------------------------------
 
 const char *scm_get_copyright(scm *s)
@@ -969,9 +999,19 @@ int log2i(int n)
     return r;
 }
 
+// Traverse up the tree to find the root page of page i.
+
+int scm_get_page_root(int i)
+{
+    while (i > 5)
+        i = scm_get_page_parent(i);
+
+    return i;
+}
+
 // Calculate the recursion level at which page i appears.
 
-int scm_get_page_level(int i)
+int scm_get_page_depth(int i)
 {
     return (log2i(i + 2) - 1) / 2;
 }
@@ -1002,6 +1042,86 @@ int scm_get_page_parent(int i)
 int scm_get_page_order(int i)
 {
     return (i - 6) - ((i - 6) / 4) * 4;
+}
+
+// Find the index of page (i, j) of (s, s) in the tree rooted at page p.
+
+int scm_locate_page(int p, int i, int j, int s)
+{
+    if (s > 1)
+    {
+        int c = 0;
+
+        s >>= 1;
+
+        if (i >= s) c |= 2;
+        if (j >= s) c |= 1;
+
+        return scm_locate_page(scm_get_page_child(p, c), i % s, j % s, s);
+    }
+    else return p;
+}
+
+// Find the indices of the four neighbors of page p.
+
+void scm_get_page_neighbors(int p, int *u, int *d, int *r, int *l)
+{
+    struct turn
+    {
+        unsigned int p : 3;
+        unsigned int r : 3;
+        unsigned int c : 3;
+    };
+
+    static const struct turn uu[6] = {
+        { 2, 5, 3 }, { 2, 2, 0 }, { 5, 0, 5 },
+        { 4, 3, 2 }, { 2, 3, 2 }, { 2, 0, 5 },
+    };
+
+    static const struct turn dd[6] = {
+        { 3, 2, 3 }, { 3, 5, 0 }, { 4, 0, 2 },
+        { 5, 3, 5 }, { 3, 0, 2 }, { 3, 3, 5 },
+    };
+
+    static const struct turn rr[6] = {
+        { 4, 1, 3 }, { 5, 1, 3 }, { 1, 0, 1 },
+        { 1, 3, 4 }, { 1, 1, 3 }, { 0, 1, 3 },
+    };
+
+    static const struct turn ll[6] = {
+        { 5, 1, 0 }, { 4, 1, 0 }, { 0, 0, 4 },
+        { 0, 3, 1 }, { 0, 1, 0 }, { 1, 1, 0 },
+    };
+
+    int o[6];
+    int i = 0;
+    int j = 0;
+    int s;
+
+    for (s = 1; p > 5; s <<= 1, p = scm_get_page_parent(p))
+    {
+        if (scm_get_page_order(p) & 1) j += s;
+        if (scm_get_page_order(p) & 2) i += s;
+    }
+
+    o[0] = 0;
+    o[1] = i;
+    o[2] = j;
+    o[3] = s     - 1;
+    o[4] = s - i - 1;
+    o[5] = s - j - 1;
+
+    if (i     != 0) *u = scm_locate_page(p, i - 1, j, s);
+    else            *u = scm_locate_page(uu[p].p, o[uu[p].r], o[uu[p].c], s);
+
+    if (i + 1 != s) *d = scm_locate_page(p, i + 1, j, s);
+    else            *d = scm_locate_page(dd[p].p, o[dd[p].r], o[dd[p].c], s);
+
+    if (j     != 0) *r = scm_locate_page(p, i, j - 1, s);
+    else            *r = scm_locate_page(rr[p].p, o[rr[p].r], o[rr[p].c], s);
+
+    if (j + 1 != s) *l = scm_locate_page(p, i, j + 1, s);
+    else            *l = scm_locate_page(ll[p].p, o[ll[p].r], o[ll[p].c], s);
 }
 
 //------------------------------------------------------------------------------

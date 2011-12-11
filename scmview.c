@@ -20,8 +20,7 @@ static scm    *s[MAX];
 static GLuint  o[MAX];
 
 static int     pagei;
-static int     pagec[MAX];
-static int    *pagex[MAX];
+static int     paged[MAX];
 static off_t  *pageo[MAX];
 
 //------------------------------------------------------------------------------
@@ -54,11 +53,12 @@ static int data_load(int j)
 
     for (int i = 0; i < n; ++i)
     {
+        const int M = scm_get_page_count(paged[i]);
         const int N = scm_get_n(s[i]) + 2;
         const int S = scm_get_s(s[i]);
         const int C = scm_get_c(s[i]);
 
-        if (0 <= j && j < pagec[i] && scm_read_page(s[i], pageo[i][j], dbuf))
+        if (0 <= j && j < M && pageo[i][j] && scm_read_page(s[i], pageo[i][j], dbuf))
         {
             int k;
 
@@ -110,7 +110,7 @@ static int data_init(int argc, char **argv)
             if (N < n) N = n;
             if (C < c) C = c;
 
-            pagec[i] = scm_catalog(s[i], &pagex[i], &pageo[i]);
+            paged[i] = scm_mapping(s[i], &pageo[i]);
         }
 
     if (N && C)

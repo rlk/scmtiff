@@ -10,36 +10,6 @@
 
 //------------------------------------------------------------------------------
 
-// Determine and return the depth of SCM s. Allocate and initialize a mapping
-// from index to offset for each passible page of s. A zero offset indicates
-// that the corresponding page is not present in s.
-
-static int catalog(scm *s, off_t **map)
-{
-    off_t *ov;
-    int   *xv;
-    int    c;
-    int    i;
-
-    if ((c = scm_catalog(s, &xv, &ov)))
-    {
-        const int d = scm_get_page_level(xv[c - 1]);
-        const int m = scm_get_page_count(d);
-
-        if ((*map = calloc(m, sizeof (off_t))))
-        {
-            for (i = 0; i < c; ++i)
-                (*map)[xv[i]] = ov[i];
-        }
-        else apperr("Failed to allocate offset map");
-
-        free(ov);
-        free(xv);
-        return d;
-    }
-    return 0;
-}
-
 // Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
 // the c-channel n-by-n image buffer p, downsampling 2-to-1.
 
@@ -74,7 +44,7 @@ static off_t sample(scm *s, scm *t)
     off_t *m;
     int    d;
 
-    if ((d = catalog(s, &m)))
+    if ((d = scm_mapping(s, &m)) >= 0)
     {
         const int M = scm_get_page_count(d);
         const int N = scm_get_n(s) + 2;
