@@ -158,6 +158,16 @@ static void keyboard(unsigned char key, int x, int y)
         scale =  1.0f;
         glutPostRedisplay();
     }
+    if (key == '0') set_page(0);
+    if (key == '1') set_page(scm_get_page_count(0));
+    if (key == '2') set_page(scm_get_page_count(1));
+    if (key == '3') set_page(scm_get_page_count(2));
+    if (key == '4') set_page(scm_get_page_count(3));
+    if (key == '5') set_page(scm_get_page_count(4));
+    if (key == '6') set_page(scm_get_page_count(5));
+    if (key == '7') set_page(scm_get_page_count(6));
+    if (key == '8') set_page(scm_get_page_count(7));
+    if (key == '9') set_page(scm_get_page_count(8));
 }
 
 static void special(int key, int x, int y)

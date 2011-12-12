@@ -108,7 +108,7 @@ img *img_alloc(int w, int h, int c, int b, int s)
 
     if ((p = (img *) calloc(1, sizeof (img))))
     {
-        if ((p->p = calloc(w * h, c * b)))
+        if ((p->p = calloc(w * h, c * b / 8)))
         {
             p->sample = img_sample_spheremap;
             p->w = w;
@@ -147,7 +147,10 @@ void img_close(img *p)
 void *img_scanline(img *p, int r)
 {
     assert(p);
-    return (char *) p->p + p->w * p->c * p->b * r / 8;
+    return (char *) p->p + ((size_t) p->w *
+                            (size_t) p->c *
+                            (size_t) p->b *
+                            (size_t) r / 8);
 }
 
 //------------------------------------------------------------------------------

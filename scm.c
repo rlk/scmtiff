@@ -577,7 +577,7 @@ static size_t scm_write_data(scm *s, const double *p)
 
     uLong z = compressBound(l);
 
-    if (compress(s->zip, &z, s->bin, l) == Z_OK)
+    if (compress((Bytef *) s->zip, &z, (const Bytef *) s->bin, l) == Z_OK)
     {
         if (fwrite(s->zip, 1, z, s->fp) == z)
         {
@@ -601,7 +601,7 @@ static size_t scm_read_data(scm *s, double *p, size_t z)
 
     if (fread(s->zip, 1, z, s->fp) == z)
     {
-        if (uncompress(s->bin, &b, s->zip, z) == Z_OK)
+        if (uncompress((Bytef *) s->bin, &b, (const Bytef *) s->zip, z) == Z_OK)
         {
             // hdif(s->bin, n);
             btof(s->bin, p, n, s->b, s->s);
