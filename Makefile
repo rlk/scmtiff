@@ -3,9 +3,8 @@ EXES= scmtiff scmview
 
 #-------------------------------------------------------------------------------
 
-#CC = g++ -m64
-#CC = cc -std=c99 -m64
-CC = gcc-mp-4.4 -std=c99 -m64 -fopenmp
+CC = cc -std=c99 -m64
+#CC = gcc-mp-4.4 -std=c99 -m64 -fopenmp
 CP = cp
 RM = rm -f
 
