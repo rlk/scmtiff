@@ -26,8 +26,8 @@ static off_t  *pageo[MAX];
 //------------------------------------------------------------------------------
 // Image loading and texture uploading buffers
 
-static double *dbuf;
-static void   *bbuf;
+static double  *dbuf;
+static GLfloat *fbuf;
 
 //------------------------------------------------------------------------------
 // Viewing and interaction state
@@ -44,38 +44,36 @@ static GLfloat drag_pos_x;
 static GLfloat drag_pos_y;
 static GLfloat drag_scale;
 
+static GLuint  prog_color;
+static GLuint  cmap_color;
+
 //------------------------------------------------------------------------------
 
 static int data_load(int j)
 {
     const GLenum f[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-    const GLenum t[] = { GL_UNSIGNED_BYTE, GL_BYTE };
 
     for (int i = 0; i < n; ++i)
     {
         const int M = scm_get_page_count(paged[i]);
         const int N = scm_get_n(s[i]) + 2;
-        const int S = scm_get_s(s[i]);
         const int C = scm_get_c(s[i]);
 
-        if (0 <= j && j < M && pageo[i][j] && scm_read_page(s[i], pageo[i][j], dbuf))
+        const off_t po = pageo[i][j];
+
+        if (0 <= j && j < M && po && scm_read_page(s[i], po, dbuf))
         {
             int k;
 
-            if (scm_get_s(s[i]))
-                for (k = 0; k < N * N * C; ++k)
-                    ((         char *) bbuf)[k] = (         char) (dbuf[k] * 127);
-            else
-                for (k = 0; k < N * N * C; ++k)
-                    ((unsigned char *) bbuf)[k] = (unsigned char) (dbuf[k] * 255);
+            for (k = 0; k < N * N * C; ++k)
+                fbuf[k] = (GLfloat) dbuf[k];
         }
-        else memset(bbuf, 0, N * N * C);
+        else memset(fbuf, 0, N * N * C * sizeof (GLfloat));
 
         glBindTexture(GL_TEXTURE_2D, o[i]);
-        glTexImage2D (GL_TEXTURE_2D, 0, C, N, N, 0, f[C], t[S], bbuf);
+        glTexImage2D (GL_TEXTURE_2D, 0, C, N, N, 0, f[C], GL_FLOAT, fbuf);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     }
     return 0;
 }
@@ -117,7 +115,7 @@ static int data_init(int argc, char **argv)
     {
         if ((dbuf = (double *) malloc(N * N * C * sizeof (double))))
         {
-            if ((bbuf = malloc(N * N * C)))
+            if ((fbuf = (GLfloat *) malloc(N * N * C * sizeof (GLfloat))))
             {
                 return 1;
             }
@@ -126,7 +124,74 @@ static int data_init(int argc, char **argv)
     return 0;
 }
 
+static GLuint prog_init(const char *vertsrc, const char *fragsrc)
+{
+    GLuint prog = glCreateProgram();
+    GLuint vert = glCreateShader(GL_VERTEX_SHADER);
+    GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glShaderSource(vert, 1, (const GLchar **) &vertsrc, NULL);
+    glCompileShader(vert);
+    glAttachShader(prog, vert);
+
+    glShaderSource(frag, 1, (const GLchar **) &fragsrc, NULL);
+    glCompileShader(frag);
+    glAttachShader(prog, frag);
+
+    glLinkProgram(prog);
+    glUseProgram(prog);
+
+    return prog;
+}
+
+static GLuint cmap_init(GLuint prog)
+{
+    static const GLubyte c[8][4] = {
+        { 0x00, 0x00, 0x00, 0xFF },
+        { 0xFF, 0x00, 0x00, 0xFF },
+        { 0xFF, 0x80, 0x00, 0xFF },
+        { 0xFF, 0xFF, 0x00, 0xFF },
+        { 0x00, 0xFF, 0x00, 0xFF },
+        { 0x00, 0xFF, 0xFF, 0xFF },
+        { 0x00, 0x00, 0xFF, 0xFF },
+        { 0xFF, 0x00, 0xFF, 0xFF },
+    };
+
+    GLuint text;
+
+    glActiveTexture(GL_TEXTURE1);
+    glGenTextures(1, &text);
+    glBindTexture(GL_TEXTURE_1D, text);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, c);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glActiveTexture(GL_TEXTURE0);
+
+    glUniform1i(glGetUniformLocation(prog, "color"), 1);
+
+    return text;
+}
+
 //------------------------------------------------------------------------------
+
+static const char *vert_color =
+    "void main()\n"
+    "{\n"
+    "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
+    "    gl_Position = ftransform();\n"
+    "}\n";
+static const char *frag_color =
+    "uniform sampler2D image;"
+    "uniform sampler1D color;"
+
+    "void main()\n"
+    "{\n"
+    "    vec4 i = texture2D(image, gl_TexCoord[0].xy);\n"
+    "    vec4 c = texture1D(color, i.r * 4.0);\n"
+    "    gl_FragColor = c;\n"
+    "}\n";
+
 
 static int start(int argc, char **argv)
 {
@@ -140,6 +205,10 @@ static int start(int argc, char **argv)
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+        prog_color = prog_init(vert_color, frag_color);
+        cmap_color = cmap_init(prog_color);
+
+        glUseProgram(0);
         set_page(0);
 
         return 1;
@@ -174,6 +243,16 @@ static void special(int key, int x, int y)
 {
     if      (key == GLUT_KEY_PAGE_UP)   set_page(pagei + 1);
     else if (key == GLUT_KEY_PAGE_DOWN) set_page(pagei - 1);
+    else if (key == GLUT_KEY_F1)
+    {
+        glUseProgram(0);
+        glutPostRedisplay();
+    }
+    else if (key == GLUT_KEY_F2)
+    {
+        glUseProgram(prog_color);
+        glutPostRedisplay();
+    }
 }
 
 static void display(void)

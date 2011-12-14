@@ -3,8 +3,11 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <math.h>
+#include <sys/mman.h>
 
 #include "img.h"
 #include "err.h"
@@ -104,18 +107,21 @@ static int get16s(img *p, int i, int j, double *c)
 
 img *img_alloc(int w, int h, int c, int b, int s)
 {
-    img *p = NULL;
+    size_t n = (size_t) w * (size_t) h * (size_t) c * (size_t) b / 8;
+    img   *p = NULL;
 
     if ((p = (img *) calloc(1, sizeof (img))))
     {
-        if ((p->p = calloc(w * h, c * b / 8)))
+        if ((p->p = malloc(n)))
         {
             p->sample = img_sample_spheremap;
+            p->n = n;
             p->w = w;
             p->h = h;
             p->c = c;
             p->b = b;
             p->s = s;
+            p->d = 0;
 
             if      (b ==  8 && s == 0) p->get = get8u;
             else if (b ==  8 && s == 1) p->get = get8s;
@@ -132,11 +138,57 @@ img *img_alloc(int w, int h, int c, int b, int s)
     return NULL;
 }
 
+img *img_mmap(int w, int h, int c, int b, int s, const char *name, off_t o)
+{
+    size_t n = (size_t) w * (size_t) h * (size_t) c * (size_t) b / 8;
+    img   *p = NULL;
+    int    d = 0;
+
+    if ((p = (img *) calloc(1, sizeof (img))))
+    {
+        if ((d = open(name, O_RDONLY)) != -1)
+        {
+            if ((p->p = mmap(0, n, PROT_READ, MAP_PRIVATE, d, o)) != MAP_FAILED)
+            {
+                p->sample = img_sample_spheremap;
+                p->n = n;
+                p->w = w;
+                p->h = h;
+                p->c = c;
+                p->b = b;
+                p->s = s;
+                p->d = d;
+
+                if      (b ==  8 && s == 0) p->get = get8u;
+                else if (b ==  8 && s == 1) p->get = get8s;
+                else if (b == 16 && s == 0) p->get = get16u;
+                else if (b == 16 && s == 1) p->get = get16s;
+
+                return p;
+            }
+            else syserr("Failed to mmap %s", name);
+        }
+        else syserr("Failed to open %s", name);
+    }
+    else apperr("Failed to allocate image structure");
+
+    img_close(p);
+    return NULL;
+}
+
 void img_close(img *p)
 {
     if (p)
     {
-        free(p->p);
+        if (p->d)
+        {
+            munmap(p->p, p->n);
+            close(p->d);
+        }
+        else
+        {
+            free(p->p);
+        }
         free(p);
     }
 }
@@ -168,10 +220,10 @@ int img_linear(img *p, double i, double j, double *c)
     const int ja = (int) floor(j);
     const int jb = (int)  ceil(j);
 
-    double aa[3];
-    double ab[3];
-    double ba[3];
-    double bb[3];
+    double aa[4];
+    double ab[4];
+    double ba[4];
+    double bb[4];
 
     int k = 0;
 

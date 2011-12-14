@@ -140,8 +140,8 @@ int convert(int argc, char **argv)
     if      (extcmp(argv[argc - 1], ".jpg") == 0) p = jpg_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".png") == 0) p = png_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".tif") == 0) p = tif_load(argv[argc - 1]);
-    else if (extcmp(argv[argc - 1], ".img") == 0) p = img_load(argv[argc - 1]);
-    else if (extcmp(argv[argc - 1], ".lbl") == 0) p = lbl_load(argv[argc - 1]);
+    else if (extcmp(argv[argc - 1], ".img") == 0) p = pds_load(argv[argc - 1]);
+    else if (extcmp(argv[argc - 1], ".lbl") == 0) p = pds_load(argv[argc - 1]);
 
     if (p)
         s = scm_ofile(o, n, p->c, p->b, p->s, t);

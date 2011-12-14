@@ -4,11 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <fcntl.h>
 #include <regex.h>
 #include <ctype.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 
 #include "img.h"
 #include "err.h"
@@ -137,50 +134,16 @@ static img *parse(const char *lbl)
 		}
         fclose(f);
     }
-    else syserr("Failed to open PDS '%s'", name);
+    else syserr("Failed to open PDS '%s'", lbl);
 
     return p;
 }
 
 //------------------------------------------------------------------------------
 
-img *lbl_load(const char *name)
+img *pds_load(const char *name)
 {
     return parse(name);
 }
-
-img *img_load(const char *name)
-{
-	return parse(name);
-}
-
-#if 0
-{
-    img         *p = NULL;
-    void        *d = NULL;
-    size_t       n = 0;
-    int          f = 0;
-    struct stat st;
-
-    if ((stat(name, &st)) != -1 && (n = st.st_size))
-    {
-        if ((f = open(name, O_RDONLY)) != -1)
-        {
-            if ((d = mmap(0, n, PROT_READ, MAP_PRIVATE, f, 0)) != MAP_FAILED)
-            {
-                p = parse((const char *) d, n);
-            }
-            else syserr("failed mmap %s", name);
-        }
-        else syserr("Failed to open %s", name);
-    }
-    else syserr("Failed to stat %s", name);
-
-    munmap(d, n);
-    close(f);
-
-    return p;
-}
-#endif
 
 //------------------------------------------------------------------------------
