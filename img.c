@@ -99,6 +99,13 @@ static int get16s(img *p, int i, int j, double *c)
     return 0;
 }
 
+typedef int (*getfn)(img *p, int, int, double *);
+
+static const getfn get[2][2] = {
+    { get8u, get16u },
+    { get8s, get16s },
+};
+
 //------------------------------------------------------------------------------
 
 // Allocate, initialize, and return an image structure representing a pixel
@@ -114,7 +121,7 @@ img *img_alloc(int w, int h, int c, int b, int s)
     {
         if ((p->p = malloc(n)))
         {
-            p->sample = img_sample_spheremap;
+            p->sample = img_default;
             p->n = n;
             p->w = w;
             p->h = h;
@@ -122,11 +129,6 @@ img *img_alloc(int w, int h, int c, int b, int s)
             p->b = b;
             p->s = s;
             p->d = 0;
-
-            if      (b ==  8 && s == 0) p->get = get8u;
-            else if (b ==  8 && s == 1) p->get = get8s;
-            else if (b == 16 && s == 0) p->get = get16u;
-            else if (b == 16 && s == 1) p->get = get16s;
 
             return p;
         }
@@ -150,7 +152,7 @@ img *img_mmap(int w, int h, int c, int b, int s, const char *name, off_t o)
         {
             if ((p->p = mmap(0, n, PROT_READ, MAP_PRIVATE, d, o)) != MAP_FAILED)
             {
-                p->sample = img_sample_spheremap;
+                p->sample = img_default;
                 p->n = n;
                 p->w = w;
                 p->h = h;
@@ -158,11 +160,6 @@ img *img_mmap(int w, int h, int c, int b, int s, const char *name, off_t o)
                 p->b = b;
                 p->s = s;
                 p->d = d;
-
-                if      (b ==  8 && s == 0) p->get = get8u;
-                else if (b ==  8 && s == 1) p->get = get8s;
-                else if (b == 16 && s == 0) p->get = get16u;
-                else if (b == 16 && s == 1) p->get = get16s;
 
                 return p;
             }
@@ -182,7 +179,10 @@ void img_close(img *p)
     {
         if (p->d)
         {
-            munmap(p->p, p->n);
+            if (p->p);
+            {
+                munmap(p->p, p->n);
+            }
             close(p->d);
         }
         else
@@ -212,6 +212,8 @@ void *img_scanline(img *p, int r)
 
 int img_linear(img *p, double i, double j, double *c)
 {
+    const int b = (p->b >> 3) - 1;
+
     const double s = i - floor(i);
     const double t = j - floor(j);
 
@@ -227,10 +229,10 @@ int img_linear(img *p, double i, double j, double *c)
 
     int k = 0;
 
-    k += p->get(p, ia, ja, aa);
-    k += p->get(p, ia, jb, ab);
-    k += p->get(p, ib, ja, ba);
-    k += p->get(p, ib, jb, bb);
+    k += get[p->s][b](p, ia, ja, aa);
+    k += get[p->s][b](p, ia, jb, ab);
+    k += get[p->s][b](p, ib, ja, ba);
+    k += get[p->s][b](p, ib, jb, bb);
 
     if (k)
         switch (p->c)
@@ -246,19 +248,82 @@ int img_linear(img *p, double i, double j, double *c)
 
 //------------------------------------------------------------------------------
 
-// Perform a spherically-projected linearly-filtered sampling of image p.
+static double todeg(double r)
+{
+    return r * 180.0 / M_PI;
+}
 
-int img_sample_spheremap(img *p, const double *v, double *c)
+int img_equirectangular(img *p, const double *v, double *c)
 {
     const double lon = atan2(v[0], -v[2]), lat = asin(v[1]);
 
-    const double j = (p->w    ) * 0.5 * (M_PI   + lon) / M_PI;
-    const double i = (p->h - 1) * 0.5 * (M_PI_2 - lat) / M_PI_2;
+    double x = p->radius * (lon - p->lonp) * cos(p->latp);
+    double y = p->radius * (lat);
 
-    return img_linear(p, i, j, c);
+    int l = p->l0 - y / p->scale;
+    int s = p->s0 + x / p->scale;
+
+    return img_linear(p, l, s, c);
 }
 
-int img_sample_test(img *p, const double *v, double *c)
+int img_orthographic(img *p, const double *v, double *c)
+{
+    const double lon = atan2(v[0], -v[2]), lat = asin(v[1]);
+
+    double x = p->radius * cos(lat) * sin(lon - p->lonp);
+    double y = p->radius * sin(lat);
+
+    int l = p->l0 - y / p->scale;
+    int s = p->s0 + x / p->scale;
+
+    return img_linear(p, l, s, c);
+}
+
+int img_stereographic(img *p, const double *v, double *c)
+{
+    const double lon = atan2(v[0], -v[2]), lat = asin(v[1]);
+
+    double x;
+    double y;
+
+    if (p->latp > 0)
+    {
+        x =  2 * p->radius * tan(M_PI_4 - lat / 2) * sin(lon - p->lonp);
+        y = -2 * p->radius * tan(M_PI_4 - lat / 2) * cos(lon - p->lonp);
+    }
+    else
+    {
+        x =  2 * p->radius * tan(M_PI_4 + lat / 2) * sin(lon - p->lonp);
+        y =  2 * p->radius * tan(M_PI_4 + lat / 2) * cos(lon - p->lonp);
+    }
+
+    int l = p->l0 - y / p->scale;
+    int s = p->s0 + x / p->scale;
+
+    return img_linear(p, l, s, c);
+}
+
+int img_cylindrical(img *p, const double *v, double *c)
+{
+    const double lon = atan2(v[0], -v[2]), lat = asin(v[1]);
+
+    int s = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
+    int l = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
+
+    return img_linear(p, l, s, c);
+}
+
+int img_default(img *p, const double *v, double *c)
+{
+    const double lon = atan2(v[0], -v[2]), lat = asin(v[1]);
+
+    const double l = (p->h - 1) * 0.5 * (M_PI_2 - lat) / M_PI_2;
+    const double s = (p->w    ) * 0.5 * (M_PI   + lon) / M_PI;
+
+    return img_linear(p, l, s, c);
+}
+
+int img_test(img *p, const double *v, double *c)
 {
     switch (p->c)
     {

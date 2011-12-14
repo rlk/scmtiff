@@ -9,16 +9,30 @@ typedef struct img img;
 
 struct img
 {
+    // Data buffer and parameters
+
     void  *p;
-    size_t n;
     int    w;
     int    h;
     int    c;
     int    b;
     int    s;
     int    d;
+    size_t n;
 
-    int (*get)(img *, int, int, double *);
+    // Projection parameters
+
+    double latmax;
+    double latmin;
+    double latp;
+    double lonmax;
+    double lonmin;
+    double lonp;
+    double l0;
+    double s0;
+    double res;
+    double scale;
+    double radius;
 
     int (*sample)(img *, const double *, double *);
 };
@@ -38,8 +52,12 @@ void img_close(img *);
 
 void *img_scanline(img *, int);
 
-int img_sample_spheremap(img *, const double *, double *);
-int img_sample_test     (img *, const double *, double *);
+int img_equirectangular (img *, const double *, double *);
+int img_orthographic    (img *, const double *, double *);
+int img_stereographic   (img *, const double *, double *);
+int img_cylindrical     (img *, const double *, double *);
+int img_default         (img *, const double *, double *);
+int img_test            (img *, const double *, double *);
 
 //------------------------------------------------------------------------------
 

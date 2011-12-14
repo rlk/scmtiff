@@ -51,7 +51,14 @@ static GLuint  cmap_color;
 
 static int data_load(int j)
 {
-    const GLenum f[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+    const GLenum e[] = { 0, GL_LUMINANCE,
+                            GL_LUMINANCE_ALPHA,
+                            GL_RGB,
+                            GL_RGBA };
+    const GLenum f[] = { 0, GL_LUMINANCE32F_ARB,
+                            GL_LUMINANCE_ALPHA32F_ARB,
+                            GL_RGB32F_ARB,
+                            GL_RGBA32F_ARB };
 
     for (int i = 0; i < n; ++i)
     {
@@ -71,7 +78,7 @@ static int data_load(int j)
         else memset(fbuf, 0, N * N * C * sizeof (GLfloat));
 
         glBindTexture(GL_TEXTURE_2D, o[i]);
-        glTexImage2D (GL_TEXTURE_2D, 0, C, N, N, 0, f[C], GL_FLOAT, fbuf);
+        glTexImage2D (GL_TEXTURE_2D, 0, f[C], N, N, 0, e[C], GL_FLOAT, fbuf);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
@@ -188,7 +195,7 @@ static const char *frag_color =
     "void main()\n"
     "{\n"
     "    vec4 i = texture2D(image, gl_TexCoord[0].xy);\n"
-    "    vec4 c = texture1D(color, i.r * 4.0);\n"
+    "    vec4 c = texture1D(color, i.r);\n"
     "    gl_FragColor = c;\n"
     "}\n";
 

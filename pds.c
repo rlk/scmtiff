@@ -4,8 +4,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <regex.h>
 #include <ctype.h>
+#include <math.h>
+#include <sys/mman.h>
 
 #include "img.h"
 #include "err.h"
@@ -18,7 +21,7 @@
 // two capture groups. If the string matches the pattern, Copy the first capture
 // to the key string and the second to the val string.
 
-static int getpair(const char *str, char *key, char *val, const char *pattern)
+static int get_pair(const char *str, char *key, char *val, const char *pattern)
 {
     char       error[STRMAX];
     regmatch_t match[3];
@@ -50,10 +53,10 @@ static int getpair(const char *str, char *key, char *val, const char *pattern)
 // The first recognizes quoted strings and returns only the quoted contents in
 // the value. The second mops up everything else.
 
-static int getelement(const char *str, char *key, char *val)
+static int get_element(const char *str, char *key, char *val)
 {
-    return (getpair(str, key, val, "^ *([A-Z^][A-Z_:]*) *= *\"([^\"]*)\"") ||
-            getpair(str, key, val, "^ *([A-Z^][A-Z_:]*) *= *(.*)$"));
+    return (get_pair(str, key, val, "^ *([A-Z^][A-Z_:]*) *= *\"([^\"]*)\"") ||
+            get_pair(str, key, val, "^ *([A-Z^][A-Z_:]*) *= *(.*)$"));
 }
 
 // Read a line from the given PDS file. PDS is non-case-sensitive so convert
@@ -61,7 +64,7 @@ static int getelement(const char *str, char *key, char *val)
 // The string END signals the end of PDS label data. Stop there to avoid
 // parsing into concatenated raw data.
 
-static int getline(char *str, size_t len, FILE *fp)
+static int get_line(char *str, size_t len, FILE *fp)
 {
     if (fgets(str, len, fp))
     {
@@ -75,75 +78,142 @@ static int getline(char *str, size_t len, FILE *fp)
     return 0;
 }
 
-// Open the named PDS label and parse all necessary data elements. We're
-// ignoring a heck of a lot of stuff here, but loading the minimum necessary
-// to fit the capabilities of the image sampling system. This also covers all
-// the data sets we know we'll need to read.
-
-static img *parse(const char *lbl)
+static int get_int(const char *val)
 {
-	img  *p = NULL;
-	FILE *f = NULL;
+    return (int) strtol(val, 0, 0);
+}
 
-    if ((f = fopen(lbl, "r")))
+static double get_real(const char *val)
+{
+    return (double) strtod(val, 0);
+}
+
+static double get_angle(const char *str)
+{
+    char val[STRMAX];
+    char dim[STRMAX];
+
+    if (get_pair(str, val, dim, "(-?[\\.0-9]+) <([^>]+)>"))
     {
-	    char str[STRMAX];
-	    char key[STRMAX];
-	    char val[STRMAX];
-	    char img[STRMAX];
-
-	    int  w = 0;
-	    int  h = 0;
-	    int  c = 1;
-	    int  b = 8;
-	    int  s = 0;
-	    int rs = 0;
-	    int rc = 0;
-
-	    strcpy(img, lbl);
-
-	    while (getline(str, STRMAX, f))
-	    {
-	        if (getelement(str, key, val))
-	        {
-	        	if      (!strcmp(key, "LINE_SAMPLES"))   w = strtol(val, 0, 0);
-	        	else if (!strcmp(key, "LINES"))          h = strtol(val, 0, 0);
-	        	else if (!strcmp(key, "BANDS"))          c = strtol(val, 0, 0);
-	        	else if (!strcmp(key, "SAMPLE_BITS"))    b = strtol(val, 0, 0);
-	        	else if (!strcmp(key, "RECORD_BYTES"))  rs = strtol(val, 0, 0);
-	        	else if (!strcmp(key, "LABEL_RECORDS")) rc = strtol(val, 0, 0);
-	        	else if (!strcmp(key, "FILE_NAME"))	         strcpy(img, val);
-
-	        	else if (!strcmp(key, "SAMPLE_TYPE"))
-	        	{
-	        		if      (!strcmp(val, "LSB_INTEGER")) s = 1;
-	        		else if (!strcmp(val, "MSB_INTEGER")) s = 1;
-	        	}
-	        	else if (!strcmp(key, "MAP_PROJECTION_TYPE"))
-	        	{
-	        	}
-	        }
-	    }
-
-	    if (w && h && c && b)
-	    {
-		    if (strcmp(img, lbl))
-			    p = img_mmap(w, h, c, b, s, img, 0);
-			else
-			    p = img_mmap(w, h, c, b, s, img, rc * rs);
-		}
-        fclose(f);
+        if (strcmp(dim, "DEG"))
+            return get_real(val);
+        else
+            return get_real(val) * M_PI / 180.0;
     }
-    else syserr("Failed to open PDS '%s'", lbl);
+    return 0;
+}
 
-    return p;
+static void parse_element(img *p, const char *key, const char *val)
+{
+    // Raster parameters
+
+    if      (!strcmp(key, "LINE_SAMPLES")) p->w = get_int(val);
+    else if (!strcmp(key, "LINES"))        p->h = get_int(val);
+    else if (!strcmp(key, "BANDS"))        p->c = get_int(val);
+    else if (!strcmp(key, "SAMPLE_BITS"))  p->b = get_int(val);
+    else if (!strcmp(key, "SAMPLE_TYPE"))
+    {
+        if      (!strcmp(val, "LSB_INTEGER")) p->s = 1;
+        else if (!strcmp(val, "MSB_INTEGER")) p->s = 1;
+    }
+
+    // Projection parameters
+
+    else if (!strcmp(key,     "MAXIMUM_LATITUDE"))   p->latmax = get_angle(val);
+    else if (!strcmp(key,     "MINIMUM_LATITUDE"))   p->latmin = get_angle(val);
+    else if (!strcmp(key,      "CENTER_LATITUDE"))   p->latp   = get_angle(val);
+    else if (!strcmp(key, "EASTERNMOST_LONGITUDE"))  p->lonmax = get_angle(val);
+    else if (!strcmp(key, "WESTERNMOST_LONGITUDE"))  p->lonmin = get_angle(val);
+    else if (!strcmp(key,      "CENTER_LONGITUDE"))  p->lonp   = get_angle(val);
+    else if (!strcmp(key,      "A_AXIS_RADIUS"))     p->radius = get_real (val);
+    else if (!strcmp(key,         "MAP_SCALE"))      p->scale  = get_real (val);
+    else if (!strcmp(key,         "MAP_RESOLUTION")) p->res    = get_real (val);
+    else if (!strcmp(key,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_real (val);
+    else if (!strcmp(key, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_real (val);
+
+    else if (!strcmp(key, "MAP_PROJECTION_TYPE"))
+    {
+        if      (!strcmp(val, "EQUIRECTANGULAR"))
+            p->sample = img_equirectangular;
+        else if (!strcmp(val, "ORTHOGRAPHIC"))
+            p->sample = img_orthographic;
+        else if (!strcmp(val, "POLAR STEREOGRAPHIC"))
+            p->sample = img_stereographic;
+        else if (!strcmp(val, "SIMPLE CYLINDRICAL"))
+            p->sample = img_cylindrical;
+    }
+}
+
+static void parse_file(FILE *f, img *p, const char *lbl)
+{
+    char str[STRMAX];
+    char key[STRMAX];
+    char val[STRMAX];
+    char img[STRMAX];
+
+    int rs = 0;
+    int rc = 0;
+
+    strcpy(img, lbl);
+
+    p->b = 8;
+    p->c = 1;
+
+    // Read the PDS label and interpret all PDS data elements.
+
+    while (get_line(str, STRMAX, f))
+    {
+        if (get_element(str, key, val))
+        {
+            if      (!strcmp(key, "RECORD_BYTES"))  rs = get_int(val);
+            else if (!strcmp(key, "LABEL_RECORDS")) rc = get_int(val);
+            else if (!strcmp(key, "FILE_NAME"))          strcpy(img, val);
+
+            else parse_element(p, key, val);
+        }
+    }
+
+    // Open and map the data file.
+
+    void  *q;
+    int    d;
+    off_t  o = strcmp(img, lbl) ? 0 : rc * rs;
+    size_t n = (size_t) p->w * (size_t) p->h
+             * (size_t) p->c * (size_t) p->b / 8;
+
+    if ((d = open(img, O_RDONLY)) != -1)
+    {
+        if ((q = mmap(0, n, PROT_READ, MAP_PRIVATE, d, o)) != MAP_FAILED)
+        {
+            p->d = d;
+            p->p = q;
+            p->n = n;
+        }
+        else syserr("Failed to mmap '%s'", img);
+    }
+    else syserr("Failed to open '%s'", img);
 }
 
 //------------------------------------------------------------------------------
 
 img *pds_load(const char *name)
 {
-    return parse(name);
+    FILE *f = NULL;
+    img  *p = NULL;
+
+    if ((f = fopen(name, "r")))
+    {
+        if ((p = (img *) calloc(1, sizeof (img))))
+        {
+            parse_file(f, p, name);
+            return p;
+        }
+        else apperr("Failed to allocate image structure");
+    }
+    else syserr("Failed to open PDS '%s'", name);
+
+    fclose(f);
+    return NULL;
 }
 
 //------------------------------------------------------------------------------
