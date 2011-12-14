@@ -12,6 +12,7 @@ struct img
     // Data buffer and parameters
 
     void  *p;
+    void  *q;
     int    w;
     int    h;
     int    c;

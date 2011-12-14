@@ -1,14 +1,24 @@
 // Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <math.h>
 
 #include "scm.h"
 #include "img.h"
 #include "util.h"
 
 //------------------------------------------------------------------------------
+
+static void normalize(double *v)
+{
+    double k = 1.0 / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    v[0] *= k;
+    v[1] *= k;
+    v[2] *= k;
+}
 
 static void sample_vectors(double *w, const double *v)
 {
@@ -30,6 +40,11 @@ static void corner_vectors(double *v, const double *u, int r, int c, int n)
     slerp2(v + 3, u + 0, u + 3, u + 6, u + 9, c1, r0);
     slerp2(v + 6, u + 0, u + 3, u + 6, u + 9, c0, r1);
     slerp2(v + 9, u + 0, u + 3, u + 6, u + 9, c1, r1);
+
+    normalize(v + 0);
+    normalize(v + 3);
+    normalize(v + 6);
+    normalize(v + 9);
 }
 
 static double avg5(double a, double b, double c, double d, double e)

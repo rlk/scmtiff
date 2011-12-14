@@ -105,6 +105,8 @@ static double get_angle(const char *str)
 
 static void parse_element(img *p, const char *key, const char *val)
 {
+    const double K = 1000.0;
+
     // Raster parameters
 
     if      (!strcmp(key, "LINE_SAMPLES")) p->w = get_int(val);
@@ -125,11 +127,11 @@ static void parse_element(img *p, const char *key, const char *val)
     else if (!strcmp(key, "EASTERNMOST_LONGITUDE"))  p->lonmax = get_angle(val);
     else if (!strcmp(key, "WESTERNMOST_LONGITUDE"))  p->lonmin = get_angle(val);
     else if (!strcmp(key,      "CENTER_LONGITUDE"))  p->lonp   = get_angle(val);
-    else if (!strcmp(key,      "A_AXIS_RADIUS"))     p->radius = get_real (val);
     else if (!strcmp(key,         "MAP_SCALE"))      p->scale  = get_real (val);
     else if (!strcmp(key,         "MAP_RESOLUTION")) p->res    = get_real (val);
     else if (!strcmp(key,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_real (val);
     else if (!strcmp(key, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_real (val);
+    else if (!strcmp(key,      "A_AXIS_RADIUS")) p->radius = K * get_real (val);
 
     else if (!strcmp(key, "MAP_PROJECTION_TYPE"))
     {
@@ -177,17 +179,18 @@ static void parse_file(FILE *f, img *p, const char *lbl)
 
     void  *q;
     int    d;
-    off_t  o = strcmp(img, lbl) ? 0 : rc * rs;
+    size_t o = strcmp(img, lbl) ? 0 : rc * rs;
     size_t n = (size_t) p->w * (size_t) p->h
              * (size_t) p->c * (size_t) p->b / 8;
 
     if ((d = open(img, O_RDONLY)) != -1)
     {
-        if ((q = mmap(0, n, PROT_READ, MAP_PRIVATE, d, o)) != MAP_FAILED)
+        if ((q = mmap(0, o + n, PROT_READ, MAP_PRIVATE, d, 0)) != MAP_FAILED)
         {
-            p->d = d;
-            p->p = q;
+            p->p = q + o;
+            p->q = q;
             p->n = n;
+            p->d = d;
         }
         else syserr("Failed to mmap '%s'", img);
     }

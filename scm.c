@@ -173,12 +173,14 @@ static void set_ifd(ifd *ip, off_t o, size_t d, size_t t,
 
     // Since c < 5, the sample-format field fits within its own offset.
 
+    uint16_t F = (b == 32) ? 3 : (s ? 2 : 1);
+
     p = (uint16_t *) (&ip->sample_format.offset);
 
-    p[0] = (uint16_t) (s ? 2 : 1);
-    p[1] = (uint16_t) (s ? 2 : 1);
-    p[2] = (uint16_t) (s ? 2 : 1);
-    p[3] = (uint16_t) (s ? 2 : 1);
+    p[0] = F;
+    p[1] = F;
+    p[2] = F;
+    p[3] = F;
 
     // Encode the current date and time as ASCII text.
 
@@ -296,6 +298,7 @@ static int get_ifd_s(ifd *ip)
 
     if      (p[0] == 1) return 0;
     else if (p[0] == 2) return 1;
+    else if (p[0] == 3) return 0;
     else apperr("Unknown sample format");
 
     return 0;
@@ -326,6 +329,9 @@ static void ftob(void *p, const double *f, size_t n, int b, int s)
         for (i = 0; i < n; ++i)
             ((short *) p)[i] = (short) (f[i] * 32767);
 
+    else if (b == 32)
+        for (i = 0; i < n; ++i)
+            ((float *) p)[i] = (float) (f[i]);
 }
 
 // Decode the n values in raw buffer p to the floating point buffer f assuming
@@ -350,6 +356,10 @@ static void btof(const void *p, double *f, size_t n, int b, int s)
     else if (b == 16 && s == 1)
         for (i = 0; i < n; ++i)
             f[i] = ((short *) p)[i] / 32767.0;
+
+    else if (b == 32)
+        for (i = 0; i < n; ++i)
+            f[i] = (double) ((float *) p)[i];
 }
 
 #if 0
