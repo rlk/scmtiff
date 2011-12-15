@@ -88,6 +88,8 @@ static void process(scm *s, struct input *v, int c)
 
         for (int x = 0; x < scm_get_page_count(d); ++x)
         {
+            int k = 0;
+
             memset(p, 0, N * N * C * sizeof (double));
 
             // Sum all files contributing to this page.
@@ -100,13 +102,14 @@ static void process(scm *s, struct input *v, int c)
                     {
                         for (int j = 0; j < N * N * C; ++j)
                             p[j] += q[j];
+                        k++;
                     }
                 }
             }
 
             // Write the sum to the output.
 
-            b = scm_append(s, b, 0, 0, x, p);
+            if (k) b = scm_append(s, b, 0, 0, x, p);
         }
 
         free(q);

@@ -46,7 +46,7 @@ static off_t sample(scm *s, scm *t)
 
     if ((d = scm_mapping(s, &m)) >= 0)
     {
-        const int M = scm_get_page_count(d);
+        const int M = scm_get_page_count(d - 1);
         const int N = scm_get_n(s) + 2;
         const int n = scm_get_n(s);
         const int c = scm_get_c(s);

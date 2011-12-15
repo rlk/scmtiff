@@ -34,7 +34,6 @@ static int get8u(img *p, int i, int j, double *c)
         }
         return 1;
     }
-
     memset(c, 0, p->c * sizeof (double));
     return 0;
 }
@@ -54,7 +53,6 @@ static int get8s(img *p, int i, int j, double *c)
         }
         return 1;
     }
-
     memset(c, 0, p->c * sizeof (double));
     return 0;
 }
@@ -74,7 +72,6 @@ static int get16u(img *p, int i, int j, double *c)
         }
         return 1;
     }
-
     memset(c, 0, p->c * sizeof (double));
     return 0;
 }
@@ -94,7 +91,6 @@ static int get16s(img *p, int i, int j, double *c)
         }
         return 1;
     }
-
     memset(c, 0, p->c * sizeof (double));
     return 0;
 }
@@ -114,7 +110,6 @@ static int get32f(img *p, int i, int j, double *c)
         }
         return 1;
     }
-
     memset(c, 0, p->c * sizeof (double));
     return 0;
 }
@@ -225,11 +220,14 @@ void *img_scanline(img *p, int r)
 //------------------------------------------------------------------------------
 
 // Perform a linearly-filtered sampling of the image p. The filter position
-// i, j is smoothly-varying in the range [0, w), [0, h).
+// i, j is smoothly-varying in the range [0, w), [0, h). Return the sample
+// coverage.
 
-int img_linear(img *p, double i, double j, double *c)
+double img_linear(img *p, double i, double j, double *c)
 {
-    const int b = (p->b >> 3) - 1;
+    const int B = (p->b >> 3) - 1;
+    const int S =  p->s;
+//  const int C =  p->c - 1;
 
     const double s = i - floor(i);
     const double t = j - floor(j);
@@ -239,28 +237,57 @@ int img_linear(img *p, double i, double j, double *c)
     const int ja = (int) floor(j);
     const int jb = (int)  ceil(j);
 
-    double aa[4];
-    double ab[4];
-    double ba[4];
-    double bb[4];
+    double /*a[4],*/ aa[4], ab[4];
+    double /*b[4],*/ ba[4], bb[4];
 
-    int k = 0;
+    const int kaa = get[S][B](p, ia, ja, aa);
+    const int kab = get[S][B](p, ia, jb, ab);
+    const int kba = get[S][B](p, ib, ja, ba);
+    const int kbb = get[S][B](p, ib, jb, bb);
 
-    k += get[p->s][b](p, ia, ja, aa);
-    k += get[p->s][b](p, ia, jb, ab);
-    k += get[p->s][b](p, ib, ja, ba);
-    k += get[p->s][b](p, ib, jb, bb);
+    switch (p->c)
+    {
+        case 4: c[3] = lerp2(aa[3], ab[3], ba[3], bb[3], s, t);
+        case 3: c[2] = lerp2(aa[2], ab[2], ba[2], bb[2], s, t);
+        case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], s, t);
+        case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], s, t);
+    }
+    return (kaa || kab || kba || kbb) ? 1.0 : 0.0;
 
-    if (k)
-        switch (p->c)
-        {
-            case 4: c[3] = lerp2(aa[3], ab[3], ba[3], bb[3], s, t);
-            case 3: c[2] = lerp2(aa[2], ab[2], ba[2], bb[2], s, t);
-            case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], s, t);
-            case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], s, t);
-        }
+#if 0
+    double a[4], aa[4], ab[4];
+    double b[4], ba[4], bb[4];
 
-    return k;
+    const int kaa = get[S][B](p, ia, ja, aa);
+    const int kab = get[S][B](p, ia, jb, ab);
+    const int kba = get[S][B](p, ib, ja, ba);
+    const int kbb = get[S][B](p, ib, jb, bb);
+
+    const int n  = kaa + kab + kba + kbb;
+    const int ka = kaa + kab;
+    const int kb = kba + kbb;
+
+    if (n)
+    {
+        int k;
+
+        if (kaa && kab) for (k = C; k >= 0; --k) a[k] = lerp1(aa[k], ab[k], t);
+        else if (kaa)   for (k = C; k >= 0; --k) a[k] = aa[k];
+        else if (kab)   for (k = C; k >= 0; --k) a[k] = ab[k];
+
+        if (kba && kbb) for (k = C; k >= 0; --k) b[k] = lerp1(ba[k], bb[k], t);
+        else if (kba)   for (k = C; k >= 0; --k) b[k] = ba[k];
+        else if (kbb)   for (k = C; k >= 0; --k) b[k] = bb[k];
+
+        if (ka  && kb)  for (k = C; k >= 0; --k) c[k] = lerp1(a[k], b[k], s);
+        else if (ka)    for (k = C; k >= 0; --k) c[k] = a[k];
+        else if (kb)    for (k = C; k >= 0; --k) c[k] = b[k];
+
+        return 1;
+    }
+    return 0;
+//  return (double) n / 4.0;
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -276,7 +303,7 @@ static inline double tolon(double a)
     return b < 0 ? b + 2 * M_PI : b;
 }
 
-int img_equirectangular(img *p, const double *v, double *c)
+double img_equirectangular(img *p, const double *v, double *c)
 {
     const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
 
@@ -289,7 +316,7 @@ int img_equirectangular(img *p, const double *v, double *c)
     return img_linear(p, l, s, c);
 }
 
-int img_orthographic(img *p, const double *v, double *c)
+double img_orthographic(img *p, const double *v, double *c)
 {
     const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
 
@@ -302,7 +329,7 @@ int img_orthographic(img *p, const double *v, double *c)
     return img_linear(p, l, s, c);
 }
 
-int img_stereographic(img *p, const double *v, double *c)
+double img_stereographic(img *p, const double *v, double *c)
 {
     const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
 
@@ -326,7 +353,7 @@ int img_stereographic(img *p, const double *v, double *c)
     return img_linear(p, l, s, c);
 }
 
-int img_cylindrical(img *p, const double *v, double *c)
+double img_cylindrical(img *p, const double *v, double *c)
 {
     const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
 
@@ -336,7 +363,7 @@ int img_cylindrical(img *p, const double *v, double *c)
     return img_linear(p, l, s, c);
 }
 
-int img_default(img *p, const double *v, double *c)
+double img_default(img *p, const double *v, double *c)
 {
     const double lon = atan2(v[0], -v[2]), lat = asin(v[1]);
 
@@ -346,7 +373,7 @@ int img_default(img *p, const double *v, double *c)
     return img_linear(p, l, s, c);
 }
 
-int img_test(img *p, const double *v, double *c)
+double img_test(img *p, const double *v, double *c)
 {
     switch (p->c)
     {

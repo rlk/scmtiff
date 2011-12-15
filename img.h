@@ -35,7 +35,7 @@ struct img
     double scale;
     double radius;
 
-    int (*sample)(img *, const double *, double *);
+    double (*sample)(img *, const double *, double *);
 };
 
 //------------------------------------------------------------------------------
@@ -53,12 +53,12 @@ void img_close(img *);
 
 void *img_scanline(img *, int);
 
-int img_equirectangular (img *, const double *, double *);
-int img_orthographic    (img *, const double *, double *);
-int img_stereographic   (img *, const double *, double *);
-int img_cylindrical     (img *, const double *, double *);
-int img_default         (img *, const double *, double *);
-int img_test            (img *, const double *, double *);
+double img_equirectangular (img *, const double *, double *);
+double img_orthographic    (img *, const double *, double *);
+double img_stereographic   (img *, const double *, double *);
+double img_cylindrical     (img *, const double *, double *);
+double img_default         (img *, const double *, double *);
+double img_test            (img *, const double *, double *);
 
 //------------------------------------------------------------------------------
 

@@ -47,10 +47,12 @@ static void corner_vectors(double *v, const double *u, int r, int c, int n)
     normalize(v + 9);
 }
 
+#if 0
 static double avg5(double a, double b, double c, double d, double e)
 {
     return (a + b + c + d + e) / 5.0;
 }
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -63,29 +65,30 @@ static int sample(img *p, int i, int j, int n, const double *c, double *x)
 {
     double v[12];
     double w[15];
-    double t[20];
-
-    int k = 0;
+    double A = 0;
 
     corner_vectors(v, c, i, j, n);
     sample_vectors(w, v);
 
-    k += p->sample(p, w + 12, t + 16);
-    k += p->sample(p, w +  9, t + 12);
-    k += p->sample(p, w +  6, t +  8);
-    k += p->sample(p, w +  3, t +  4);
-    k += p->sample(p, w +  0, t +  0);
+    for (int l = 4; l >= 0; --l)
+    {
+        double t[4];
+        double a;
 
-    if (k)
-        switch (p->c)
+        if ((a = p->sample(p, w + l * 3, t)))
         {
-            case 4: x[3] = avg5(t[3], t[7], t[11], t[15], t[19]);
-            case 3: x[2] = avg5(t[2], t[6], t[10], t[14], t[18]);
-            case 2: x[1] = avg5(t[1], t[5], t[ 9], t[13], t[17]);
-            case 1: x[0] = avg5(t[0], t[4], t[ 8], t[12], t[16]);
-        }
+            switch (p->c)
+            {
+                case 4: x[3] += t[3] / 5.0;
+                case 3: x[2] += t[2] / 5.0;
+                case 2: x[1] += t[1] / 5.0;
+                case 1: x[0] += t[0] / 5.0;
+            }
 
-    return k;
+            A += a;
+        }
+    }
+    return (A > 0.0);
 }
 
 int process(scm *s, img *p, int d)
@@ -144,6 +147,8 @@ int convert(int argc, char **argv)
     img *p = NULL;
     scm *s = NULL;
 
+    // Parse command line options.
+
     int i;
 
     for (i = 1; i < argc; ++i)
@@ -152,11 +157,15 @@ int convert(int argc, char **argv)
         else if (strcmp(argv[i], "-n") == 0) n = atoi(argv[++i]);
         else if (strcmp(argv[i], "-d") == 0) d = atoi(argv[++i]);
 
+    // Assume the last argument is an input file.  Load it.
+
     if      (extcmp(argv[argc - 1], ".jpg") == 0) p = jpg_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".png") == 0) p = png_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".tif") == 0) p = tif_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".img") == 0) p = pds_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".lbl") == 0) p = pds_load(argv[argc - 1]);
+
+    // Process the output.
 
     if (p)
         s = scm_ofile(o, n, p->c, p->b, p->s, t);

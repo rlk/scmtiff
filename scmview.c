@@ -196,7 +196,7 @@ static const char *frag_color =
     "{\n"
     "    vec4 i = texture2D(image, gl_TexCoord[0].xy);\n"
     "    vec4 c = texture1D(color, i.r);\n"
-    "    gl_FragColor = c;\n"
+    "    gl_FragColor = vec4(c.rgb, i.a);\n"
     "}\n";
 
 
@@ -207,6 +207,9 @@ static int start(int argc, char **argv)
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_TEXTURE_2D);
+        glEnable(GL_BLEND);
+
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         glGenTextures(n, o);
 
@@ -269,7 +272,7 @@ static void display(void)
 
     glViewport(0, 0, w, h);
 
-    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
