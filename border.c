@@ -183,6 +183,7 @@ int border(int argc, char **argv)
                                 scm_get_copyright(s))))
         {
             r = process(s, t);
+            scm_relink(t);
             scm_close(t);
         }
         scm_close(s);

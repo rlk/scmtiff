@@ -793,6 +793,7 @@ off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *dat)
                             {
                                 if (fseeko(s->fp, 0, SEEK_END) == 0)
                                 {
+                                    fflush(s->fp);
                                     return o;
                                 }
                                 else syserr("Failed to seek SCM");
@@ -833,6 +834,37 @@ off_t scm_rewind(scm *s)
     else syserr("Failed to read SCM header");
 
     return 0;
+}
+
+// Scan the offset and page index of each IFD and rewrite all SubIFD fields.
+// This has the effect of making the data structure depth-first seek-able
+// without the need for a cataloging and mapping pre-pass. We may safely
+// assume that this process does not change the length of the file or any
+// offsets within it.
+
+void scm_relink(scm *s)
+{
+    off_t *m;
+    int    d;
+    ifd    i;
+
+    assert(s);
+
+    if ((d = scm_mapping(s, &m)))
+    {
+        for (int x = 0; x < scm_get_page_count(d); ++x)
+            if (m[x] && scm_read_ifd(s, &i, m[x]) == 1)
+            {
+                i.ifds[0] = m[scm_get_page_child(x, 0)];
+                i.ifds[1] = m[scm_get_page_child(x, 1)];
+                i.ifds[2] = m[scm_get_page_child(x, 2)];
+                i.ifds[3] = m[scm_get_page_child(x, 3)];
+
+                scm_write_ifd(s, &i, m[x]);
+            }
+
+        free(m);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -929,19 +961,19 @@ int scm_catalog(scm *s, off_t **ov, int **xv)
 
 int scm_mapping(scm *s, off_t **mv)
 {
-    int c = 0;
     int l = 0;
-    int x;
+    int x = 0;
 
     off_t o;
     off_t n;
 
     assert(s);
 
-    // Count the pages. Note the index of the last page.
+    // Determine the largest page index.
 
-    for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; l = x, o = n)
-        c++;
+    for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
+        if (l < x)
+            l = x;
 
     // Determine the index and offset of each page and initialize a mapping.
 

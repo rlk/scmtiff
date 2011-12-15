@@ -138,6 +138,7 @@ int combine(int argc, char **argv)
                                     scm_get_copyright(v[0].s))))
             {
                 process(s, v, c);
+                scm_relink(s);
                 scm_close(s);
             }
         }

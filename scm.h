@@ -20,6 +20,7 @@ void scm_close(scm *);
 
 off_t  scm_append(scm *, off_t, off_t, int, int, const double *);
 off_t  scm_rewind(scm *);
+void   scm_relink(scm *);
 
 int    scm_read_node(scm *, off_t, off_t *, off_t *);
 size_t scm_read_page(scm *, off_t, double *);
