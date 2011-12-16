@@ -648,6 +648,7 @@ void scm_close(scm *s)
 
 scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
 {
+    char *copyright = NULL;
     FILE *fp = NULL;
     scm  *s  = NULL;
 
@@ -667,30 +668,32 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
     {
         if (fwrite(&h, sizeof (h), 1, fp) == 1)
         {
-            if (fwrite(text, 1, t, fp) == t)
+            if ((copyright = (char *) calloc(1, t)))
             {
-                if ((s = (scm *) calloc(sizeof (scm), 1)))
-                {
-                    s->fp = fp;
-                    s->n  = n;
-                    s->c  = c;
-                    s->b  = b;
-                    s->s  = g;
+                strcpy(copyright, text);
 
-                    if (scm_alloc(s))
+                if (fwrite(copyright, 1, t, fp) == t)
+                {
+                    if ((s = (scm *) calloc(sizeof (scm), 1)))
                     {
-                        if ((s->copyright = (char *) malloc(t)))
+                        s->copyright = copyright;
+                        s->fp        = fp;
+                        s->n         = n;
+                        s->c         = c;
+                        s->b         = b;
+                        s->s         = g;
+
+                        if (scm_alloc(s))
                         {
-                            strcpy(s->copyright, text);
                             return s;
                         }
-                        else syserr("Failed to allocate copyright text");
+                        else syserr("Failed to allocate SCM scratch buffers");
                     }
-                    else syserr("Failed to allocate SCM scratch buffers");
+                    else syserr("Failed to allocate SCM");
                 }
-                else syserr("Failed to allocate SCM");
+                else syserr("Failed to write '%s'", name);
             }
-            else syserr("Failed to write '%s'", name);
+            else syserr("Failed to allocate copyright text");
         }
         else syserr("Failed to write '%s'", name);
     }
