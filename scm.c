@@ -32,7 +32,7 @@ struct scm
 
 //------------------------------------------------------------------------------
 // The following structures define the format of an SCM TIFF: a BigTIFF with a
-// specific set of fifteen fields in each IFD. LibTIFF4 has no trouble reading
+// specific set of seventeen fields in each IFD. LibTIFF4 has no trouble reading
 // this format, but its SubIFD API is not sufficient to write it.
 
 typedef struct header header;
@@ -361,6 +361,8 @@ static void btof(const void *p, double *f, size_t n, int b, int s)
         for (i = 0; i < n; ++i)
             f[i] = (double) ((float *) p)[i];
 }
+
+// TODO: Implement horizontal differencing.
 
 #if 0
 static void hdif(void *p, size_t n)
@@ -902,7 +904,7 @@ size_t scm_read_page(scm *s, off_t o, double *p)
 }
 
 // Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
-// null, store the next IFD offset there. If p is not null, assume it can store
+// null, store the next IFD offset there. If v is not null, assume it can store
 // four offsets and copy the SubIFDs there.
 
 int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
@@ -932,7 +934,7 @@ int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
 }
 
 // Scan the given SCM TIFF and count the IFDs. Allocate and initialize arrays
-// giving the file offset and page indexof each.
+// giving the file offset and page index of each.
 
 int scm_catalog(scm *s, off_t **ov, int **xv)
 {
@@ -992,6 +994,7 @@ int scm_mapping(scm *s, off_t **mv)
     }
     return -1;
 }
+
 //------------------------------------------------------------------------------
 
 const char *scm_get_copyright(scm *s)
