@@ -118,20 +118,33 @@ static int data_init(int argc, char **argv)
 {
     int N = 0;
     int C = 0;
+    int D = 0;
 
     n = argc - 1;
 
     for (int i = 0; i < n; ++i)
         if ((s[i] = scm_ifile(argv[i + 1])))
         {
-            const int n = scm_get_n(s[i]) + 2;
-            const int c = scm_get_c(s[i]);
+            const int n = scm_get_n  (s[i]) + 2;
+            const int c = scm_get_c  (s[i]);
+            const int d = scm_mapping(s[i], &pageo[i]);
 
             if (N < n) N = n;
             if (C < c) C = c;
+            if (D < d) D = d;
 
-            paged[i] = scm_mapping(s[i], &pageo[i]);
+            paged[i] = d;
         }
+
+    for (int x = 0; x < scm_get_page_count(D); ++x)
+    {
+        printf("%6d ", x);
+
+        for (int i = 0; i < n; ++i)
+            printf("%016x ", pageo[i][x]);
+
+        printf("\n");
+    }
 
     if (N && C)
     {
