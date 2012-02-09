@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 
 // Str is a string giving a PDS element. Pattern is a regular expression with
-// two capture groups. If the string matches the pattern, Copy the first capture
+// two capture groups. If the string matches the pattern, copy the first capture
 // to the key string and the second to the val string.
 
 static int get_pair(const char *str, char *key, char *val, const char *pattern)

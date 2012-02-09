@@ -1,5 +1,10 @@
 // Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
 
+// SCMVIEW is a light-weight OpenGL-based viewer for SCMTIFF format image files.
+// It enables panning, zooming, and false-color rendering of individual pages,
+// as well as side-by-side comparison of multiple SCMTIFF data files. SCMVIEW is
+// a debugging tool, and does NOT produce seamless spherical renderings.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,10 +80,20 @@ static int data_load(int j)
             for (k = 0; k < N * N * C; ++k)
                 fbuf[k] = (GLfloat) dbuf[k];
         }
-        else memset(fbuf, 0, N * N * C * sizeof (GLfloat));
+        else
+        {
+            int r, c, b, k = 0;
+
+            for         (r = 0; r < N; ++r)
+                for     (c = 0; c < N; ++c)
+                    for (b = 0; b < C; ++b, ++k)
+                        fbuf[k] = ((((r - 1) >> 3) & 1) ==
+                                   (((c - 1) >> 3) & 1)) ? 0.4f : 0.6f;
+        }
 
         glBindTexture(GL_TEXTURE_2D, o[i]);
         glTexImage2D (GL_TEXTURE_2D, 0, f[C], N, N, 0, e[C], GL_FLOAT, fbuf);
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
