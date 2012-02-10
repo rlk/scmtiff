@@ -15,22 +15,6 @@
 #include "util.h"
 
 //------------------------------------------------------------------------------
-
-struct scm
-{
-    FILE *fp;                 // I/O file pointer
-    char *copyright;          // Copyright string
-
-    int n;                    // Page sample count
-    int c;                    // Sample channel count
-    int b;                    // Channel bit count
-    int s;                    // Channel signed flag
-
-    void *bin;                // Bin scratch buffer pointer
-    void *zip;                // Zip scratch buffer pointer
-};
-
-//------------------------------------------------------------------------------
 // The following structures define the format of an SCM TIFF: a BigTIFF with a
 // specific set of seventeen fields in each IFD. LibTIFF4 has no trouble reading
 // this format, but its SubIFD API is not sufficient to write it.
@@ -74,20 +58,34 @@ struct ifd
     field samples_per_pixel;
     field strip_byte_counts;
     field configuration;
-    field datetime;
     field predictor;
-    field sub_ifds;
     field sample_format;
-    field copyright;
+    field sample_min;
+    field sample_max;
     field page_index;
 
     uint64_t next;
-
-    uint64_t ifds[4];  // TODO: eliminate this.  page_index is more efficient.
-    char     date[20];
 };
 
 #pragma pack(pop)
+
+//------------------------------------------------------------------------------
+
+struct scm
+{
+    FILE *fp;                 // I/O file pointer
+    char *text;               // Description text
+
+    int n;                    // Page sample count
+    int c;                    // Sample channel count
+    int b;                    // Channel bit count
+    int s;                    // Channel signed flag
+
+    ifd D;                    // IFD template
+
+    void *bin;                // Bin scratch buffer pointer
+    void *zip;                // Zip scratch buffer pointer
+};
 
 //------------------------------------------------------------------------------
 

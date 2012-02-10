@@ -5,53 +5,35 @@ INVARIANT: SCM TIFF files represent a complete, correct, usable spherical cube m
 
 INVARIANT: An SCM TIFF file covers the entire sphere without gaps. As a consequence of this, an SCM TIFF contains at least six pages and each page has either zero or four sub-pages.
 
+INVARIANT: All channels have the same depth and format.
+
+INVARIANT: All pages have the same size, channel count, min value, and max value.
+
 NOT invariant: No page order is defined.
 
 Mix LROC GLD100 with LOLA?
 
 
 TODO
+	Eliminate the 4 channel limit.
 	Add min and max fields.
+	Horizontal difference.
 	Remove the SubIFD mechanism.  This will require changes to panoview.
 
-Convert
 
-	Queue the six root pages
-	While there is a page to dequeue
 
-		If the page touches the input image
-			If the page is a leaf
-				Sample the page
-				Write the filled page
-			Else
-				Write the empty page
-				Queue the four sub-pages
-		Else
-			Write the empty page
+samples per pixel c
+sample format     f f f f
+bits per sample   b b b b
+min sample value  a a a a
+max sample value  z z z z
 
-	Note: A page write is always an append operation, however it must always include rewriting the parent.
+An IFD can be written given
+	page index x
+	SCM (n, c, b, s)
+	data buffer size d
+	next
 
-	Invariant: When a page is queued, it WILL be written.
 
-Combine
-
-	Create an array of scms.
-	Enqueue it six times.
-
-	While there is an array to dequeue
-
-		Copy the array of scms.
-
-		For each non-NULL element of the array
-			Read and accumulate the next page
-			If the page has NO children
-				NULL this element in the copied array
-
-		Append the accumulated page to the output
-
-		If the array has at least one non-NULL element,
-			Enqueue the copied array four times
-
-Border
-
-	Make an array of the offsets of all pages.
+ifd write (s,  x,  d,  n)
+ifd read  (s, &x, &d, &n)
