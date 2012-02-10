@@ -116,22 +116,22 @@ static int process(scm *s, scm *t)
                 {
                     // Copy the borders of all adjacent pages into this one.
 
-                    int u, d, r, l;
+                    int U, D, R, L;
 
-                    scm_get_page_neighbors(x, &u, &d, &r, &l);
+                    scm_get_page_neighbors(x, &U, &D, &R, &L);
 
-                    if (scm_read_page(s, m[u], q))
+                    if (m[U] && scm_read_page(s, m[U], q))
                         copyu(p, scm_get_page_root(x),
-                              q, scm_get_page_root(u), n, c);
-                    if (scm_read_page(s, m[d], q))
+                              q, scm_get_page_root(U), n, c);
+                    if (m[D] && scm_read_page(s, m[D], q))
                         copyd(p, scm_get_page_root(x),
-                              q, scm_get_page_root(d), n, c);
-                    if (scm_read_page(s, m[r], q))
+                              q, scm_get_page_root(D), n, c);
+                    if (m[R] && scm_read_page(s, m[R], q))
                         copyr(p, scm_get_page_root(x),
-                              q, scm_get_page_root(r), n, c);
-                    if (scm_read_page(s, m[l], q))
+                              q, scm_get_page_root(R), n, c);
+                    if (m[L] && scm_read_page(s, m[L], q))
                         copyl(p, scm_get_page_root(x),
-                              q, scm_get_page_root(l), n, c);
+                              q, scm_get_page_root(L), n, c);
 
                     // Patch up the corners with an average.
 

@@ -5,8 +5,14 @@ INVARIANT: SCM TIFF files represent a complete, correct, usable spherical cube m
 
 INVARIANT: An SCM TIFF file covers the entire sphere without gaps. As a consequence of this, an SCM TIFF contains at least six pages and each page has either zero or four sub-pages.
 
+NOT invariant: No page order is defined.
+
 Mix LROC GLD100 with LOLA?
 
+
+TODO
+	Add min and max fields.
+	Remove the SubIFD mechanism.  This will require changes to panoview.
 
 Convert
 
