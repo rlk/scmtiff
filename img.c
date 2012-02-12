@@ -205,6 +205,10 @@ void img_close(img *p)
     }
 }
 
+//------------------------------------------------------------------------------
+
+
+
 // Calculate and return a pointer to scanline r of the given image. This is
 // useful during image I/O.
 

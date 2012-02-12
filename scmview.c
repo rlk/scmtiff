@@ -141,7 +141,7 @@ static int data_init(int argc, char **argv)
         printf("%6d ", x);
 
         for (int i = 0; i < n; ++i)
-            printf("%016x ", pageo[i][x]);
+            printf("%016lx ", (long unsigned int) pageo[i][x]);
 
         printf("\n");
     }

@@ -61,8 +61,6 @@ static int addin(struct input *v, int c, const char *name)
     return c;
 }
 
-//------------------------------------------------------------------------------
-
 // Sum all SCMs given by the input array. Write the output to SCM s.
 
 static void process(scm *s, struct input *v, int c)
@@ -121,7 +119,7 @@ static void process(scm *s, struct input *v, int c)
 
 int combine(int argc, char **argv)
 {
-    int           c = 0;
+    int           l = 0;
     struct input *v = NULL;
 
     if ((v = (struct input *) calloc(argc - 1, sizeof (struct input))))
@@ -130,17 +128,22 @@ int combine(int argc, char **argv)
 
         for (int i = 1; i < argc; ++i)
             if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
-            else if (extcmp(argv[i], ".tif") == 0) c   = addin(v, c, argv[i]);
+            else if (extcmp(argv[i], ".tif") == 0) l   = addin(v, l, argv[i]);
 
-        if (c)
+        if (l)
         {
+            char *str = scm_get_description(v[0].s);
+
+            int n = scm_get_n(v[0].s);
+            int c = scm_get_c(v[0].s);
+            int b = scm_get_b(v[0].s);
+            int g = scm_get_g(v[0].s);
+
             scm *s;
 
-            if ((s = scm_ofile(out, scm_get_n(v[0].s), scm_get_c(v[0].s),
-                                    scm_get_b(v[0].s), scm_get_s(v[0].s),
-                                    scm_get_copyright(v[0].s))))
+            if ((s = scm_ofile(out, n, c, b, g, str)))
             {
-                process(s, v, c);
+                process(s, v, l);
                 scm_relink(s);
                 scm_close(s);
             }

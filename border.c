@@ -178,9 +178,14 @@ int border(int argc, char **argv)
 
     if ((s = scm_ifile(in)))
     {
-        if ((t = scm_ofile(out, scm_get_n(s), scm_get_c(s),
-                                scm_get_b(s), scm_get_s(s),
-                                scm_get_copyright(s))))
+        char *str = scm_get_description(s);
+
+        int n = scm_get_n(s);
+        int c = scm_get_c(s);
+        int b = scm_get_b(s);
+        int g = scm_get_g(s);
+
+        if ((t = scm_ofile(out, n, c, b, g, str)))
         {
             r = process(s, t);
             scm_relink(t);

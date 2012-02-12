@@ -1,3 +1,5 @@
+// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+
 #include <math.h>
 #include <string.h>
 
