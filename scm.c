@@ -13,16 +13,6 @@
 #include "err.h"
 #include "util.h"
 
-static void dump_minmax(scm *s)
-{
-    printf("minmax = ");
-
-    for (int k = 0; k < s->c; ++k)
-        printf("[%.3f,%.3f] ", s->min[k], s->max[k]);
-
-    printf("\n");
-}
-
 //------------------------------------------------------------------------------
 
 // Release all resources associated with SCM s. This function may be used to
@@ -68,7 +58,6 @@ scm *scm_ifile(const char *name)
                     if (scm_read_field(s, &s->D.sample_max, zv) == 1)
                         btof(zv, s->max, s->c, s->b, s->g);
 
-                    dump_minmax(s);
                     return s;
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
@@ -274,8 +263,6 @@ void scm_minmax(scm *s)
     ifd    i;
 
     assert(s);
-
-    dump_minmax(s);
 
     if ((d = scm_mapping(s, &m)))
     {
