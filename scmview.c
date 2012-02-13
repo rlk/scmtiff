@@ -270,6 +270,8 @@ static void page(int x)
 
 //------------------------------------------------------------------------------
 
+// Application startup.
+
 static int start(int argc, char **argv)
 {
     if (data_init(argc, argv))
@@ -291,6 +293,8 @@ static int start(int argc, char **argv)
     }
     return 0;
 }
+
+// GLUT keyboard callback.
 
 static void keyboard(unsigned char key, int x, int y)
 {
@@ -317,6 +321,8 @@ static void keyboard(unsigned char key, int x, int y)
     else if (key == '9') page(scm_get_page_count(8));
 }
 
+// GLUT special keyboard callback.
+
 static void special(int key, int x, int y)
 {
     if      (key == GLUT_KEY_PAGE_UP)   page(pagei + 1);
@@ -332,6 +338,8 @@ static void special(int key, int x, int y)
         glutPostRedisplay();
     }
 }
+
+// GLUT display callback.
 
 static void display(void)
 {
@@ -375,6 +383,8 @@ static void display(void)
     glutSwapBuffers();
 }
 
+// GLUT active motion callback.
+
 static void motion(int x, int y)
 {
     if (drag_button == GLUT_LEFT_BUTTON)
@@ -394,6 +404,8 @@ static void motion(int x, int y)
         glutPostRedisplay();
     }
 }
+
+// GLUT mouse button click callback.
 
 static void mouse(int button, int state, int x, int y)
 {

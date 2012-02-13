@@ -184,13 +184,70 @@ void btof(const void *p, double *f, size_t n, int b, int g)
             f[i] = (double) ((float *) p)[i];
 }
 
-// TODO: Implement horizontal differencing.
+// Encode the given buffer using the horizontal differencing predictor.
 
-#if 0
-static void hdif(void *p, size_t n)
+void enhdif(void *p, int n, int c, int b)
 {
+    const int s = n * c;
+    const int m = n - 1;
+
+    if      (b == 8)
+    {
+        char  *q = (char  *) p;
+        for         (int i = 0; i < n; ++i)
+            for     (int j = m; j > 0; --j)
+                for (int k = 0; k < c; ++k)
+                    q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
+    }
+    else if (b == 16)
+    {
+        short *q = (short *) p;
+        for         (int i = 0; i < n; ++i)
+            for     (int j = m; j > 0; --j)
+                for (int k = 0; k < c; ++k)
+                    q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
+    }
+    else if (b == 32)
+    {
+        float *q = (float *) p;
+        for         (int i = 0; i < n; ++i)
+            for     (int j = m; j > 0; --j)
+                for (int k = 0; k < c; ++k)
+                    q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
+    }
 }
-#endif
+
+// Decode the given buffer using the horizontal differencing predictor.
+
+void dehdif(void *p, int n, int c, int b)
+{
+    const int s = n * c;
+
+    if      (b == 8)
+    {
+        char  *q = (char  *) p;
+        for         (int i = 0; i < n; ++i)
+            for     (int j = 0; j < n; ++j)
+                for (int k = 0; k < c; ++k)
+                    q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
+    }
+    else if (b == 16)
+    {
+        short *q = (short *) p;
+        for         (int i = 0; i < n; ++i)
+            for     (int j = 0; j < n; ++j)
+                for (int k = 0; k < c; ++k)
+                    q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
+    }
+    else if (b == 32)
+    {
+        float *q = (float *) p;
+        for         (int i = 0; i < n; ++i)
+            for     (int j = 0; j < n; ++j)
+                for (int k = 0; k < c; ++k)
+                    q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
+    }
+}
 
 //------------------------------------------------------------------------------
 

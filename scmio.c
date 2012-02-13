@@ -326,7 +326,7 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.orientation,       0x0112, 3, 1,    2);
         set_field(&s->D.samples_per_pixel, 0x0115, 3, 1,    s->c);
         set_field(&s->D.configuration,     0x011C, 3, 1,    1);
-        set_field(&s->D.predictor,         0x013D, 3, 1,    1);        // 2
+        set_field(&s->D.predictor,         0x013D, 3, 1,    2);
         set_field(&s->D.sample_format,     0x0153, 3, s->c, 0);
         set_field(&s->D.sample_min,        0x0154, t, s->c, 0);
         set_field(&s->D.sample_max,        0x0155, t, s->c, 0);
@@ -360,7 +360,9 @@ size_t scm_read_data(scm *s, double *p, size_t z)
     {
         if (uncompress((Bytef *) s->bin, &b, (const Bytef *) s->zip, z) == Z_OK)
         {
-            // hdif(s->bin, n);
+            if (s->D.predictor.offset == 2)
+                dehdif(s->bin, s->n + 2, s->c, s->b);
+
             btof(s->bin, p, n, s->b, s->g);
 
             return b;
@@ -380,7 +382,9 @@ size_t scm_write_data(scm *s, const double *p)
     const size_t n = (s->n + 2) * (s->n + 2) * s->c;
 
     ftob(s->bin, p, n, s->b, s->g);
-    // hdif(s->bin, n);
+
+    if (s->D.predictor.offset == 2)
+        enhdif(s->bin, s->n + 2, s->c, s->b);
 
     uLong z = compressBound(l);
 
