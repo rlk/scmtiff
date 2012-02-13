@@ -48,8 +48,8 @@ int is_ifd(ifd *ip)
         &&  ip->bits_per_sample.tag   == 0x0102
         &&  ip->compression.tag       == 0x0103
         &&  ip->interpretation.tag    == 0x0106
+        &&  ip->description.tag       == 0x010E
         &&  ip->strip_offsets.tag     == 0x0111
-        &&  ip->description.tag       == 0x010e
         &&  ip->orientation.tag       == 0x0112
         &&  ip->samples_per_pixel.tag == 0x0115
         &&  ip->strip_byte_counts.tag == 0x0117

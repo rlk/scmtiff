@@ -38,24 +38,24 @@ struct ifd
 {
     uint64_t count;
 
-    field subfile_type;
-    field image_width;
-    field image_length;
-    field bits_per_sample;
-    field compression;
-    field interpretation;
-    field strip_offsets;        // *
-    field description;
-    field orientation;
-    field samples_per_pixel;
-    field strip_byte_counts;    // *
-    field configuration;
-    field predictor;
-    field sub_ifds;             // *
-    field sample_format;
-    field sample_min;
-    field sample_max;
-    field page_index;           // *
+    field subfile_type;         // 0x00FE
+    field image_width;          // 0x0100
+    field image_length;         // 0x0101
+    field bits_per_sample;      // 0x0102
+    field compression;          // 0x0103
+    field interpretation;       // 0x0106
+    field description;          // 0x010E
+    field strip_offsets;        // 0x0111 *
+    field orientation;          // 0x0112
+    field samples_per_pixel;    // 0x0115
+    field strip_byte_counts;    // 0x0117 *
+    field configuration;        // 0x011C
+    field predictor;            // 0x013D
+    field sub_ifds;             // 0x014A *
+    field sample_format;        // 0x0153
+    field sample_min;           // 0x0154
+    field sample_max;           // 0x0155
+    field page_index;           // 0xFFB1 *
 
     uint64_t next;
     uint64_t sub[4];

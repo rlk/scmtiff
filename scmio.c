@@ -11,13 +11,6 @@
 
 //------------------------------------------------------------------------------
 
-static size_t align2(size_t t)
-{
-    return (t & 1) ? (t + 1) : t;
-}
-
-//------------------------------------------------------------------------------
-
 // Allocate properly-sized bin and zip scratch buffers for SCM s.
 
 int scm_alloc(scm *s)
@@ -267,7 +260,8 @@ int scm_write_ifd(scm *s, ifd *i, off_t o)
 
 //------------------------------------------------------------------------------
 
-// Read the first IFD and determine basic image parameters from it.
+// Read the first IFD and determine basic image parameters from it, including
+// the image size, channel count, bits-per-sample, and sample format.
 
 int scm_read_preface(scm *s)
 {
@@ -277,20 +271,20 @@ int scm_read_preface(scm *s)
     {
         if (scm_read_ifd(s, &s->D, h.first_ifd) == 1)
         {
+        	// Image size and channel count.
+
             s->n = s->D.image_width.offset - 2;
             s->c = s->D.samples_per_pixel.offset;
+
+            // Bits-per-sample and sample format.
 
         	uint16_t bv[s->c];
         	uint16_t fv[s->c];
 
-        	memset(bv, 0, s->c * sizeof (uint16_t));
-        	memset(fv, 0, s->c * sizeof (uint16_t));
-
-            scm_read_field(s, &s->D.bits_per_sample, bv);
-            scm_read_field(s, &s->D.sample_format,   fv);
-
-            s->b = (bv[0]);
-            s->g = (fv[0] == 2) ? 1 : 0;
+            if (scm_read_field(s, &s->D.bits_per_sample, bv) == 1)
+	            s->b = (bv[0]);
+            if (scm_read_field(s, &s->D.sample_format,   fv) == 1)
+	            s->g = (fv[0] == 2) ? 1 : 0;
 
             return 1;
         }
@@ -311,7 +305,7 @@ int scm_write_preface(scm *s, const char *str)
     {
         uint64_t i = scm_pint(s);
         uint16_t t = scm_type(s);
-        uint16_t l = align2(strlen(str));
+        uint16_t l = strlen(str) + 1;
 
         uint16_t bv[s->c];
         uint16_t fv[s->c];
@@ -328,7 +322,7 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.bits_per_sample,   0x0102, 3, s->c, 0);
         set_field(&s->D.compression,       0x0103, 3, 1,    8);
         set_field(&s->D.interpretation,    0x0106, 3, 1,    i);
-        set_field(&s->D.description,       0x010e, 2, l,    0);
+        set_field(&s->D.description,       0x010E, 2, l,    0);
         set_field(&s->D.orientation,       0x0112, 3, 1,    2);
         set_field(&s->D.samples_per_pixel, 0x0115, 3, 1,    s->c);
         set_field(&s->D.configuration,     0x011C, 3, 1,    1);
@@ -338,8 +332,11 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.sample_max,        0x0155, t, s->c, 0);
 
         scm_write_field(s, &s->D.description,    str);
+        scm_align(s);
         scm_write_field(s, &s->D.bits_per_sample, bv);
+        scm_align(s);
         scm_write_field(s, &s->D.sample_format,   fv);
+        scm_align(s);
 
         s->D.count = 18;
 

@@ -145,6 +145,7 @@ int combine(int argc, char **argv)
             {
                 process(s, v, l);
                 scm_relink(s);
+                scm_minmax(s);
                 scm_close(s);
             }
         }

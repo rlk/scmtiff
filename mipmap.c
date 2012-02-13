@@ -146,6 +146,7 @@ int mipmap(int argc, char **argv)
         {
             r = process(s, t);
             scm_relink(t);
+            scm_minmax(t);
             scm_close(t);
         }
         scm_close(s);

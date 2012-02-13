@@ -6,6 +6,7 @@
 // a debugging tool, and does NOT produce seamless spherical renderings.
 
 #include <stdio.h>
+#include <float.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -23,6 +24,9 @@
 static int     n;
 static scm    *s[MAX];
 static GLuint  o[MAX];
+
+static double min[MAX][4];
+static double max[MAX][4];
 
 static int     pagei;
 static int     paged[MAX];
@@ -133,18 +137,11 @@ static int data_init(int argc, char **argv)
             if (C < c) C = c;
             if (D < d) D = d;
 
+            scm_get_min(s[i], min[i]);
+            scm_get_max(s[i], max[i]);
+
             paged[i] = d;
         }
-
-    for (int x = 0; x < scm_get_page_count(D); ++x)
-    {
-        printf("%6d ", x);
-
-        for (int i = 0; i < n; ++i)
-            printf("%016lx ", (long unsigned int) pageo[i][x]);
-
-        printf("\n");
-    }
 
     if (N && C)
     {
@@ -205,6 +202,20 @@ static GLuint cmap_init(GLuint prog)
 
     glUniform1i(glGetUniformLocation(prog, "color"), 1);
 
+    double a =  DBL_MAX;
+    double z = -DBL_MAX;
+
+    for (int i = 0; i < n; ++i)
+    {
+        if (a > min[i][0])
+            a = min[i][0];
+        if (z < max[i][0])
+            z = max[i][0];
+    }
+
+    glUniform1f(glGetUniformLocation(prog, "a"), a);
+    glUniform1f(glGetUniformLocation(prog, "z"), z);
+
     return text;
 }
 
@@ -219,11 +230,13 @@ static const char *vert_color =
 static const char *frag_color =
     "uniform sampler2D image;"
     "uniform sampler1D color;"
+    "uniform float a;"
+    "uniform float z;"
 
     "void main()\n"
     "{\n"
     "    vec4 i = texture2D(image, gl_TexCoord[0].xy);\n"
-    "    vec4 c = texture1D(color, i.r);\n"
+    "    vec4 c = texture1D(color, (i.r - a) / (z - a));\n"
     "    gl_FragColor = vec4(c.rgb, i.a);\n"
     "}\n";
 

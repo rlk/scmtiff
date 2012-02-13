@@ -1,19 +1,27 @@
 // Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
-/*
-#include <math.h>
-#include <time.h>
-*/
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <float.h>
 
 #include "scmdat.h"
 #include "scmio.h"
 #include "scm.h"
 #include "err.h"
 #include "util.h"
+
+static void dump_minmax(scm *s)
+{
+    printf("minmax = ");
+
+    for (int k = 0; k < s->c; ++k)
+        printf("[%.3f,%.3f] ", s->min[k], s->max[k]);
+
+    printf("\n");
+}
 
 //------------------------------------------------------------------------------
 
@@ -51,6 +59,16 @@ scm *scm_ifile(const char *name)
             {
                 if (scm_alloc(s))
                 {
+                    size_t n = s->c * tifsizeof(scm_type(s));
+                    uint8_t av[n];
+                    uint8_t zv[n];
+
+                    if (scm_read_field(s, &s->D.sample_min, av) == 1)
+                        btof(av, s->min, s->c, s->b, s->g);
+                    if (scm_read_field(s, &s->D.sample_max, zv) == 1)
+                        btof(zv, s->max, s->c, s->b, s->g);
+
+                    dump_minmax(s);
                     return s;
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
@@ -91,6 +109,11 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
             {
                 if (scm_alloc(s))
                 {
+                    for (int k = 0; k < s->c; ++k)
+                    {
+                        s->min[k] =  DBL_MAX;
+                        s->max[k] = -DBL_MAX;
+                    }
                     return s;
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
@@ -107,10 +130,29 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
 
 //------------------------------------------------------------------------------
 
+// f is a page of data to be added to SCM s. Scan it and update the min and max
+// caches. Don't take zeros into account.
+
+static void _minmax(scm *s, const double *f)
+{
+    const int n = (s->n + 2) * (s->n + 2);
+    const int c = (s->c);
+
+    for     (int i = 0; i < n; ++i)
+        for (int k = 0; k < c; ++k)
+            if (f[i * c + k])
+            {
+                if (s->max[k] < f[i * c + k])
+                    s->max[k] = f[i * c + k];
+                if (s->min[k] > f[i * c + k])
+                    s->min[k] = f[i * c + k];
+            }
+}
+
 // Append a page at the current SCM TIFF file pointer. Offset b is the previous
 // IFD, which will be updated to include the new page as next. Offset p is the
 // parent page, which will be updated to include the new page as child n. x is
-// the breadth-first page index. dat points to a page of data to be written.
+// the breadth-first page index. f points to a page of data to be written.
 // Return the offset of the new page.
 
 off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *f)
@@ -149,6 +191,7 @@ off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *f)
                                 if (fseeko(s->fp, 0, SEEK_END) == 0)
                                 {
                                     fflush(s->fp);
+                                    _minmax(s, f);
                                     return o;
                                 }
                                 else syserr("Failed to seek SCM");
@@ -216,6 +259,40 @@ void scm_relink(scm *s)
                 i.sub[3] = m[scm_get_page_child(x, 3)];
 
                 scm_write_ifd(s, &i, m[x]);
+            }
+
+        free(m);
+    }
+}
+
+// Update the sample minimum and sample maximum values of all IFDs.
+
+void scm_minmax(scm *s)
+{
+    off_t *m;
+    int    d;
+    ifd    i;
+
+    assert(s);
+
+    dump_minmax(s);
+
+    if ((d = scm_mapping(s, &m)))
+    {
+        size_t n = s->c * tifsizeof(scm_type(s));
+
+        uint8_t min[n];
+        uint8_t max[n];
+
+        ftob(min, s->min, s->c, s->b, s->g);
+        ftob(max, s->max, s->c, s->b, s->g);
+
+        for (int x = 0; x < scm_get_page_count(d); ++x)
+            if (m[x] && scm_read_ifd(s, &i, m[x]) == 1)
+            {
+                scm_write_field(s, &i.sample_min, min);
+                scm_write_field(s, &i.sample_max, max);
+                scm_write_ifd  (s, &i, m[x]);
             }
 
         free(m);

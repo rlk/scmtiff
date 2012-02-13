@@ -14,6 +14,24 @@
 #include "util.h"
 
 //------------------------------------------------------------------------------
+
+// Detect PDS saturation codes.
+
+static double cleanf(float f)
+{
+    unsigned int *w = (unsigned int *) (&f);
+
+    if (*w == 0xFF7FFFFB ||
+        *w == 0xFF7FFFFC ||
+        *w == 0xFF7FFFFD ||
+        *w == 0xFF7FFFFE ||
+        *w == 0xFF7FFFFF)
+        return 0;
+
+    return (double) f;
+}
+
+//------------------------------------------------------------------------------
 // Access a raw image buffer. Convert from the image's internal format to double
 // precision floating point. Assume the return buffer c has the same or greater
 // channel count as the image. Expect out-of-bounds references to be made in the
@@ -103,10 +121,10 @@ static int get32f(img *p, int i, int j, double *c)
 
         switch (p->c)
         {
-            case 4: c[3] = (float) q[3];
-            case 3: c[2] = (float) q[2];
-            case 2: c[1] = (float) q[1];
-            case 1: c[0] = (float) q[0];
+            case 4: c[3] = (double) cleanf(q[3]);
+            case 3: c[2] = (double) cleanf(q[2]);
+            case 2: c[1] = (double) cleanf(q[1]);
+            case 1: c[0] = (double) cleanf(q[0]);
         }
         return 1;
     }
