@@ -115,8 +115,8 @@ static void parse_element(img *p, const char *key, const char *val)
     else if (!strcmp(key, "SAMPLE_BITS"))  p->b = get_int(val);
     else if (!strcmp(key, "SAMPLE_TYPE"))
     {
-        if      (!strcmp(val, "LSB_INTEGER")) p->s = 1;
-        else if (!strcmp(val, "MSB_INTEGER")) p->s = 1;
+        if      (!strcmp(val, "LSB_INTEGER")) p->g = 1;
+        else if (!strcmp(val, "MSB_INTEGER")) p->g = 1;
     }
 
     // Projection parameters

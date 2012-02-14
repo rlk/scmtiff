@@ -24,6 +24,7 @@ void scm_close(scm *s)
     if (s)
     {
         fclose(s->fp);
+        free(s->str);
         free(s->min);
         free(s->max);
         free(s->bin);
@@ -75,7 +76,7 @@ scm *scm_ifile(const char *name)
 // Open an SCM TIFF output file. Initialize and return an SCM structure with the
 // given parameters. Write the TIFF header and SCM TIFF preface.
 
-scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
+scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 {
     scm *s  = NULL;
 
@@ -83,18 +84,19 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *text)
     assert(n > 0);
     assert(c > 0);
     assert(b > 0);
-    assert(text);
+    assert(str);
 
     if ((s = (scm *) calloc(sizeof (scm), 1)))
     {
-        s->n = n;
-        s->c = c;
-        s->b = b;
-        s->g = g;
+        s->str = strdup(str);
+        s->n   = n;
+        s->c   = c;
+        s->b   = b;
+        s->g   = g;
 
         if ((s->fp = fopen(name, "w+b")))
         {
-            if (scm_write_preface(s, text))
+            if (scm_write_preface(s, str))
             {
                 if (scm_alloc(s))
                 {
@@ -378,7 +380,8 @@ double *scm_alloc_buffer(scm *s)
 
 char *scm_get_description(scm *s)
 {
-    return "This is a temporary description string.";
+    assert(s);
+    return s->str;
 }
 
 int scm_get_n(scm *s)

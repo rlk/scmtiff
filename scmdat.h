@@ -100,6 +100,7 @@ size_t tifsizeof(uint16_t);
 uint64_t scm_pint(scm *);
 uint16_t scm_form(scm *);
 uint16_t scm_type(scm *);
+uint64_t scm_hdif(scm *);
 
 void ftob(void *, const double *, size_t, int, int);
 void btof(const void *, double *, size_t, int, int);

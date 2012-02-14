@@ -143,9 +143,9 @@ static const getfn get[2][4] = {
 
 // Allocate, initialize, and return an image structure representing a pixel
 // buffer with width w, height h, channel count c, bits-per-channel count b,
-// and signedness s.
+// and signedness g.
 
-img *img_alloc(int w, int h, int c, int b, int s)
+img *img_alloc(int w, int h, int c, int b, int g)
 {
     size_t n = (size_t) w * (size_t) h * (size_t) c * (size_t) b / 8;
     img   *p = NULL;
@@ -160,7 +160,7 @@ img *img_alloc(int w, int h, int c, int b, int s)
             p->h = h;
             p->c = c;
             p->b = b;
-            p->s = s;
+            p->g = g;
 
             return p;
         }
@@ -211,7 +211,7 @@ void *img_scanline(img *p, int r)
 double img_linear(img *p, double i, double j, double *c)
 {
     const int B = (p->b >> 3) - 1;
-    const int S =  p->s;
+    const int G =  p->g;
 //  const int C =  p->c - 1;
 
     const double s = i - floor(i);
@@ -225,10 +225,10 @@ double img_linear(img *p, double i, double j, double *c)
     double /*a[4],*/ aa[4], ab[4];
     double /*b[4],*/ ba[4], bb[4];
 
-    const int kaa = get[S][B](p, ia, ja, aa);
-    const int kab = get[S][B](p, ia, jb, ab);
-    const int kba = get[S][B](p, ib, ja, ba);
-    const int kbb = get[S][B](p, ib, jb, bb);
+    const int kaa = get[G][B](p, ia, ja, aa);
+    const int kab = get[G][B](p, ia, jb, ab);
+    const int kba = get[G][B](p, ib, ja, ba);
+    const int kbb = get[G][B](p, ib, jb, bb);
 
     switch (p->c)
     {
@@ -243,10 +243,10 @@ double img_linear(img *p, double i, double j, double *c)
     double a[4], aa[4], ab[4];
     double b[4], ba[4], bb[4];
 
-    const int kaa = get[S][B](p, ia, ja, aa);
-    const int kab = get[S][B](p, ia, jb, ab);
-    const int kba = get[S][B](p, ib, ja, ba);
-    const int kbb = get[S][B](p, ib, jb, bb);
+    const int kaa = get[G][B](p, ia, ja, aa);
+    const int kab = get[G][B](p, ia, jb, ab);
+    const int kba = get[G][B](p, ib, ja, ba);
+    const int kbb = get[G][B](p, ib, jb, bb);
 
     const int n  = kaa + kab + kba + kbb;
     const int ka = kaa + kab;

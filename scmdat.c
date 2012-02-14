@@ -126,6 +126,16 @@ uint16_t scm_type(scm *s)
     return 7;                     // UNDEFINED
 }
 
+// Choose a horizontal differencing predection algorithm for this data.
+
+uint64_t scm_hdif(scm *s)
+{
+    if (s->b ==  8) return 2;
+    if (s->b == 16) return 2;
+
+    return 1;
+}
+
 //------------------------------------------------------------------------------
 
 // Encode the n values in floating point buffer f to the raw buffer p with

@@ -156,7 +156,7 @@ int scm_read_field(scm *s, field *f, void *p)
     }
     else
     {
-        if (fseeko(s->fp, f->offset, SEEK_SET))
+        if (fseeko(s->fp, f->offset, SEEK_SET) == 0)
         {
             if (fread(p, 1, n, s->fp) == n)
             {
@@ -276,6 +276,11 @@ int scm_read_preface(scm *s)
             s->n = s->D.image_width.offset - 2;
             s->c = s->D.samples_per_pixel.offset;
 
+            // Image description string.
+
+            if ((s->str = (char *) malloc(s->D.description.count)))
+                scm_read_field(s, &s->D.description, s->str);
+
             // Bits-per-sample and sample format.
 
         	uint16_t bv[s->c];
@@ -305,6 +310,7 @@ int scm_write_preface(scm *s, const char *str)
     {
         uint64_t i = scm_pint(s);
         uint16_t t = scm_type(s);
+        uint64_t p = scm_hdif(s);
         uint16_t l = strlen(str) + 1;
 
         uint16_t bv[s->c];
@@ -326,7 +332,7 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.orientation,       0x0112, 3, 1,    2);
         set_field(&s->D.samples_per_pixel, 0x0115, 3, 1,    s->c);
         set_field(&s->D.configuration,     0x011C, 3, 1,    1);
-        set_field(&s->D.predictor,         0x013D, 3, 1,    2);
+        set_field(&s->D.predictor,         0x013D, 3, 1,    p);
         set_field(&s->D.sample_format,     0x0153, 3, s->c, 0);
         set_field(&s->D.sample_min,        0x0154, t, s->c, 0);
         set_field(&s->D.sample_max,        0x0155, t, s->c, 0);

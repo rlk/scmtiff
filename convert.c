@@ -137,6 +137,8 @@ int convert(int argc, char **argv)
     const char *o = "out.tif";
     int         n = 512;
     int         d = 0;
+    int         b = 0;
+    int         g = 0;
 
     img *p = NULL;
     scm *s = NULL;
@@ -150,6 +152,8 @@ int convert(int argc, char **argv)
         else if (strcmp(argv[i], "-t") == 0) t =      argv[++i];
         else if (strcmp(argv[i], "-n") == 0) n = atoi(argv[++i]);
         else if (strcmp(argv[i], "-d") == 0) d = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-b") == 0) b = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-g") == 0) g = atoi(argv[++i]);
 
     // Assume the last argument is an input file.  Load it.
 
@@ -162,7 +166,7 @@ int convert(int argc, char **argv)
     // Process the output.
 
     if (p)
-        s = scm_ofile(o, n, p->c, p->b, p->s, t);
+        s = scm_ofile(o, n, p->c, b ? b : p->b, g ? g : p->g, t);
 
     if (s && p)
         process(s, p, d);

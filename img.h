@@ -17,7 +17,7 @@ struct img
     int    h;
     int    c;
     int    b;
-    int    s;
+    int    g;
     int    d;
     size_t n;
 
