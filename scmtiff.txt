@@ -15,25 +15,5 @@ Mix LROC GLD100 with LOLA?
 
 
 TODO
-	Eliminate the 4 channel limit.
-	Add min and max fields.
-	Horizontal difference.
-	Remove the SubIFD mechanism.  This will require changes to panoview.
+	Make get_description work properly.
 
-
-
-samples per pixel c
-sample format     f f f f
-bits per sample   b b b b
-min sample value  a a a a
-max sample value  z z z z
-
-An IFD can be written given
-	page index x
-	SCM (n, c, b, s)
-	data buffer size d
-	next
-
-
-ifd write (s,  x,  d,  n)
-ifd read  (s, &x, &d, &n)

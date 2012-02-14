@@ -48,13 +48,6 @@ static void corner_vectors(double *v, const double *u, int r, int c, int n)
     normalize(v + 9);
 }
 
-#if 0
-static double avg5(double a, double b, double c, double d, double e)
-{
-    return (a + b + c + d + e) / 5.0;
-}
-#endif
-
 //------------------------------------------------------------------------------
 
 // Compute the corner vectors of the pixel at row i column j of the n-by-n page

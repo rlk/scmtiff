@@ -172,41 +172,6 @@ img *img_alloc(int w, int h, int c, int b, int s)
     return NULL;
 }
 
-#if 0
-img *img_mmap(int w, int h, int c, int b, int s, const char *name, off_t o)
-{
-    size_t n = (size_t) w * (size_t) h * (size_t) c * (size_t) b / 8;
-    img   *p = NULL;
-    int    d = 0;
-
-    if ((p = (img *) calloc(1, sizeof (img))))
-    {
-        if ((d = open(name, O_RDONLY)) != -1)
-        {
-            if ((p->p = mmap(0, n, PROT_READ, MAP_PRIVATE, d, o)) != MAP_FAILED)
-            {
-                p->sample = img_default;
-                p->n = n;
-                p->w = w;
-                p->h = h;
-                p->c = c;
-                p->b = b;
-                p->s = s;
-                p->d = d;
-
-                return p;
-            }
-            else syserr("Failed to mmap %s", name);
-        }
-        else syserr("Failed to open %s", name);
-    }
-    else apperr("Failed to allocate image structure");
-
-    img_close(p);
-    return NULL;
-}
-#endif
-
 void img_close(img *p)
 {
     if (p)
@@ -224,8 +189,6 @@ void img_close(img *p)
 }
 
 //------------------------------------------------------------------------------
-
-
 
 // Calculate and return a pointer to scanline r of the given image. This is
 // useful during image I/O.
@@ -319,11 +282,48 @@ static double todeg(double r)
     return r * 180.0 / M_PI;
 }
 
+static double torad(double d)
+{
+    return d * M_PI / 180.0;
+}
+
 static inline double tolon(double a)
 {
     double b = fmod(a, 2 * M_PI);
     return b < 0 ? b + 2 * M_PI : b;
 }
+
+static double blend(double a, double b, double k)
+{
+    if (k < a) return 1.0;
+    if (b < k) return 0.0;
+
+    double t = 1.0 - (k - a) / (b - a);
+
+    return 3 * t * t - 2 * t * t * t;
+}
+
+static double adiff(double a, double b)
+{
+    double d;
+
+    if (a > b)
+    {
+        if ((d = a - b) < M_PI)
+            return d;
+        else
+            return 2 * M_PI - d;
+    }
+    else
+    {
+        if ((d = b - a) < M_PI)
+            return d;
+        else
+            return 2 * M_PI - d;
+    }
+}
+
+//------------------------------------------------------------------------------
 
 double img_equirectangular(img *p, const double *v, double *c)
 {
@@ -338,6 +338,67 @@ double img_equirectangular(img *p, const double *v, double *c)
     return img_linear(p, l, s, c);
 }
 
+double img_orthographic(img *p, const double *v, double *c)
+{
+    const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
+
+    double x = p->radius * cos(lat) * sin(lon - p->lonp);
+    double y = p->radius * sin(lat);
+
+    double l = p->l0 - y / p->scale;
+    double s = p->s0 + x / p->scale;
+
+    double a = img_linear(p, l, s, c);
+
+    double k = blend(torad(20), torad(40), adiff(lon, p->lonp)) *
+               blend(torad(60), torad(70), adiff(lat, p->latp));
+
+    switch (p->c)
+    {
+        case 4: c[3] *= k;
+        case 3: c[2] *= k;
+        case 2: c[1] *= k;
+        case 1: c[0] *= k;
+    }
+    return a;
+}
+
+double img_stereographic(img *p, const double *v, double *c)
+{
+    const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
+
+    double x;
+    double y;
+
+    if (p->latp > 0)
+    {
+        x =  2 * p->radius * tan(M_PI_4 - lat / 2) * sin(lon - p->lonp);
+        y = -2 * p->radius * tan(M_PI_4 - lat / 2) * cos(lon - p->lonp);
+    }
+    else
+    {
+        x =  2 * p->radius * tan(M_PI_4 + lat / 2) * sin(lon - p->lonp);
+        y =  2 * p->radius * tan(M_PI_4 + lat / 2) * cos(lon - p->lonp);
+    }
+
+    double l = p->l0 - y / p->scale;
+    double s = p->s0 + x / p->scale;
+
+    double a = img_linear(p, l, s, c);
+
+    double k = blend(torad(20), torad(30), adiff(lat, p->latp));
+
+    switch (p->c)
+    {
+        case 4: c[3] *= k;
+        case 3: c[2] *= k;
+        case 2: c[1] *= k;
+        case 1: c[0] *= k;
+    }
+    return a;
+}
+
+#if 0
 double img_orthographic(img *p, const double *v, double *c)
 {
     const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
@@ -374,6 +435,7 @@ double img_stereographic(img *p, const double *v, double *c)
 
     return img_linear(p, l, s, c);
 }
+#endif
 
 double img_cylindrical(img *p, const double *v, double *c)
 {
