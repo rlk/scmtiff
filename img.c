@@ -21,14 +21,16 @@ static double cleanf(float f)
 {
     unsigned int *w = (unsigned int *) (&f);
 
-    if (*w == 0xFF7FFFFB ||
-        *w == 0xFF7FFFFC ||
-        *w == 0xFF7FFFFD ||
-        *w == 0xFF7FFFFE ||
-        *w == 0xFF7FFFFF)
-        return 0;
+    if (*w == 0xFF7FFFFB) return 0.0;  // Core null
+    if (*w == 0xFF7FFFFC) return 0.0;  // Representation saturation low
+    if (*w == 0xFF7FFFFD) return 0.0;  // Instrumentation saturation low
+    if (*w == 0xFF7FFFFE) return 1.0;  // Representation saturation high
+    if (*w == 0xFF7FFFFF) return 1.0;  // Instrumentation saturation high
 
-    return (double) f;
+    if (isnormal(f))
+        return (double) f;
+    else
+        return 0.0;
 }
 
 //------------------------------------------------------------------------------

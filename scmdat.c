@@ -138,6 +138,20 @@ uint64_t scm_hdif(scm *s)
 
 //------------------------------------------------------------------------------
 
+static inline double sclamp(double k)
+{
+    if      (k < -1.0) return -1.0;
+    else if (k >  1.0) return  1.0;
+    else               return    k;
+}
+
+static inline double uclamp(double k)
+{
+    if      (k <  0.0) return  0.0;
+    else if (k >  1.0) return  1.0;
+    else               return    k;
+}
+
 // Encode the n values in floating point buffer f to the raw buffer p with
 // b bits per sample and sign s.
 
@@ -147,19 +161,19 @@ void ftob(void *p, const double *f, size_t n, int b, int g)
 
     if      (b ==  8 && g == 0)
         for (i = 0; i < n; ++i)
-            ((unsigned char  *) p)[i] = (unsigned char)  (f[i] * 255);
+            ((unsigned char  *) p)[i] = (unsigned char)  (uclamp(f[i]) * 255);
 
     else if (b == 16 && g == 0)
         for (i = 0; i < n; ++i)
-            ((unsigned short *) p)[i] = (unsigned short) (f[i] * 65535);
+            ((unsigned short *) p)[i] = (unsigned short) (uclamp(f[i]) * 65535);
 
     else if (b ==  8 && g == 1)
         for (i = 0; i < n; ++i)
-            ((char  *) p)[i] = (char)  (f[i] * 127);
+            ((char  *) p)[i] = (char)  (sclamp(f[i]) * 127);
 
     else if (b == 16 && g == 1)
         for (i = 0; i < n; ++i)
-            ((short *) p)[i] = (short) (f[i] * 32767);
+            ((short *) p)[i] = (short) (sclamp(f[i]) * 32767);
 
     else if (b == 32)
         for (i = 0; i < n; ++i)

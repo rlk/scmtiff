@@ -12,3 +12,6 @@ INVARIANT: All pages have the same size, channel count, min value, and max value
 NOT invariant: No page order is defined.
 
 Mix LROC GLD100 with LOLA?
+
+TODO:
+	Generalize the orthogonal and stereographic fade-out

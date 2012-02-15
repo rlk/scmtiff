@@ -325,8 +325,10 @@ static void keyboard(unsigned char key, int x, int y)
 
 static void special(int key, int x, int y)
 {
-    if      (key == GLUT_KEY_PAGE_UP)   page(pagei + 1);
-    else if (key == GLUT_KEY_PAGE_DOWN) page(pagei - 1);
+    int d = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? 10 : 1;
+
+    if      (key == GLUT_KEY_PAGE_UP)   page(pagei + d);
+    else if (key == GLUT_KEY_PAGE_DOWN) page(pagei - d);
     else if (key == GLUT_KEY_F1)
     {
         glUseProgram(0);
