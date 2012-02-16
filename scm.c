@@ -266,7 +266,7 @@ void scm_minmax(scm *s)
 
     assert(s);
 
-    if ((d = scm_mapping(s, &m)))
+    if ((d = scm_mapping(s, &m)) >= 0)
     {
         size_t n = s->c * tifsizeof(scm_type(s));
 
