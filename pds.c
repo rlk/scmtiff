@@ -1,4 +1,4 @@
-// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+// Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
 #include <stdlib.h>
 #include <string.h>

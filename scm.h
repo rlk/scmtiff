@@ -1,9 +1,8 @@
-// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+// Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
 #ifndef SCMTIFF_SCM_H
 #define SCMTIFF_SCM_H
 
-#include <unistd.h>
 #include "scmdat.h"
 
 //------------------------------------------------------------------------------

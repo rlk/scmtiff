@@ -1,4 +1,4 @@
-// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+// Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
 #ifndef SCMTIFF_SCMDAT_H
 #define SCMTIFF_SCMDAT_H

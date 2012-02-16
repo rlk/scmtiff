@@ -1,4 +1,4 @@
-// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+// Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
 #ifndef SCMTIFF_IMG_H
 #define SCMTIFF_IMG_H
@@ -35,7 +35,14 @@ struct img
     double scale;
     double radius;
 
-    double (*sample)(img *, const double *, double *);
+    // Mask parameters;
+
+    double lat0;
+    double lat1;
+    double lon0;
+    double lon1;
+
+    double (*sample)(img *, double, double, double *);
 };
 
 //------------------------------------------------------------------------------
@@ -51,14 +58,14 @@ void img_close(img *);
 
 //------------------------------------------------------------------------------
 
-void *img_scanline(img *, int);
+void  *img_scanline(img *, int);
+double img_sample(img *, const double *, double *);
 
-double img_equirectangular (img *, const double *, double *);
-double img_orthographic    (img *, const double *, double *);
-double img_stereographic   (img *, const double *, double *);
-double img_cylindrical     (img *, const double *, double *);
-double img_default         (img *, const double *, double *);
-double img_test            (img *, const double *, double *);
+double img_equirectangular (img *, double, double, double *);
+double img_orthographic    (img *, double, double, double *);
+double img_stereographic   (img *, double, double, double *);
+double img_cylindrical     (img *, double, double, double *);
+double img_default         (img *, double, double, double *);
 
 //------------------------------------------------------------------------------
 

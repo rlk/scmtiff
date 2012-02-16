@@ -22,9 +22,9 @@ ifneq ($(wildcard /opt/local),)
 endif
 
 ifeq ($(shell uname), Darwin)
-	LFLAGS += -framework OpenGL -framework GLUT
+	LFLAGS += -lGLEW -framework OpenGL -framework GLUT
 else
-	LFLAGS += -lglut -lGLEW -lGL
+	LFLAGS += -lGLEW -lglut -lGL
 endif
 
 %.o : %.c Makefile

@@ -1,4 +1,4 @@
-// Copyright (c) 2011 Robert Kooima.  All Rights Reverved.
+// Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
 // SCMVIEW is a light-weight OpenGL-based viewer for SCMTIFF format image files.
 // It enables panning, zooming, and false-color rendering of individual pages,
@@ -11,7 +11,7 @@
 #include <string.h>
 
 #ifdef __APPLE__
-#include <OpenGL/gl.h>
+#include <GL/glew.h>
 #include <GLUT/glut.h>
 #else
 #include <GL/glew.h>
