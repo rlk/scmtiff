@@ -3,6 +3,7 @@
 #ifndef SCMTIFF_SCM_H
 #define SCMTIFF_SCM_H
 
+#include <unistd.h>
 #include "scmdat.h"
 
 //------------------------------------------------------------------------------

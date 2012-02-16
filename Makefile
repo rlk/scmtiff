@@ -4,7 +4,8 @@ EXES= scmtiff scmview
 #-------------------------------------------------------------------------------
 
 #CC = cc -std=c99 -m64 -g
-CC = gcc-mp-4.4 -std=c99 -m64 -fopenmp -O3
+CC = cc -std=gnu99 -m64 -fopenmp -O3
+#CC = cc -std=gnu99 -m64 -g
 CP = cp
 RM = rm -f
 
@@ -18,6 +19,12 @@ endif
 ifneq ($(wildcard /opt/local),)
 	CFLAGS += -I/opt/local/include
 	LFLAGS += -L/opt/local/lib
+endif
+
+ifeq ($(shell uname), Darwin)
+	LFLAGS += -framework OpenGL -framework GLUT
+else
+	LFLAGS += -lglut -lGLEW -lGL
 endif
 
 %.o : %.c Makefile
@@ -39,4 +46,4 @@ scmtiff : err.o util.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o conv
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -ljpeg -ltiff -lpng -lz
 
 scmview : err.o util.o scmdat.o scmio.o scm.o img.o scmview.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -framework OpenGL -framework GLUT -lz
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -lz

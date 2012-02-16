@@ -10,8 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __APPLE__
 #include <OpenGL/gl.h>
 #include <GLUT/glut.h>
+#else
+#include <GL/glew.h>
+#include <GL/glut.h>
+#endif
 
 #include "scm.h"
 #include "err.h"
@@ -439,8 +444,11 @@ int main(int argc, char **argv)
     glutMotionFunc(motion);
     glutMouseFunc(mouse);
 
-    if (start(argc, argv))
-        glutMainLoop();
+    if (glewInit() == GLEW_OK)
+    {
+        if (start(argc, argv))
+            glutMainLoop();
+    }
 
     return 0;
 }
