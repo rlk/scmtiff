@@ -132,6 +132,7 @@ static void parse_element(img *p, const char *key, const char *val)
     else if (!strcmp(key,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_real (val);
     else if (!strcmp(key, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_real (val);
     else if (!strcmp(key,      "A_AXIS_RADIUS")) p->radius = K * get_real (val);
+    else if (!strcmp(key, "SCALING_FACTOR")) p->scaling_factor = get_real (val);
 
     else if (!strcmp(key, "MAP_PROJECTION_TYPE"))
     {

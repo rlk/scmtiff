@@ -164,6 +164,8 @@ img *img_alloc(int w, int h, int c, int b, int g)
             p->b = b;
             p->g = g;
 
+            p->scaling_factor = 1.0;
+
             return p;
         }
         else apperr("Failed to allocate image buffer");
@@ -436,7 +438,7 @@ double img_sample(img *p, const double *v, double *c)
     if (p->dlat0 || p->dlat1) klat = blend(p->dlat1, p->dlat0, dlat);
     if (p->dlon0 || p->dlon1) klon = blend(p->dlon1, p->dlon0, dlon);
 
-    double k = klat * klon * kdlat * kdlon;
+    double k = klat * klon * kdlat * kdlon * p->scaling_factor;
 
     if (k > 0.0)
     {

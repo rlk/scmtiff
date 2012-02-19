@@ -34,6 +34,7 @@ struct img
     double res;
     double scale;
     double radius;
+    double scaling_factor;
 
     // Mask parameters
 
