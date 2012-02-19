@@ -11,7 +11,8 @@
 
 //------------------------------------------------------------------------------
 
-// Allocate properly-sized bin and zip scratch buffers for SCM s.
+// Allocate properly-sized bin and zip scratch buffers for SCM s, as well as
+// caches for minimum and maximum sample values.
 
 int scm_alloc(scm *s)
 {
@@ -48,7 +49,7 @@ int scm_alloc(scm *s)
     return 0;
 }
 
-// Write the given data to the SCM file, returning the offset of the beginning
+// Write the given buffer to the SCM file, returning the offset of the beginning
 // of the write.
 
 off_t scm_write(scm *s, const void *ptr, size_t len)
@@ -68,7 +69,8 @@ off_t scm_write(scm *s, const void *ptr, size_t len)
     return -1;
 }
 
-// Ensure that the current SCM TIFF position falls on a TIFF word boundary.
+// Ensure that the current SCM TIFF position falls on a TIFF word boundary by
+// writing a single byte if the current file offset is odd.
 
 off_t scm_align(scm *s)
 {

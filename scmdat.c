@@ -30,6 +30,10 @@ void set_field(field *fp, uint16_t t, uint16_t y, uint64_t c, uint64_t o)
 
 //------------------------------------------------------------------------------
 
+// We're very very picky about what constitutes an SCM TIFF. Essentially, it's
+// not an SCM TIFF if it wasn't written by this TIFF writer. Check a TIFF header
+// and IFD to confirm that it provides exactly the expected content.
+
 int is_header(header *hp)
 {
     return (hp->endianness == 0x4949
@@ -138,12 +142,16 @@ uint64_t scm_hdif(scm *s)
 
 //------------------------------------------------------------------------------
 
+// Clamp the given value to a signed unit range.
+
 static inline double sclamp(double k)
 {
     if      (k < -1.0) return -1.0;
     else if (k >  1.0) return  1.0;
     else               return    k;
 }
+
+// Clamp the given value to an unsigned unit range.
 
 static inline double uclamp(double k)
 {

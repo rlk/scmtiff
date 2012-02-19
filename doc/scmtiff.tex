@@ -34,6 +34,7 @@
 % Recursive subdivision
 % Effective resolution
 % SLERP
+%     Demonstrate equivalence of SLERP and recursion?
 % Page index mathematical relationships
 % Page neighbor relationships
 
@@ -50,9 +51,19 @@ The out-of-core panorama renderer is implemented as a small C++ library that may
 
 \panopath\ is a shell environment variable akin to the bash executable path. It lists directories where spherical cube map \tiff\ files may be found. If the application requests that the renderer load a file, but the renderer cannot find that file, then it will search this list of directories. Set this variable in the shell resource file, as need be, separated by colons. For example,
 
-\texttt{export PANOPATH=/share/pan:\$HOME/Data/pan:.}
+\begin{verbatim}
+export PANOPATH=/share/pan:$HOME/data/pan:.
+\end{verbatim}
 
 For cluster-driven display systems, try to replicate all panorama image files to local directories on all rendering nodes. This will perform better than data files stored on network shares.
+
+\section{Panorama Definition File}
+
+An example panorama viewer, panoview, is implemented using the Thumb framework. While the previous sections on panorama handling apply to any embedding of the panorama renderer, the following sections describe the configuration and usage specifically of panoview.
+
+For correct display, panoview must understand the parameters of each panoramic image. The panorama definition is an XML file that provides this information.
+
+Like any data file, Thumb must be able to find these panorama definitions. They are appear in the Thumb data hierarchy like any other configuration file. This means they may be placed in a data directory rooted at the current directory, or in the ~/.thumb hierarchy, or in a data hierarchy given by the THUMB\_RO\_DATA environment variable. Panorama definition files need not be stored along side the TIFF files that the reference. It is the PANOPATH environment variable that defines the location of these.
 
 \subsection{Basic Stereo Panorama}
 
@@ -112,7 +123,27 @@ The following example, Taliesin-Path, is more complex. It defines several images
 \end{verbatim}
 \end{figure*}
 
+\section{Panoview Usage}
+
 Note that the frag attribute of the panorama element specifies the blend fragment program. This program performs the interpolation. Non-interpolating panoramas should not use the blend program, as it doubles the texture access load of the renderer.
+
+Panoview is configured and run like any other Thumb application. The following keyboard commands are defined.
+
+F1 … Toggle the panoview file selection dialog. This dialog allows the user to navigate the Thumb data hierarchy and select a panorama definition for viewing.
+
+F2 … Toggle the cache visualization overlay. This allows the set of all resident pages to be viewed in thumbnail.
+
+F3 … Toggle the page coloration debug view. This feature recolors each incoming page to indicate its depth in the page tree.
+
+F4 … Toggle automatic zoom centering. This option controls whether the center of the zoom is static or dynamic.
+
+In addition, there is one option in the Thumb configuration file conf.xml that impacts the behavior and performance of the panorama renderer.
+
+\begin{verbatim}
+<option name="panoview_cache_size">128</option>
+\end{verbatim}
+
+This option selects the maximum number of pages that may be loaded at any given moment. A 512 × 512 page of RGB data consumes 1MB of VRAM, and this cache size option should be set accordingly. A larger value gives better performance, but too large a value will result in catastrophically bad performance.
 
 
 

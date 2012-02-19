@@ -122,7 +122,9 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 //------------------------------------------------------------------------------
 
 // f is a page of data to be added to SCM s. Scan it and update the min and max
-// caches. Don't take zeros into account.
+// caches. Don't take zeros into account. (Zero might designate missing data,
+// which will bias the range. If 0 does appear as data, then 1 probably does
+// too, and that's close enough for our needs.)
 
 static void _minmax(scm *s, const double *f)
 {
@@ -338,6 +340,11 @@ int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
     return -1;
 }
 
+// Determine the file offset and page index of each IFD in SCM s. Return these
+// in a newly-allocated array of offsets, indexed by page index. The allocated
+// length of this array is sufficient to store a full tree, regardless of the
+// true sparseness of SCM s.
+
 int scm_mapping(scm *s, off_t **mv)
 {
     int l = 0;
@@ -371,12 +378,15 @@ int scm_mapping(scm *s, off_t **mv)
 
 //------------------------------------------------------------------------------
 
+// Allocate and return a buffer with the proper size to fit one page of data,
+// as determined by the parameters of SCM s, assuming double precision samples.
+
 double *scm_alloc_buffer(scm *s)
 {
     return (double *) malloc((s->n + 2) * (s->n + 2) * s->c * sizeof (double));
 }
 
-//------------------------------------------------------------------------------
+// Query the parameters of SCM s.
 
 char *scm_get_description(scm *s)
 {
