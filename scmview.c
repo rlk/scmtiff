@@ -179,8 +179,7 @@ static const char *frag_color =
     "void main()\n"
     "{\n"
     "    vec4 i = texture2D(image, gl_TexCoord[0].xy);\n"
-    "    vec4 c = texture1D(color, (i.r - a) / (z - a));\n"
-    "    gl_FragColor = vec4(c.rgb, i.a);\n"
+    "    gl_FragColor = texture1D(color, (i.r - a) / (z - a));\n"
     "}\n";
 
 // Compile and link the given shader source files to a program object.  Scan
@@ -284,8 +283,10 @@ static int start(int argc, char **argv)
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_TEXTURE_2D);
+        glEnable(GL_BLEND);
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         prog_color = prog_init(vert_color, frag_color);
         cmap_color = cmap_init(prog_color);
@@ -355,7 +356,7 @@ static void display(void)
 
     glViewport(0, 0, w, h);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);

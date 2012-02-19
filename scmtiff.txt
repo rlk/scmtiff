@@ -13,5 +13,3 @@ NOT invariant: No page order is defined.
 
 Mix LROC GLD100 with LOLA?
 
-TODO:
-	Generalize the orthogonal and stereographic fade-out

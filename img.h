@@ -35,12 +35,10 @@ struct img
     double scale;
     double radius;
 
-    // Mask parameters;
+    // Mask parameters
 
-    double lat0;
-    double lat1;
-    double lon0;
-    double lon1;
+    double lat0, lat1, dlat0, dlat1;
+    double lon0, lon1, dlon0, dlon1;
 
     double (*sample)(img *, double, double, double *);
 };

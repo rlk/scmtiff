@@ -1,0 +1,136 @@
+\documentclass[article,twocolumn,10pt]{memoir}
+
+\usepackage{microtype}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{color}
+
+\setverbatimfont{\normalfont\ttfamily\small}
+
+\headstyles{bringhurst}
+\hypersetup{bookmarksopen,
+            bookmarksnumbered,
+            colorlinks=true,
+            citecolor=red,
+            filecolor=red,
+            urlcolor=red}
+
+%-------------------------------------------------------------------------------
+
+\newcommand{\opengl}  {\textsc{OpenGL}}
+\newcommand{\tiff}    {\textsc{tiff}}
+\newcommand{\xml}     {\textsc{xml}}
+\newcommand{\panopath}{\textsc{panopath}}
+
+%-------------------------------------------------------------------------------
+
+\begin{document}
+\title{Spherical Cube Map TIFF}
+\author{Robert Kooima}
+\maketitle
+\begin{Spacing}{1.1}
+
+% Recursive subdivision
+% Effective resolution
+% SLERP
+% Page index mathematical relationships
+% Page neighbor relationships
+
+% Example: WAC global ortho blending
+% Example: WAC DTM / LOLA merge
+
+% Appendix: Panoview configuration
+
+\chapter{Interactive Display}
+
+\section{Render Library}
+
+The out-of-core panorama renderer is implemented as a small C++ library that may be embedded within any \opengl\ host application. This library has just one system-level configuration parameter:
+
+\panopath\ is a shell environment variable akin to the bash executable path. It lists directories where spherical cube map \tiff\ files may be found. If the application requests that the renderer load a file, but the renderer cannot find that file, then it will search this list of directories. Set this variable in the shell resource file, as need be, separated by colons. For example,
+
+\texttt{export PANOPATH=/share/pan:\$HOME/Data/pan:.}
+
+For cluster-driven display systems, try to replicate all panorama image files to local directories on all rendering nodes. This will perform better than data files stored on network shares.
+
+\subsection{Basic Stereo Panorama}
+
+Here is an example of a basic stereo panorama definition, named Blue-Mounds-8.xml.
+
+\begin{figure*}
+\begin{verbatim}
+<?xml version="1.0"?>
+  <panorama channels="2" depth="4" mesh="16" size="512" height="1.5" radius="6.0"
+               vert="glsl/sph-zoomer.vert"
+               frag="glsl/sph-render.frag">
+    <image channel="0" file="Blue-Mounds-8-L-512-4.tif" />
+    <image channel="1" file="Blue-Mounds-8-R-512-4.tif" />
+  </panorama>
+\end{verbatim}
+\end{figure*}
+
+The file begins with an \xml\ header and contains a single root panorama element with several attributes and one image sub-element for each panorama image.
+
+The channels attribute gives the number view positions. This adapts a panorama definition to a specific display configuration. A desktop display will have one channel, a CAVE will have two, and a multi-view lenticular may have many more.
+
+The size and depth attributes give the size of each page in the panorama image files and the depth of their page hierarchies. Note that the values coincide with the image parameters given by the file names. Other values are allowed, and may enable quality-speed tradeoffs.
+
+The mesh attribute determines the tesselation of the geometry mesh used to render each page of data. The example value, 16, indicates that each page of the sphere will be rendered using a 16 × 16 grid of polygons. There is little reason to change this.
+
+The radius attribute determines the radius of the spherical proxy geometry used to render the panorama. The height attribute determines the placement of the proxy geometry in the scene, and should match the height of the camera at the time the panorama was captured. These values are given in meters, and are mostly significant in VR display environments. The default radius is 6 meters, and the default height is 1.5 meters.
+
+The vert and frag attributes give the vertex and fragment programs to be used by the renderer, named relative to the root of the Thumb data hierarchy. These will remain the same for most panorama definitions.The zoomer; vertex program must be specified for zoomable panoramas. The render fragment program is used for static panoramas such as this one.
+
+\subsection{Multi-image Panorama}
+
+The following example, Taliesin-Path, is more complex. It defines several images for each channel. This will behave as a circular list of images, and the renderer will interpolate between them in order, following an internal “playback head.”
+
+\begin{figure*}
+\begin{verbatim}
+<?xml version="1.0"?>
+  <panorama channels="2" depth="3" mesh="16" size="512"
+            vert="glsl/sph-zoomer.vert"
+            frag="glsl/sph-blend.frag">
+    <image channel="0" file="Taliesin-Path-A-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-A-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-B-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-B-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-C-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-C-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-D-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-D-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-E-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-E-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-F-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-F-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-G-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-G-R-512-3.tif" />
+    <image channel="0" file="Taliesin-Path-H-L-512-3.tif" />
+    <image channel="1" file="Taliesin-Path-H-R-512-3.tif" />
+  </panorama>
+\end{verbatim}
+\end{figure*}
+
+Note that the frag attribute of the panorama element specifies the blend fragment program. This program performs the interpolation. Non-interpolating panoramas should not use the blend program, as it doubles the texture access load of the renderer.
+
+
+
+\section{Troubleshooting}
+
+This is a list of issues to be aware of, should trouble arise.
+
+\begin{itemize}
+\item If the panorama definition \xml\ files are not visible in the panoview file loader, then be sure they are located within the Thumb data hierarchy, or add their location to the Thumb data hierarchy by including the path in the THUMB\_RO\_PATH environment variable.
+
+\item If the panorama definition loads but does not display an image, be sure the path to the spherical cube map \tiff\ files appears in the \panopath\ environment variable.
+
+\item If a multi-image panorama jumps from one panorama to the next instead of fading, be sure the blend fragment program is referenced by the definition.
+
+\item In general, be sure that the depth and size attributes of the panorama definition match the input files.
+
+\item If performance is sluggish, be sure that panorama image files are not being accessed from a network share.
+\end{itemize}
+
+\end{Spacing}
+\end{document}

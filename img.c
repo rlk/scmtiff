@@ -409,13 +409,22 @@ double img_sample(img *p, const double *v, double *c)
 {
     const double lon = tolon(atan2(v[0], -v[2])), lat = asin(v[1]);
 
-    double klat = 1.0;
-    double klon = 1.0;
+    const double dlon = angle(lon, p->lonp);
+    const double dlat = angle(lat, p->latp);
 
-    if (p->lat0 || p->lat1) klat = blend(p->lat1, p->lat0, angle(lat, p->latp));
-    if (p->lon0 || p->lon1) klon = blend(p->lon1, p->lon0, angle(lon, p->lonp));
+    double klat  = 1.0;
+    double klon  = 1.0;
 
-    double k = klat * klon;
+    if (p->lat0  || p->lat1)  klat = blend(p->lat1,  p->lat0,  lat);
+    if (p->lon0  || p->lon1)  klon = blend(p->lon1,  p->lon0,  lon);
+
+    double kdlat = 1.0;
+    double kdlon = 1.0;
+
+    if (p->dlat0 || p->dlat1) klat = blend(p->dlat1, p->dlat0, dlat);
+    if (p->dlon0 || p->dlon1) klon = blend(p->dlon1, p->dlon0, dlon);
+
+    double k = klat * klon * kdlat * kdlon;
 
     if (k > 0.0)
     {

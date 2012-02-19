@@ -140,10 +140,14 @@ int convert(int argc, char **argv)
     int         b = 0;
     int         g = 0;
 
-    double lat0 = 0.0;
-    double lat1 = 0.0;
-    double lon0 = 0.0;
-    double lon1 = 0.0;
+    double  lat0 = 0.0;
+    double  lat1 = 0.0;
+    double  lon0 = 0.0;
+    double  lon1 = 0.0;
+    double dlat0 = 0.0;
+    double dlat1 = 0.0;
+    double dlon0 = 0.0;
+    double dlon1 = 0.0;
 
     img *p = NULL;
     scm *s = NULL;
@@ -153,16 +157,20 @@ int convert(int argc, char **argv)
     int i;
 
     for (i = 1; i < argc; ++i)
-        if      (strcmp(argv[i], "-o")    == 0) o    =      argv[++i];
-        else if (strcmp(argv[i], "-t")    == 0) t    =      argv[++i];
-        else if (strcmp(argv[i], "-n")    == 0) n    = atoi(argv[++i]);
-        else if (strcmp(argv[i], "-d")    == 0) d    = atoi(argv[++i]);
-        else if (strcmp(argv[i], "-b")    == 0) b    = atoi(argv[++i]);
-        else if (strcmp(argv[i], "-g")    == 0) g    = atoi(argv[++i]);
-        else if (strcmp(argv[i], "-lat0") == 0) lat0 = atof(argv[++i]);
-        else if (strcmp(argv[i], "-lat1") == 0) lat1 = atof(argv[++i]);
-        else if (strcmp(argv[i], "-lon0") == 0) lon0 = atof(argv[++i]);
-        else if (strcmp(argv[i], "-lon1") == 0) lon1 = atof(argv[++i]);
+        if      (strcmp(argv[i], "-o")     == 0)  o    =      argv[++i];
+        else if (strcmp(argv[i], "-t")     == 0)  t    =      argv[++i];
+        else if (strcmp(argv[i], "-n")     == 0)  n    = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-d")     == 0)  d    = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-b")     == 0)  b    = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-g")     == 0)  g    = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-lat0")  == 0)  lat0 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-lat1")  == 0)  lat1 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-lon0")  == 0)  lon0 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-lon1")  == 0)  lon1 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-dlat0") == 0) dlat0 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-dlat1") == 0) dlat1 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-dlon0") == 0) dlon0 = atof(argv[++i]);
+        else if (strcmp(argv[i], "-dlon1") == 0) dlon1 = atof(argv[++i]);
 
     // Assume the last argument is an input file.  Load it.
 
@@ -176,10 +184,14 @@ int convert(int argc, char **argv)
 
     if (p)
     {
-        p->lat0 = lat0 * M_PI / 180.0;
-        p->lat1 = lat1 * M_PI / 180.0;
-        p->lon0 = lon0 * M_PI / 180.0;
-        p->lon1 = lon1 * M_PI / 180.0;
+        p->lat0  = lat0  * M_PI / 180.0;
+        p->lat1  = lat1  * M_PI / 180.0;
+        p->lon0  = lon0  * M_PI / 180.0;
+        p->lon1  = lon1  * M_PI / 180.0;
+        p->dlat0 = dlat0 * M_PI / 180.0;
+        p->dlat1 = dlat1 * M_PI / 180.0;
+        p->dlon0 = dlon0 * M_PI / 180.0;
+        p->dlon1 = dlon1 * M_PI / 180.0;
         s = scm_ofile(o, n, p->c, b ? b : p->b, g ? g : p->g, t);
     }
     if (s && p)
