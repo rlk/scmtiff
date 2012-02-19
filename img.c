@@ -393,7 +393,7 @@ static double blend(double a, double b, double k)
         if (k > a) return 1.0;
         if (b > k) return 0.0;
 
-        double t = 1.0 - (k - a) / (a - b);
+        double t = 1.0 - (a - k) / (a - b);
 
         return 3 * t * t - 2 * t * t * t;
     }

@@ -161,6 +161,7 @@ static void parse_file(FILE *f, img *p, const char *lbl)
 
     p->b = 8;
     p->c = 1;
+    p->scaling_factor = 1.0;
 
     // Read the PDS label and interpret all PDS data elements.
 
