@@ -377,12 +377,24 @@ double img_default(img *p, double lon, double lat, double *c)
 
 static double blend(double a, double b, double k)
 {
-    if (k < a) return 1.0;
-    if (b < k) return 0.0;
+    if (a < b)
+    {
+        if (k < a) return 1.0;
+        if (b < k) return 0.0;
 
-    double t = 1.0 - (k - a) / (b - a);
+        double t = 1.0 - (k - a) / (b - a);
 
-    return 3 * t * t - 2 * t * t * t;
+        return 3 * t * t - 2 * t * t * t;
+    }
+    else
+    {
+        if (k > a) return 1.0;
+        if (b > k) return 0.0;
+
+        double t = 1.0 - (k - a) / (a - b);
+
+        return 3 * t * t - 2 * t * t * t;
+    }
 }
 
 static double angle(double a, double b)
