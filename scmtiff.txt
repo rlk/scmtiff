@@ -11,5 +11,20 @@ INVARIANT: All pages have the same size, channel count, min value, and max value
 
 NOT invariant: No page order is defined.
 
-Mix LROC GLD100 with LOLA?
 
+TODO:
+	Skip the decode-encode in the append phase of the mipmap tool.
+		(Cache the compression by noting the state of the zip buffer.)
+		If done properly, this can also optimize the combine tool's operation
+		upon pages with only one contributor.
+
+	Normal tool
+
+	Normalize option.
+		Knock down the depth after sampling but before encoding.
+
+	Generalize channel counts in image access.
+		switch (c) no longer suffices
+
+	Potential optimizations:
+		Precompute all pixel corners in convert sample
