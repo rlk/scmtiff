@@ -72,7 +72,7 @@ static off_t sample(scm *s, scm *t)
                     if (m[k] && scm_read_page(s, m[k], q)) box(p, 1, 0, c, n, q);
                     if (m[l] && scm_read_page(s, m[l], q)) box(p, 1, 1, c, n, q);
 
-                    b = scm_append(t, b, 0, 0, x, p);
+                    b = scm_append(t, b, x, p);
                 }
             }
             free(q);
@@ -96,8 +96,11 @@ static void append(scm *s, scm *t, off_t b)
         int x;
 
         for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
+            b = scm_repeat(t, b, s, o);
+#if 0
             if (scm_read_page(s, o, p))
-                b = scm_append(t, b, 0, 0, x, p);
+                b = scm_append(t, b, x, p);
+#endif
     }
 }
 

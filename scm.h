@@ -16,7 +16,8 @@ scm *scm_ofile(const char *, int, int, int, int, const char *);
 //------------------------------------------------------------------------------
 // SCM TIFF file read/write.
 
-off_t  scm_append(scm *, off_t, off_t, int, int, const double *);
+off_t  scm_append(scm *, off_t, int, const double *);
+off_t  scm_repeat(scm *, off_t, scm *, off_t);
 off_t  scm_rewind(scm *);
 void   scm_relink(scm *);
 void   scm_minmax(scm *);

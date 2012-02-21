@@ -4,7 +4,7 @@ EXES= scmtiff scmview
 #-------------------------------------------------------------------------------
 
 #CC = cc -std=c99 -m64 -g
-CC = cc -std=gnu99 -m64 -fopenmp -O3
+CC = gcc -std=gnu99 -m64 -fopenmp -O3
 #CC = cc -std=gnu99 -m64 -g
 CP = cp
 RM = rm -f

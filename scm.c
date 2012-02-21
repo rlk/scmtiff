@@ -143,17 +143,14 @@ static void _minmax(scm *s, const double *f)
 }
 
 // Append a page at the current SCM TIFF file pointer. Offset b is the previous
-// IFD, which will be updated to include the new page as next. Offset p is the
-// parent page, which will be updated to include the new page as child n. x is
-// the breadth-first page index. f points to a page of data to be written.
-// Return the offset of the new page.
+// IFD, which will be updated to include the new page as next. x is the breadth-
+// first page index. f points to a page of data to be written. Return the offset
+// of the new page.
 
-off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *f)
+off_t scm_append(scm *s, off_t b, int x, const double *f)
 {
     assert(s);
     assert(f);
-    assert(n >= 0);
-    assert(n <= 3);
 
     size_t d;
     off_t  o;
@@ -179,17 +176,13 @@ off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *f)
                     {
                         if (scm_link_list(s, o, b) >= 0)
                         {
-                            if (scm_link_tree(s, o, p, n) >= 0)
+                            if (fseeko(s->fp, 0, SEEK_END) == 0)
                             {
-                                if (fseeko(s->fp, 0, SEEK_END) == 0)
-                                {
-                                    fflush(s->fp);
-                                    _minmax(s, f);
-                                    return o;
-                                }
-                                else syserr("Failed to seek SCM");
+                                fflush(s->fp);
+                                _minmax(s, f);
+                                return o;
                             }
-                            else apperr("Failed to link IFD tree");
+                            else syserr("Failed to seek SCM");
                         }
                         else apperr("Failed to link IFD list");
                     }
@@ -202,6 +195,74 @@ off_t scm_append(scm *s, off_t b, off_t p, int n, int x, const double *f)
         else apperr("Failed to pre-write IFD");
     }
     else syserr("Failed to tell SCM");
+
+    return 0;
+}
+
+// Repeat a page at the current file pointer of SCM s. As with append, offset b
+// is the previous IFD, which will be updated to include the new page as next.
+// The source data is at offset o of SCM t. SCMs s and t must have the same data
+// type and size, as this allows the operation to be performed without decoding
+// s or encoding t. If data types do not match, then a read from s and an append
+// to t are required.
+
+off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
+{
+    ifd D;
+
+    assert(s);
+    assert(t);
+    assert(s->n == t->n);
+    assert(s->c == t->c);
+    assert(s->b == t->b);
+    assert(s->g == t->g);
+
+    if (scm_read_ifd(t, &D, o) == 1)
+    {
+        size_t d = (size_t) D.strip_byte_counts.offset;
+
+        if (fread(t->zip, 1, d, t->fp) == d)
+        {
+            if ((o = ftello(s->fp)) >= 0)
+            {
+                if (scm_write_ifd(s, &D, o) == 1)
+                {
+                    if (fwrite(t->zip, 1, d, s->fp) == d)
+                    {
+                        if (scm_align(s) >= 0)
+                        {
+                            uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
+                            uint64_t od = (uint64_t) (o + sizeof  (ifd));
+
+                            set_field(&D.strip_offsets, 0x0111, 16, 1, od);
+                            set_field(&D.sub_ifds,      0x014A, 18, 4, os);
+
+                            if (scm_write_ifd(s, &D, o) == 1)
+                            {
+                                if (scm_link_list(s, o, b) >= 0)
+                                {
+                                    if (fseeko(s->fp, 0, SEEK_END) == 0)
+                                    {
+                                        fflush(s->fp);
+                                        return o;
+                                    }
+                                    else syserr("Failed to seek SCM");
+                                }
+                                else apperr("Failed to link IFD list");
+                            }
+                            else apperr("Failed to re-write IFD");
+                        }
+                        else syserr("Failed to align SCM");
+                    }
+                    else apperr("Failed to write compressed data");
+                }
+                else apperr("Failed to pre-write IFD");
+            }
+            else syserr("Failed to tell SCM");
+        }
+        else syserr("Failed to read compressed data");
+    }
+    else apperr("Failed to read IFD");
 
     return 0;
 }

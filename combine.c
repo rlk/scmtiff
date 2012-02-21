@@ -107,7 +107,7 @@ static void process(scm *s, struct input *v, int c)
 
             // Write the sum to the output.
 
-            if (k) b = scm_append(s, b, 0, 0, x, p);
+            if (k) b = scm_append(s, b, x, p);
         }
 
         free(q);

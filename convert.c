@@ -121,7 +121,7 @@ int process(scm *s, img *p, int d)
                     k += sample(p, r, c, N, vec + x * 12,
                                             dat + C * ((r + 1) * N + (c + 1)));
 
-            if (k) b = scm_append(s, b, 0, 0, x, dat);
+            if (k) b = scm_append(s, b, x, dat);
         }
 
         free(dat);
