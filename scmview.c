@@ -58,8 +58,7 @@ static GLuint  cmap_color;
 
 //------------------------------------------------------------------------------
 
-static double  *dbuf;
-static GLfloat *fbuf;
+static GLfloat *buf;
 
 // Initialize the float buffer to a checkerboard pattern. This provides an
 // unambiguous representation for missing pages, where a black page might be
@@ -72,16 +71,8 @@ static void data_null(int n, int c)
     for         (int i = 0; i < n; ++i)
         for     (int j = 0; j < n; ++j)
             for (int k = 0; k < c; ++k, ++l)
-                fbuf[l] = ((((i - 1) >> 3) & 1) ==
+                buf[l] = ((((i - 1) >> 3) & 1) ==
                            (((j - 1) >> 3) & 1)) ? 0.4f : 0.6f;
-}
-
-// Copy the contents of the double buffer to the float buffer.
-
-static void data_copy(int n)
-{
-    for (int k = 0; k < n; ++k)
-        fbuf[k] = (GLfloat) dbuf[k];
 }
 
 // Load page x from all files. Upload the data to the on-screen texture cache.
@@ -105,13 +96,13 @@ static int data_load(int x)
 
         const off_t o = filev[i].pageo[x];
 
-        if (0 <= x && x < m && o && scm_read_page(filev[i].s, o, dbuf))
-            data_copy(n * n * c);
+        if (0 <= x && x < m && o)
+            scm_read_page(filev[i].s, o, buf);
         else
             data_null(n, c);
 
         glBindTexture(GL_TEXTURE_2D, filev[i].texture);
-        glTexImage2D (GL_TEXTURE_2D, 0, f[c], n, n, 0, e[c], GL_FLOAT, fbuf);
+        glTexImage2D (GL_TEXTURE_2D, 0, f[c], n, n, 0, e[c], GL_FLOAT, buf);
     }
     return 0;
 }
@@ -150,12 +141,9 @@ static int data_init(int argc, char **argv)
 
     if (N && C)
     {
-        if ((dbuf = (double *) malloc(N * N * C * sizeof (double))))
+        if ((buf = (GLfloat *) malloc(N * N * C * sizeof (GLfloat))))
         {
-            if ((fbuf = (GLfloat *) malloc(N * N * C * sizeof (GLfloat))))
-            {
-                return 1;
-            }
+            return 1;
         }
     }
     return 0;
@@ -222,8 +210,8 @@ static GLuint cmap_init(GLuint prog)
     glActiveTexture(GL_TEXTURE1);
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_1D, texture);
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, c);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 6, 0, GL_RGBA, GL_UNSIGNED_BYTE, c);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glActiveTexture(GL_TEXTURE0);

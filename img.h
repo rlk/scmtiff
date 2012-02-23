@@ -21,27 +21,30 @@ struct img
     int    d;
     size_t n;
 
+    float dnorm;
+    float knorm;
+
     // Projection parameters
 
-    double latmax;
-    double latmin;
-    double latp;
-    double lonmax;
-    double lonmin;
-    double lonp;
-    double l0;
-    double s0;
-    double res;
-    double scale;
-    double radius;
-    double scaling_factor;
+    float latmax;
+    float latmin;
+    float latp;
+    float lonmax;
+    float lonmin;
+    float lonp;
+    float l0;
+    float s0;
+    float res;
+    float scale;
+    float radius;
+    float scaling_factor;
 
     // Mask parameters
 
-    double lat0, lat1, dlat0, dlat1;
-    double lon0, lon1, dlon0, dlon1;
+    float lat0, lat1, dlat0, dlat1;
+    float lon0, lon1, dlon0, dlon1;
 
-    double (*sample)(img *, double, double, double *);
+    float (*sample)(img *, float, float, float *);
 };
 
 //------------------------------------------------------------------------------
@@ -54,16 +57,18 @@ img *pds_load(const char *);
 img *img_alloc(int, int, int, int, int);
 void img_close(img *);
 
+void img_set_defaults(img *);
+
 //------------------------------------------------------------------------------
 
-void  *img_scanline(img *, int);
-double img_sample(img *, const double *, double *);
+void *img_scanline(img *, int);
+float img_sample  (img *, const float *, float *);
 
-double img_equirectangular (img *, double, double, double *);
-double img_orthographic    (img *, double, double, double *);
-double img_stereographic   (img *, double, double, double *);
-double img_cylindrical     (img *, double, double, double *);
-double img_default         (img *, double, double, double *);
+float img_equirectangular (img *, float, float, float *);
+float img_orthographic    (img *, float, float, float *);
+float img_stereographic   (img *, float, float, float *);
+float img_cylindrical     (img *, float, float, float *);
+float img_default         (img *, float, float, float *);
 
 //------------------------------------------------------------------------------
 

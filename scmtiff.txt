@@ -23,14 +23,16 @@ TODO:
 
 	Normal tool
 
-	Normalize option.
+-	Normalize option.
 		Knock down the depth after sampling but before encoding.
 
 -	Remove the min/max
 		It's superfluous in the context of normalized data.
 
+	Potential optimizations:
+-		Precompute all pixel corners in convert sample
+			This is a false optimization when n is not small
+
 	Generalize channel counts in image access.
 		switch (c) no longer suffices
 
-	Potential optimizations:
-		Precompute all pixel corners in convert sample

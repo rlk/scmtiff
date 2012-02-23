@@ -342,7 +342,7 @@ int scm_write_preface(scm *s, const char *str)
 
 // Read, uncompress, and decode the data at the current position in SCM TIFF s.
 
-size_t scm_read_data(scm *s, double *p, size_t z)
+size_t scm_read_data(scm *s, float *p, size_t z)
 {
     const size_t l = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
     const size_t n = (s->n + 2) * (s->n + 2) * s->c;
@@ -369,7 +369,7 @@ size_t scm_read_data(scm *s, double *p, size_t z)
 
 // Encode, compress, and write buffer p at the current position in SCM TIFF s.
 
-size_t scm_write_data(scm *s, const double *p)
+size_t scm_write_data(scm *s, const float *p)
 {
     const size_t l = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
     const size_t n = (s->n + 2) * (s->n + 2) * s->c;

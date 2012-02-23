@@ -13,7 +13,7 @@
 // Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
 // the c-channel n-by-n image buffer p, downsampling 2-to-1.
 
-static void box(double *p, int ki, int kj, int c, int n, double *q)
+static void box(float *p, int ki, int kj, int c, int n, float *q)
 {
     for     (int qi = 0; qi < n; ++qi)
         for (int qj = 0; qj < n; ++qj)
@@ -21,15 +21,15 @@ static void box(double *p, int ki, int kj, int c, int n, double *q)
             const int pi = qi / 2 + ki * n / 2;
             const int pj = qj / 2 + kj * n / 2;
 
-            double *qq = q + ((qi + 1) * (n + 2) + (qj + 1)) * c;
-            double *pp = p + ((pi + 1) * (n + 2) + (pj + 1)) * c;
+            float *qq = q + ((qi + 1) * (n + 2) + (qj + 1)) * c;
+            float *pp = p + ((pi + 1) * (n + 2) + (pj + 1)) * c;
 
             switch (c)
             {
-                case 4: pp[3] += qq[3] / 4.0;
-                case 3: pp[2] += qq[2] / 4.0;
-                case 2: pp[1] += qq[1] / 4.0;
-                case 1: pp[0] += qq[0] / 4.0;
+                case 4: pp[3] += qq[3] / 4.f;
+                case 3: pp[2] += qq[2] / 4.f;
+                case 2: pp[1] += qq[1] / 4.f;
+                case 1: pp[0] += qq[0] / 4.f;
             }
         }
 }
@@ -51,8 +51,8 @@ static off_t sample(scm *s, scm *t)
         const int n = scm_get_n(s);
         const int c = scm_get_c(s);
 
-        double *p;
-        double *q;
+        float *p;
+        float *q;
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
@@ -65,7 +65,7 @@ static off_t sample(scm *s, scm *t)
 
                 if (m[x] == 0 && (m[i] || m[j] || m[k] || m[l]))
                 {
-                    memset(p, 0, N * N * c * sizeof (double));
+                    memset(p, 0, N * N * c * sizeof (float));
 
                     if (m[i] && scm_read_page(s, m[i], q)) box(p, 0, 0, c, n, q);
                     if (m[j] && scm_read_page(s, m[j], q)) box(p, 0, 1, c, n, q);
@@ -86,7 +86,7 @@ static off_t sample(scm *s, scm *t)
 
 static void append(scm *s, scm *t, off_t b)
 {
-    double *p;
+    float *p;
 
     if ((p = scm_alloc_buffer(s)))
     {

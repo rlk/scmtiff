@@ -24,8 +24,8 @@ int    scm_write_ifd    (scm *, ifd *, off_t);
 int    scm_read_preface (scm *);
 int    scm_write_preface(scm *, const char *);
 
-size_t scm_read_data    (scm *,       double *, size_t);
-size_t scm_write_data   (scm *, const double *);
+size_t scm_read_data    (scm *,       float *, size_t);
+size_t scm_write_data   (scm *, const float *);
 
 //------------------------------------------------------------------------------
 

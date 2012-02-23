@@ -98,8 +98,8 @@ uint16_t scm_form(scm *);
 uint16_t scm_type(scm *);
 uint64_t scm_hdif(scm *);
 
-void ftob(void *, const double *, size_t, int, int);
-void btof(const void *, double *, size_t, int, int);
+void ftob(void *, const float *, size_t, int, int);
+void btof(const void *, float *, size_t, int, int);
 
 void enhdif(void *p, int, int, int);
 void dehdif(void *p, int, int, int);

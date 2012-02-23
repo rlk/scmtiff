@@ -34,12 +34,12 @@ static const  tofun translate_j[6][6] = {
     { topj, topj, tonj, tonj, NULL, topj },
 };
 
-static double *pixel(double *p, int n, int c, int i, int j)
+static float *pixel(float *p, int n, int c, int i, int j)
 {
     return p + c * (i * n + j);
 }
 
-static void cpy(double *p, const double *q, int c)
+static void cpy(float *p, const float *q, int c)
 {
     switch (c)
     {
@@ -50,9 +50,9 @@ static void cpy(double *p, const double *q, int c)
     }
 }
 
-static void avg3(double *p, const double *q,
-                            const double *r,
-                            const double *s, int c)
+static void avg3(float *p, const float *q,
+                            const float *r,
+                            const float *s, int c)
 {
     switch (c)
     {
@@ -63,7 +63,7 @@ static void avg3(double *p, const double *q,
     }
 }
 
-static void copyu(double *p, int x, double *q, int y, int n, int c)
+static void copyu(float *p, int x, float *q, int y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
         cpy(pixel(p, n, c, 0, j),
@@ -71,7 +71,7 @@ static void copyu(double *p, int x, double *q, int y, int n, int c)
                            translate_j[x][y](n - 2, j, n)), c);
 }
 
-static void copyd(double *p, int x, double *q, int y, int n, int c)
+static void copyd(float *p, int x, float *q, int y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
         cpy(pixel(p, n, c, n - 1, j),
@@ -79,7 +79,7 @@ static void copyd(double *p, int x, double *q, int y, int n, int c)
                            translate_j[x][y](1, j, n)), c);
 }
 
-static void copyr(double *p, int x, double *q, int y, int n, int c)
+static void copyr(float *p, int x, float *q, int y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
         cpy(pixel(p, n, c, i, 0),
@@ -87,7 +87,7 @@ static void copyr(double *p, int x, double *q, int y, int n, int c)
                            translate_j[x][y](i, n - 2, n)), c);
 }
 
-static void copyl(double *p, int x, double *q, int y, int n, int c)
+static void copyl(float *p, int x, float *q, int y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
         cpy(pixel(p, n, c, i, n - 1),
@@ -102,8 +102,8 @@ static int process(scm *s, scm *t)
 
     off_t   b = 0;
     off_t  *m;
-    double *p;
-    double *q;
+    float *p;
+    float *q;
     int     d;
 
     if ((d = scm_mapping(s, &m)) >= 0)

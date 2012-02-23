@@ -142,26 +142,26 @@ uint64_t scm_hdif(scm *s)
 
 // Clamp the given value to a signed unit range.
 
-static inline double sclamp(double k)
+static inline float sclamp(float k)
 {
-    if      (k < -1.0) return -1.0;
-    else if (k >  1.0) return  1.0;
+    if      (k < -1.f) return -1.f;
+    else if (k >  1.f) return  1.f;
     else               return    k;
 }
 
 // Clamp the given value to an unsigned unit range.
 
-static inline double uclamp(double k)
+static inline float uclamp(float k)
 {
-    if      (k <  0.0) return  0.0;
-    else if (k >  1.0) return  1.0;
+    if      (k <  0.f) return  0.f;
+    else if (k >  1.f) return  1.f;
     else               return    k;
 }
 
 // Encode the n values in floating point buffer f to the raw buffer p with
 // b bits per sample and sign s.
 
-void ftob(void *p, const double *f, size_t n, int b, int g)
+void ftob(void *p, const float *f, size_t n, int b, int g)
 {
     size_t i;
 
@@ -189,29 +189,29 @@ void ftob(void *p, const double *f, size_t n, int b, int g)
 // Decode the n values in raw buffer p to the floating point buffer f assuming
 // b bits per sample and sign s.
 
-void btof(const void *p, double *f, size_t n, int b, int g)
+void btof(const void *p, float *f, size_t n, int b, int g)
 {
     size_t i;
 
     if      (b ==  8 && g == 0)
         for (i = 0; i < n; ++i)
-            f[i] = ((unsigned char  *) p)[i] / 255.0;
+            f[i] = ((unsigned char  *) p)[i] / 255.f;
 
     else if (b == 16 && g == 0)
         for (i = 0; i < n; ++i)
-            f[i] = ((unsigned short *) p)[i] / 65535.0;
+            f[i] = ((unsigned short *) p)[i] / 65535.f;
 
     else if (b ==  8 && g == 1)
         for (i = 0; i < n; ++i)
-            f[i] = ((char  *) p)[i] / 127.0;
+            f[i] = ((char  *) p)[i] / 127.f;
 
     else if (b == 16 && g == 1)
         for (i = 0; i < n; ++i)
-            f[i] = ((short *) p)[i] / 32767.0;
+            f[i] = ((short *) p)[i] / 32767.f;
 
     else if (b == 32)
         for (i = 0; i < n; ++i)
-            f[i] = (double) ((float *) p)[i];
+            f[i] = ((float *) p)[i];
 }
 
 // Encode the given buffer using the horizontal differencing predictor.

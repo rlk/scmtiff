@@ -80,15 +80,15 @@ static int get_line(char *str, size_t len, FILE *fp)
 
 static int get_int(const char *val)
 {
-    return (int) strtol(val, 0, 0);
+    return (int) strtol(val, NULL, 0);
 }
 
-static double get_real(const char *val)
+static float get_real(const char *val)
 {
-    return (double) strtod(val, 0);
+    return (float) strtod(val, NULL);
 }
 
-static double get_angle(const char *str)
+static float get_angle(const char *str)
 {
     char val[STRMAX];
     char dim[STRMAX];
@@ -105,7 +105,7 @@ static double get_angle(const char *str)
 
 static void parse_element(img *p, const char *key, const char *val)
 {
-    const double K = 1000.0;
+    const float K = 1000.0f;
 
     // Raster parameters
 
@@ -189,7 +189,7 @@ static void parse_file(FILE *f, img *p, const char *lbl)
     {
         if ((q = mmap(0, o + n, PROT_READ, MAP_PRIVATE, d, 0)) != MAP_FAILED)
         {
-            p->p = q + o;
+            p->p = (char *) q + o;
             p->q = q;
             p->n = n;
             p->d = d;

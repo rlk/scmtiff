@@ -110,7 +110,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 // first page index. f points to a page of data to be written. Return the offset
 // of the new page.
 
-off_t scm_append(scm *s, off_t b, int x, const double *f)
+off_t scm_append(scm *s, off_t b, int x, const float *f)
 {
     assert(s);
     assert(f);
@@ -286,7 +286,7 @@ void scm_relink(scm *s)
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
 // data to be stored.
 
-size_t scm_read_page(scm *s, off_t o, double *p)
+size_t scm_read_page(scm *s, off_t o, float *p)
 {
     ifd i;
 
@@ -370,11 +370,11 @@ int scm_mapping(scm *s, off_t **mv)
 //------------------------------------------------------------------------------
 
 // Allocate and return a buffer with the proper size to fit one page of data,
-// as determined by the parameters of SCM s, assuming double precision samples.
+// as determined by the parameters of SCM s, assuming float precision samples.
 
-double *scm_alloc_buffer(scm *s)
+float *scm_alloc_buffer(scm *s)
 {
-    return (double *) malloc((s->n + 2) * (s->n + 2) * s->c * sizeof (double));
+    return (float *) malloc((s->n + 2) * (s->n + 2) * s->c * sizeof (float));
 }
 
 // Query the parameters of SCM s.
@@ -551,9 +551,9 @@ void scm_get_page_neighbors(int p, int *u, int *d, int *r, int *l)
 
 //------------------------------------------------------------------------------
 
-#define NORM3 0.5773502691896258
+#define NORM3 0.57735027f
 
-static const double page_v[8][3] = {
+static const float page_v[8][3] = {
     {  NORM3,  NORM3,  NORM3 },
     { -NORM3,  NORM3,  NORM3 },
     {  NORM3, -NORM3,  NORM3 },
@@ -573,23 +573,23 @@ static const int page_i[6][4] = {
     { 4, 5, 6, 7 },
 };
 
-static void _get_page_corners(int i, int d, const double *A,
-                                            const double *B,
-                                            const double *C,
-                                            const double *D, double *p)
+static void _get_page_corners(int i, int d, const float *A,
+                                            const float *B,
+                                            const float *C,
+                                            const float *D, float *p)
 {
-    memcpy(p + i * 12 + 0, A, 3 * sizeof (double));
-    memcpy(p + i * 12 + 3, B, 3 * sizeof (double));
-    memcpy(p + i * 12 + 6, C, 3 * sizeof (double));
-    memcpy(p + i * 12 + 9, D, 3 * sizeof (double));
+    memcpy(p + i * 12 + 0, A, 3 * sizeof (float));
+    memcpy(p + i * 12 + 3, B, 3 * sizeof (float));
+    memcpy(p + i * 12 + 6, C, 3 * sizeof (float));
+    memcpy(p + i * 12 + 9, D, 3 * sizeof (float));
 
     if (d)
     {
-        double N[3];
-        double S[3];
-        double W[3];
-        double E[3];
-        double M[3];
+        float N[3];
+        float S[3];
+        float W[3];
+        float E[3];
+        float M[3];
 
         mid2(N, A, B);
         mid2(S, C, D);
@@ -606,9 +606,9 @@ static void _get_page_corners(int i, int d, const double *A,
 
 // Recursively compute the corner vectors of all pages down to depth d. Assume
 // array p provides storage for scm_get_page_count(d) pages, where each page
-// is four 3D vectors (12 doubles).
+// is four 3D vectors (12 floats).
 
-void scm_get_page_corners(int d, double *p)
+void scm_get_page_corners(int d, float *p)
 {
     int i;
 

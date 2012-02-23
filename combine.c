@@ -68,8 +68,8 @@ static void process(scm *s, struct input *v, int c)
     const int N = scm_get_n(s) + 2;
     const int C = scm_get_c(s);
 
-    double *p;
-    double *q;
+    float *p;
+    float *q;
 
     // Allocate temporary and accumulator buffers.
 
@@ -111,7 +111,7 @@ static void process(scm *s, struct input *v, int c)
 
             else if (k > 1)
             {
-                memset(p, 0, N * N * C * sizeof (double));
+                memset(p, 0, N * N * C * sizeof (float));
 
                 for (int i = 0; i < c; ++i)
                     if (x < v[i].n && v[i].m[x])
