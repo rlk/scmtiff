@@ -12,6 +12,36 @@
 
 //------------------------------------------------------------------------------
 
+char *load_txt(const char *name)
+{
+    // Load the named file into a newly-allocated buffer.
+
+    FILE *fp = 0;
+    void  *p = 0;
+    size_t n = 0;
+
+    if ((fp = fopen(name, "rb")))
+    {
+        if (fseek(fp, 0, SEEK_END) == 0)
+        {
+            if ((n = (size_t) ftell(fp)))
+            {
+                if (fseek(fp, 0, SEEK_SET) == 0)
+                {
+                    if ((p = calloc(n + 1, 1)))
+                    {
+                        fread(p, 1, n, fp);
+                    }
+                }
+            }
+        }
+        fclose(fp);
+    }
+    return p;
+}
+
+//------------------------------------------------------------------------------
+
 static void normalize(float *v)
 {
     float k = 1.f / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -140,8 +170,8 @@ static float torad(float d) { return d * M_PI / 180.0f; }
 
 int convert(int argc, char **argv)
 {
-    const char *t = "Copyright (c) 2011 Robert Kooima";
     const char *o = "out.tif";
+    const char *t = NULL;
     int         n = 512;
     int         d = 0;
     int         b = 0;
@@ -158,8 +188,9 @@ int convert(int argc, char **argv)
     float norm0 = 0.f;
     float norm1 = 0.f;
 
-    img *p = NULL;
-    scm *s = NULL;
+    img  *p = NULL;
+    scm  *s = NULL;
+    char *T = NULL;
 
     // Parse command line options.
 
@@ -191,6 +222,9 @@ int convert(int argc, char **argv)
     else if (extcmp(argv[argc - 1], ".img") == 0) p = pds_load(argv[argc - 1]);
     else if (extcmp(argv[argc - 1], ".lbl") == 0) p = pds_load(argv[argc - 1]);
 
+    if (b == 0) b = p->b;
+    if (g == 0) g = p->g;
+
     // Set the default data normalization values.
 
     if (norm0 == 0.f && norm1 == 0.f)
@@ -206,6 +240,10 @@ int convert(int argc, char **argv)
             else   { norm0 = 0.f; norm1 = 65535.f; }
         }
     }
+
+    // Load the description text, if any.
+
+    T = t ? load_txt(t) : "Copyright (C) 2011 Robert Kooima";
 
     // Process the output.
 
@@ -223,7 +261,7 @@ int convert(int argc, char **argv)
         p->dnorm = norm0;
         p->knorm = 1.f / (norm1 - norm0);
 
-        s = scm_ofile(o, n, p->c, b ? b : p->b, g ? g : p->g, t);
+        s = scm_ofile(o, n, p->c, b, g, T);
     }
     if (s && p)
         process(s, p, d);

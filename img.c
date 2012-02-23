@@ -101,7 +101,7 @@ static float cleanf(float f)
 
 static float getchan(const img *p, int i, int j, int k)
 {
-    const int s = p->c * (p->w + i + j);
+    const int s = p->c * (p->w * i + j);
 
     if (p->b == 8)
     {
@@ -124,12 +124,14 @@ static  int getsamp(img *p, int i, int j, float *c)
 {
     if (0 <= i && i < p->h && 0 <= j && j < p->w)
     {
+        const double k = p->scaling_factor;
+
         switch (p->c)
         {
-            case 4: c[3] = (getchan(p, i, j, 3) - p->dnorm) * p->knorm;
-            case 3: c[2] = (getchan(p, i, j, 2) - p->dnorm) * p->knorm;
-            case 2: c[1] = (getchan(p, i, j, 1) - p->dnorm) * p->knorm;
-            case 1: c[0] = (getchan(p, i, j, 0) - p->dnorm) * p->knorm;
+            case 4: c[3] = (getchan(p, i, j, 3) * k - p->dnorm) * p->knorm;
+            case 3: c[2] = (getchan(p, i, j, 2) * k - p->dnorm) * p->knorm;
+            case 2: c[1] = (getchan(p, i, j, 1) * k - p->dnorm) * p->knorm;
+            case 1: c[0] = (getchan(p, i, j, 0) * k - p->dnorm) * p->knorm;
         }
         return 1;
     }
@@ -314,7 +316,7 @@ float img_sample(img *p, const float *v, float *c)
     if (p->dlat0 || p->dlat1) klat = blend(p->dlat1, p->dlat0, dlat);
     if (p->dlon0 || p->dlon1) klon = blend(p->dlon1, p->dlon0, dlon);
 
-    float k = klat * klon * kdlat * kdlon * p->scaling_factor;
+    float k = klat * klon * kdlat * kdlon;
 
     if (k > 0.f)
     {
