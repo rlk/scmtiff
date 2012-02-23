@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -12,134 +13,6 @@
 #include "img.h"
 #include "err.h"
 #include "util.h"
-
-//------------------------------------------------------------------------------
-
-// Detect PDS saturation codes.
-
-static float cleanf(float f)
-{
-    unsigned int *w = (unsigned int *) (&f);
-
-    if (*w == 0xFF7FFFFB) return 0.0;  // Core null
-    if (*w == 0xFF7FFFFC) return 0.0;  // Representation saturation low
-    if (*w == 0xFF7FFFFD) return 0.0;  // Instrumentation saturation low
-    if (*w == 0xFF7FFFFE) return 1.0;  // Representation saturation high
-    if (*w == 0xFF7FFFFF) return 1.0;  // Instrumentation saturation high
-
-    if (isnormal(f))
-        return (float) f;
-    else
-        return 0.0;
-}
-
-//------------------------------------------------------------------------------
-// Access a raw image buffer. Convert from the image's internal format to float
-// precision floating point. Assume the return buffer c has the same or greater
-// channel count as the image. Expect out-of-bounds references to be made in the
-// normal process of linear-filtered multisampling, and return zero if necessary.
-
-static int get8u(img *p, int i, int j, float *c)
-{
-    if (0 <= i && i < p->h && 0 <= j && j < p->w)
-    {
-        unsigned char *q = (unsigned char *) p->p + p->c * (p->w * i + j);
-
-        switch (p->c)
-        {
-            case 4: c[3] = ((float) q[3] - p->dnorm) * p->knorm;
-            case 3: c[2] = ((float) q[2] - p->dnorm) * p->knorm;
-            case 2: c[1] = ((float) q[1] - p->dnorm) * p->knorm;
-            case 1: c[0] = ((float) q[0] - p->dnorm) * p->knorm;
-        }
-        return 1;
-    }
-    memset(c, 0, p->c * sizeof (float));
-    return 0;
-}
-
-static int get8s(img *p, int i, int j, float *c)
-{
-    if (0 <= i && i < p->h && 0 <= j && j < p->w)
-    {
-        char *q = (char *) p->p + p->c * (p->w * i + j);
-
-        switch (p->c)
-        {
-            case 4: c[3] = ((float) q[3] - p->dnorm) * p->knorm;
-            case 3: c[2] = ((float) q[2] - p->dnorm) * p->knorm;
-            case 2: c[1] = ((float) q[1] - p->dnorm) * p->knorm;
-            case 1: c[0] = ((float) q[0] - p->dnorm) * p->knorm;
-        }
-        return 1;
-    }
-    memset(c, 0, p->c * sizeof (float));
-    return 0;
-}
-
-static int get16u(img *p, int i, int j, float *c)
-{
-    if (0 <= i && i < p->h && 0 <= j && j < p->w)
-    {
-        unsigned short *q = (unsigned short *) p->p + p->c * (p->w * i + j);
-
-        switch (p->c)
-        {
-            case 4: c[3] = ((float) q[3] - p->dnorm) * p->knorm;
-            case 3: c[2] = ((float) q[2] - p->dnorm) * p->knorm;
-            case 2: c[1] = ((float) q[1] - p->dnorm) * p->knorm;
-            case 1: c[0] = ((float) q[0] - p->dnorm) * p->knorm;
-        }
-        return 1;
-    }
-    memset(c, 0, p->c * sizeof (float));
-    return 0;
-}
-
-static int get16s(img *p, int i, int j, float *c)
-{
-    if (0 <= i && i < p->h && 0 <= j && j < p->w)
-    {
-        short *q = (short *) p->p + p->c * (p->w * i + j);
-
-        switch (p->c)
-        {
-            case 4: c[3] = ((float) q[3] - p->dnorm) * p->knorm;
-            case 3: c[2] = ((float) q[2] - p->dnorm) * p->knorm;
-            case 2: c[1] = ((float) q[1] - p->dnorm) * p->knorm;
-            case 1: c[0] = ((float) q[0] - p->dnorm) * p->knorm;
-        }
-        return 1;
-    }
-    memset(c, 0, p->c * sizeof (float));
-    return 0;
-}
-
-static int get32f(img *p, int i, int j, float *c)
-{
-    if (0 <= i && i < p->h && 0 <= j && j < p->w)
-    {
-        float *q = (float *) p->p + p->c * (p->w * i + j);
-
-        switch (p->c)
-        {
-            case 4: c[3] = (cleanf(q[3]) - p->dnorm) * p->knorm;
-            case 3: c[2] = (cleanf(q[2]) - p->dnorm) * p->knorm;
-            case 2: c[1] = (cleanf(q[1]) - p->dnorm) * p->knorm;
-            case 1: c[0] = (cleanf(q[0]) - p->dnorm) * p->knorm;
-        }
-        return 1;
-    }
-    memset(c, 0, p->c * sizeof (float));
-    return 0;
-}
-
-typedef int (*getfn)(img *p, int, int, float *);
-
-static const getfn get[2][4] = {
-    { get8u, get16u, NULL, get32f },
-    { get8s, get16s, NULL, get32f },
-};
 
 //------------------------------------------------------------------------------
 
@@ -208,15 +81,68 @@ void *img_scanline(img *p, int r)
 
 //------------------------------------------------------------------------------
 
+// Detect PDS saturation codes.
+
+static float cleanf(float f)
+{
+    unsigned int *w = (unsigned int *) (&f);
+
+    if (*w == 0xFF7FFFFB) return 0.0;  // Core null
+    if (*w == 0xFF7FFFFC) return 0.0;  // Representation saturation low
+    if (*w == 0xFF7FFFFD) return 0.0;  // Instrumentation saturation low
+    if (*w == 0xFF7FFFFE) return 1.0;  // Representation saturation high
+    if (*w == 0xFF7FFFFF) return 1.0;  // Instrumentation saturation high
+
+    if (isnormal(f))
+        return (float) f;
+    else
+        return 0.0;
+}
+
+static float getchan(const img *p, int i, int j, int k)
+{
+    const int s = p->c * (p->w + i + j);
+
+    if (p->b == 8)
+    {
+        if (p->g)
+            return (float) (( int8_t  *) p->p + s)[k];
+        else
+            return (float) ((uint8_t  *) p->p + s)[k];
+    }
+    if (p->b == 16)
+    {
+        if (p->g)
+            return (float) (( int16_t *) p->p + s)[k];
+        else
+            return (float) ((uint16_t *) p->p + s)[k];
+    }
+    return             cleanf(((float *) p->p + s)[k]);
+}
+
+static  int getsamp(img *p, int i, int j, float *c)
+{
+    if (0 <= i && i < p->h && 0 <= j && j < p->w)
+    {
+        switch (p->c)
+        {
+            case 4: c[3] = (getchan(p, i, j, 3) - p->dnorm) * p->knorm;
+            case 3: c[2] = (getchan(p, i, j, 2) - p->dnorm) * p->knorm;
+            case 2: c[1] = (getchan(p, i, j, 1) - p->dnorm) * p->knorm;
+            case 1: c[0] = (getchan(p, i, j, 0) - p->dnorm) * p->knorm;
+        }
+        return 1;
+    }
+    memset(c, 0, p->c * sizeof (float));
+    return 0;
+}
+
 // Perform a linearly-filtered sampling of the image p. The filter position
 // i, j is smoothly-varying in the range [0, w), [0, h). Return the sample
 // coverage.
 
 float img_linear(img *p, float i, float j, float *c)
 {
-    const int B = (p->b >> 3) - 1;
-    const int G =  p->g;
-
     const float s = i - floorf(i);
     const float t = j - floorf(j);
 
@@ -228,10 +154,10 @@ float img_linear(img *p, float i, float j, float *c)
     float aa[4], ab[4];
     float ba[4], bb[4];
 
-    const int kaa = get[G][B](p, ia, ja, aa);
-    const int kab = get[G][B](p, ia, jb, ab);
-    const int kba = get[G][B](p, ib, ja, ba);
-    const int kbb = get[G][B](p, ib, jb, bb);
+    int kaa = getsamp(p, ia, ja, aa);
+    int kab = getsamp(p, ia, jb, ab);
+    int kba = getsamp(p, ib, ja, ba);
+    int kbb = getsamp(p, ib, jb, bb);
 
     switch (p->c)
     {
