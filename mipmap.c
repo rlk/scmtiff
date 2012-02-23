@@ -97,10 +97,6 @@ static void append(scm *s, scm *t, off_t b)
 
         for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
             b = scm_repeat(t, b, s, o);
-#if 0
-            if (scm_read_page(s, o, p))
-                b = scm_append(t, b, x, p);
-#endif
     }
 }
 
@@ -149,7 +145,6 @@ int mipmap(int argc, char **argv)
         {
             r = process(s, t);
             scm_relink(t);
-            scm_minmax(t);
             scm_close(t);
         }
         scm_close(s);

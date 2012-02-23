@@ -197,7 +197,6 @@ int convert(int argc, char **argv)
     if (s && p)
         process(s, p, d);
 
-    scm_minmax(s);
     scm_close(s);
     img_close(p);
 

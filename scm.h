@@ -20,7 +20,6 @@ off_t  scm_append(scm *, off_t, int, const double *);
 off_t  scm_repeat(scm *, off_t, scm *, off_t);
 off_t  scm_rewind(scm *);
 void   scm_relink(scm *);
-void   scm_minmax(scm *);
 
 int    scm_read_node(scm *, off_t, off_t *, off_t *);
 size_t scm_read_page(scm *, off_t, double *);
@@ -38,9 +37,6 @@ int scm_get_n(scm *);
 int scm_get_c(scm *);
 int scm_get_b(scm *);
 int scm_get_g(scm *);
-
-void scm_get_min(scm *, double *);
-void scm_get_max(scm *, double *);
 
 //------------------------------------------------------------------------------
 // SCM TIFF breadth-first page index relationships

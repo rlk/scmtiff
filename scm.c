@@ -25,8 +25,6 @@ void scm_close(scm *s)
     {
         fclose(s->fp);
         free(s->str);
-        free(s->min);
-        free(s->max);
         free(s->bin);
         free(s->zip);
         free(s);
@@ -50,15 +48,6 @@ scm *scm_ifile(const char *name)
             {
                 if (scm_alloc(s))
                 {
-                    size_t n = s->c * tifsizeof(scm_type(s));
-                    uint8_t av[n];
-                    uint8_t zv[n];
-
-                    if (scm_read_field(s, &s->D.sample_min, av) == 1)
-                        btof(av, s->min, s->c, s->b, s->g);
-                    if (scm_read_field(s, &s->D.sample_max, zv) == 1)
-                        btof(zv, s->max, s->c, s->b, s->g);
-
                     return s;
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
@@ -100,11 +89,6 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
             {
                 if (scm_alloc(s))
                 {
-                    for (int k = 0; k < s->c; ++k)
-                    {
-                        s->min[k] =  DBL_MAX;
-                        s->max[k] = -DBL_MAX;
-                    }
                     return s;
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
@@ -120,27 +104,6 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 }
 
 //------------------------------------------------------------------------------
-
-// f is a page of data to be added to SCM s. Scan it and update the min and max
-// caches. Don't take zeros into account. (Zero might designate missing data,
-// which will bias the range. If 0 does appear as data, then 1 probably does
-// too, and that's close enough for our needs.)
-
-static void _minmax(scm *s, const double *f)
-{
-    const int n = (s->n + 2) * (s->n + 2);
-    const int c = (s->c);
-
-    for     (int i = 0; i < n; ++i)
-        for (int k = 0; k < c; ++k)
-            if (f[i * c + k])
-            {
-                if (s->max[k] < f[i * c + k])
-                    s->max[k] = f[i * c + k];
-                if (s->min[k] > f[i * c + k])
-                    s->min[k] = f[i * c + k];
-            }
-}
 
 // Append a page at the current SCM TIFF file pointer. Offset b is the previous
 // IFD, which will be updated to include the new page as next. x is the breadth-
@@ -179,7 +142,6 @@ off_t scm_append(scm *s, off_t b, int x, const double *f)
                             if (fseeko(s->fp, 0, SEEK_END) == 0)
                             {
                                 fflush(s->fp);
-                                _minmax(s, f);
                                 return o;
                             }
                             else syserr("Failed to seek SCM");
@@ -319,38 +281,6 @@ void scm_relink(scm *s)
     }
 }
 
-// Update the sample minimum and sample maximum values of all IFDs.
-
-void scm_minmax(scm *s)
-{
-    off_t *m;
-    int    d;
-    ifd    i;
-
-    assert(s);
-
-    if ((d = scm_mapping(s, &m)) >= 0)
-    {
-        size_t n = s->c * tifsizeof(scm_type(s));
-
-        uint8_t min[n];
-        uint8_t max[n];
-
-        ftob(min, s->min, s->c, s->b, s->g);
-        ftob(max, s->max, s->c, s->b, s->g);
-
-        for (int x = 0; x < scm_get_page_count(d); ++x)
-            if (m[x] && scm_read_ifd(s, &i, m[x]) == 1)
-            {
-                scm_write_field(s, &i.sample_min, min);
-                scm_write_field(s, &i.sample_max, max);
-                scm_write_ifd  (s, &i, m[x]);
-            }
-
-        free(m);
-    }
-}
-
 //------------------------------------------------------------------------------
 
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
@@ -477,18 +407,6 @@ int scm_get_g(scm *s)
 {
     assert(s);
     return s->g;
-}
-
-void scm_get_min(scm *s, double *f)
-{
-    assert(s);
-    memcpy(f, s->min, s->c * sizeof (double));
-}
-
-void scm_get_max(scm *s, double *f)
-{
-    assert(s);
-    memcpy(f, s->max, s->c * sizeof (double));
 }
 
 //------------------------------------------------------------------------------

@@ -44,7 +44,7 @@ int is_header(header *hp)
 
 int is_ifd(ifd *ip)
 {
-    return (ip->count == 18
+    return (ip->count == 16
 
         &&  ip->subfile_type.tag      == 0x00FE
         &&  ip->image_width.tag       == 0x0100
@@ -61,8 +61,6 @@ int is_ifd(ifd *ip)
         &&  ip->predictor.tag         == 0x013D
         &&  ip->sub_ifds.tag          == 0x014A
         &&  ip->sample_format.tag     == 0x0153
-        &&  ip->sample_min.tag        == 0x0154
-        &&  ip->sample_max.tag        == 0x0155
         &&  ip->page_index.tag        == 0xFFB1);
 }
 

@@ -53,8 +53,6 @@ struct ifd
     field predictor;            // 0x013D
     field sub_ifds;             // 0x014A *
     field sample_format;        // 0x0153
-    field sample_min;           // 0x0154
-    field sample_max;           // 0x0155
     field page_index;           // 0xFFB1 *
 
     uint64_t next;
@@ -69,8 +67,6 @@ struct scm
 {
     FILE   *fp;                // I/O file pointer
     char   *str;               // Description text
-    double *min;               // Minimum sample value
-    double *max;               // Maximum sample value
 
     int n;                     // Page sample count
     int c;                     // Sample channel count

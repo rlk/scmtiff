@@ -11,14 +11,12 @@
 
 //------------------------------------------------------------------------------
 
-// Allocate properly-sized bin and zip scratch buffers for SCM s, as well as
-// caches for minimum and maximum sample values.
+// Allocate properly-sized bin and zip scratch buffers for SCM s.
 
 int scm_alloc(scm *s)
 {
     size_t bs = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
     size_t zs = compressBound(bs);
-    size_t ss = s->c * sizeof (double);
 
     assert(bs);
     assert(zs);
@@ -27,20 +25,10 @@ int scm_alloc(scm *s)
     {
         if ((s->zip = malloc(zs)))
         {
-            if ((s->min = (double *) calloc(ss, 1)))
-            {
-                if ((s->max = (double *) calloc(ss, 1)))
-                {
-                    return 1;
-                }
-            }
+            return 1;
         }
     }
 
-    free(s->max);
-    s->max = 0;
-    free(s->min);
-    s->min = 0;
     free(s->zip);
     s->zip = 0;
     free(s->bin);
@@ -311,7 +299,6 @@ int scm_write_preface(scm *s, const char *str)
     if (scm_write_header(s, &h) == 1)
     {
         uint64_t i = scm_pint(s);
-        uint16_t t = scm_type(s);
         uint64_t p = scm_hdif(s);
         uint16_t l = strlen(str) + 1;
 
@@ -336,8 +323,6 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.configuration,     0x011C, 3, 1,    1);
         set_field(&s->D.predictor,         0x013D, 3, 1,    p);
         set_field(&s->D.sample_format,     0x0153, 3, s->c, 0);
-        set_field(&s->D.sample_min,        0x0154, t, s->c, 0);
-        set_field(&s->D.sample_max,        0x0155, t, s->c, 0);
 
         scm_write_field(s, &s->D.description,    str);
         scm_align(s);
@@ -346,7 +331,7 @@ int scm_write_preface(scm *s, const char *str)
         scm_write_field(s, &s->D.sample_format,   fv);
         scm_align(s);
 
-        s->D.count = 18;
+        s->D.count = 16;
 
         return 1;
     }

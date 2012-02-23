@@ -173,13 +173,11 @@ static const char *vert_color =
 static const char *frag_color =
     "uniform sampler2D image;"
     "uniform sampler1D color;"
-    "uniform float a;"
-    "uniform float z;"
 
     "void main()\n"
     "{\n"
     "    vec4 i = texture2D(image, gl_TexCoord[0].xy);\n"
-    "    gl_FragColor = texture1D(color, (i.r - a) / (z - a));\n"
+    "    gl_FragColor = texture1D(color, i.r);\n"
     "}\n";
 
 // Compile and link the given shader source files to a program object.  Scan
@@ -203,24 +201,6 @@ static GLuint prog_init(const char *vertsrc, const char *fragsrc)
     glLinkProgram(prog);
     glUseProgram(prog);
 
-    double a =  DBL_MAX;
-    double z = -DBL_MAX;
-
-    for (int i = 0; i < filec; ++i)
-    {
-        double min[scm_get_c(filev[i].s)];
-        double max[scm_get_c(filev[i].s)];
-
-        scm_get_min(filev[i].s, min);
-        scm_get_max(filev[i].s, max);
-
-        if (a > min[0]) a = min[0];
-        if (z < max[0]) z = max[0];
-    }
-
-    glUniform1f(glGetUniformLocation(prog, "a"),     a);
-    glUniform1f(glGetUniformLocation(prog, "z"),     z);
-
     return prog;
 }
 
@@ -228,12 +208,10 @@ static GLuint prog_init(const char *vertsrc, const char *fragsrc)
 
 static GLuint cmap_init(GLuint prog)
 {
-    static const GLubyte c[8][4] = {
-        { 0x00, 0x00, 0x00, 0xFF },
+    static const GLubyte c[6][4] = {
         { 0xFF, 0x00, 0xFF, 0xFF },
         { 0x00, 0x00, 0xFF, 0xFF },
         { 0x00, 0xFF, 0xFF, 0xFF },
-        { 0x00, 0xFF, 0x00, 0xFF },
         { 0xFF, 0xFF, 0x00, 0xFF },
         { 0xFF, 0x00, 0x00, 0xFF },
         { 0xFF, 0xFF, 0xFF, 0xFF },
@@ -244,8 +222,8 @@ static GLuint cmap_init(GLuint prog)
     glActiveTexture(GL_TEXTURE1);
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_1D, texture);
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, c);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 4, 1, GL_RGBA, GL_UNSIGNED_BYTE, c);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glActiveTexture(GL_TEXTURE0);

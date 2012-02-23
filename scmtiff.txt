@@ -13,19 +13,20 @@ NOT invariant: No page order is defined.
 
 
 TODO:
-	Skip the decode-encode in the append phase of the mipmap tool.
+
+-	Skip the decode-encode in the append phase of the mipmap tool.
 		(Cache the compression by noting the state of the zip buffer.)
 		If done properly, this can also optimize the combine tool's operation
 		upon pages with only one contributor.
 
-	Update scmview with the new colormap
+-	Update scmview with the new colormap
 
 	Normal tool
 
 	Normalize option.
 		Knock down the depth after sampling but before encoding.
 
-	Remove the min/max
+-	Remove the min/max
 		It's superfluous in the context of normalized data.
 
 	Generalize channel counts in image access.

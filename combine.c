@@ -71,6 +71,8 @@ static void process(scm *s, struct input *v, int c)
     double *p;
     double *q;
 
+    // Allocate temporary and accumulator buffers.
+
     if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
     {
         off_t b = 0;
@@ -86,28 +88,40 @@ static void process(scm *s, struct input *v, int c)
 
         for (int x = 0; x < scm_get_page_count(d); ++x)
         {
-            int k = 0;
+            off_t o = 0;
+            scm  *t = 0;
+            int   k = 0;
 
-            memset(p, 0, N * N * C * sizeof (double));
-
-            // Sum all files contributing to this page.
+            // Count the number of SCMs contributing to page x.
 
             for (int i = 0; i < c; ++i)
-            {
                 if (x < v[i].n && v[i].m[x])
                 {
-                    if (scm_read_page(v[i].s, v[i].m[x], q))
-                    {
-                        for (int j = 0; j < N * N * C; ++j)
-                            p[j] += q[j];
-                        k++;
-                    }
+                    o = v[i].m[x];
+                    t = v[i].s;
+                    k = k + 1;
                 }
+
+            // If there is exactly one contributor, repeat its page.
+
+            if (k == 1)
+                b = scm_repeat(s, b, t, o);
+
+            // If there is more than one, append their summed pages.
+
+            else if (k > 1)
+            {
+                memset(p, 0, N * N * C * sizeof (double));
+
+                for (int i = 0; i < c; ++i)
+                    if (x < v[i].n && v[i].m[x])
+
+                        if (scm_read_page(v[i].s, v[i].m[x], q))
+                            for (int j = 0; j < N * N * C; ++j)
+                                p[j] += q[j];
+
+                b = scm_append(s, b, x, p);
             }
-
-            // Write the sum to the output.
-
-            if (k) b = scm_append(s, b, x, p);
         }
 
         free(q);
@@ -145,7 +159,6 @@ int combine(int argc, char **argv)
             {
                 process(s, v, l);
                 scm_relink(s);
-                scm_minmax(s);
                 scm_close(s);
             }
         }

@@ -149,7 +149,7 @@ static int process(scm *s, scm *t)
 
                     // Write the resulting page to the output.
 
-                    b = scm_append(t, b, 0, 0, x, p);
+                    b = scm_append(t, b, x, p);
                 }
             }
             free(q);
@@ -189,7 +189,6 @@ int border(int argc, char **argv)
         {
             r = process(s, t);
             scm_relink(t);
-            scm_minmax(t);
             scm_close(t);
         }
         scm_close(s);
