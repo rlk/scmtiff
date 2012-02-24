@@ -42,16 +42,7 @@ char *load_txt(const char *name)
 
 //------------------------------------------------------------------------------
 
-static void normalize(float *v)
-{
-    float k = 1.f / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-
-    v[0] *= k;
-    v[1] *= k;
-    v[2] *= k;
-}
-
-static void sample_vectors(float *w, const float *v)
+static void quincunx(float *w, const float *v)
 {
     mid4(w + 12, v +  0, v +  3, v +  6, v +  9);
     mid2(w +  9, w + 12, v +  9);
@@ -59,26 +50,6 @@ static void sample_vectors(float *w, const float *v)
     mid2(w +  3, w + 12, v +  3);
     mid2(w +  0, w + 12, v +  0);
 }
-
-static void corner_vectors(float *v, const float *u, int r, int c, int n)
-{
-    const float r0 = (float) (r + 0) / n;
-    const float r1 = (float) (r + 1) / n;
-    const float c0 = (float) (c + 0) / n;
-    const float c1 = (float) (c + 1) / n;
-
-    slerp2(v + 0, u + 0, u + 3, u + 6, u + 9, c0, r0);
-    slerp2(v + 3, u + 0, u + 3, u + 6, u + 9, c1, r0);
-    slerp2(v + 6, u + 0, u + 3, u + 6, u + 9, c0, r1);
-    slerp2(v + 9, u + 0, u + 3, u + 6, u + 9, c1, r1);
-
-    normalize(v + 0);
-    normalize(v + 3);
-    normalize(v + 6);
-    normalize(v + 9);
-}
-
-//------------------------------------------------------------------------------
 
 // Compute the corner vectors of the pixel at row i column j of the n-by-n page
 // with corners c. Sample that pixel by projection into image p using a quincunx
@@ -91,8 +62,9 @@ static int sample(img *p, int i, int j, int n, const float *c, float *x)
     float w[15];
     float A = 0;
 
-    corner_vectors(v, c, i, j, n);
-    sample_vectors(w, v);
+    scm_get_samp_corners(c, i, j, n, v);
+
+    quincunx(w, v);
 
     for (int l = 4; l >= 0; --l)
     {
@@ -138,18 +110,17 @@ int process(scm *s, img *p, int d)
 
         for (x = x0; x < x1; ++x)
         {
+            int i;
+            int j;
             int k = 0;
-            int r;
-            int c;
 
             memset(dat, 0, N * N * C * sizeof (float));
 
-            #pragma omp parallel for private(c) reduction(+:k)
-
-            for     (r = 0; r < n; ++r)
-                for (c = 0; c < n; ++c)
-                    k += sample(p, r, c, N, vec + x * 12,
-                                            dat + C * ((r + 1) * N + (c + 1)));
+            #pragma omp parallel for private(j) reduction(+:k)
+            for     (i = 0; i < n; ++i)
+                for (j = 0; j < n; ++j)
+                    k += sample(p, i, j, n, vec + x * 12,
+                                            dat + C * ((i + 1) * N + (j + 1)));
 
             if (k) b = scm_append(s, b, x, dat);
         }

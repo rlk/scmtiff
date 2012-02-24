@@ -21,7 +21,7 @@ TODO:
 
 -	Update scmview with the new colormap
 
-	Normal tool
+-	Normal tool
 
 -	Normalize option.
 		Knock down the depth after sampling but before encoding.
@@ -35,4 +35,7 @@ TODO:
 
 	Generalize channel counts in image access.
 		switch (c) no longer suffices
+
+	Fix the quincunx pattern
+	Fix the mipmap flaw
 

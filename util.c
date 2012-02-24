@@ -4,6 +4,17 @@
 #include <string.h>
 
 //------------------------------------------------------------------------------
+
+void normalize(float *v)
+{
+    float k = 1.f / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    v[0] *= k;
+    v[1] *= k;
+    v[2] *= k;
+}
+
+//------------------------------------------------------------------------------
 // 2-vector and 4-vector normalized midpoint vector calculators
 
 void mid2(float *m, const float *a, const float *b)
@@ -12,11 +23,7 @@ void mid2(float *m, const float *a, const float *b)
     m[1] = a[1] + b[1];
     m[2] = a[2] + b[2];
 
-    float k = 1.f / sqrtf(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
-
-    m[0] *= k;
-    m[1] *= k;
-    m[2] *= k;
+    normalize(m);
 }
 
 void mid4(float *m, const float *a, const float *b,
@@ -26,11 +33,7 @@ void mid4(float *m, const float *a, const float *b,
     m[1] = a[1] + b[1] + c[1] + d[1];
     m[2] = a[2] + b[2] + c[2] + d[2];
 
-    float k = 1.f / sqrtf(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
-
-    m[0] *= k;
-    m[1] *= k;
-    m[2] *= k;
+    normalize(m);
 }
 
 //------------------------------------------------------------------------------

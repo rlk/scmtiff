@@ -81,7 +81,7 @@ void *img_scanline(img *p, int r)
 
 //------------------------------------------------------------------------------
 
-// Detect PDS saturation codes.
+// Detect PDS saturation codes. This should be generalized.
 
 static float cleanf(float f)
 {

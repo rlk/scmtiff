@@ -41,14 +41,18 @@ int scm_get_g(scm *);
 //------------------------------------------------------------------------------
 // SCM TIFF breadth-first page index relationships
 
-int  scm_get_page_root   (int);
-int  scm_get_page_depth  (int);
-int  scm_get_page_count  (int);
-int  scm_get_page_child  (int, int);
-int  scm_get_page_parent (int);
-int  scm_get_page_order  (int);
-void scm_get_page_corners(int, float *);
+int  scm_get_page_root  (int);
+int  scm_get_page_depth (int);
+int  scm_get_page_count (int);
+int  scm_get_page_child (int, int);
+int  scm_get_page_parent(int);
+int  scm_get_page_order (int);
+
 void scm_get_page_neighbors(int, int *, int *, int *, int *);
+
+void scm_get_page_corners(                         int, float *);
+void scm_get_samp_corners(const float *, int, int, int, float *);
+void scm_get_samp_vector (const float *, int, int, int, float *);
 
 //------------------------------------------------------------------------------
 

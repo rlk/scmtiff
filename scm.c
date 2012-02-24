@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <float.h>
+#include <math.h>
 
 #include "scmdat.h"
 #include "scmio.h"
@@ -617,6 +618,36 @@ void scm_get_page_corners(int d, float *p)
                                 page_v[page_i[i][1]],
                                 page_v[page_i[i][2]],
                                 page_v[page_i[i][3]], p);
+}
+
+//------------------------------------------------------------------------------
+
+void scm_get_samp_corners(const float *u, int i, int j, int n, float *v)
+{
+    const float i0 = (float) (i + 1) / (n + 2);
+    const float i1 = (float) (i + 2) / (n + 2);
+    const float j0 = (float) (j + 1) / (n + 2);
+    const float j1 = (float) (j + 2) / (n + 2);
+
+    slerp2(v + 0, u + 0, u + 3, u + 6, u + 9, j0, i0);
+    slerp2(v + 3, u + 0, u + 3, u + 6, u + 9, j1, i0);
+    slerp2(v + 6, u + 0, u + 3, u + 6, u + 9, j0, i1);
+    slerp2(v + 9, u + 0, u + 3, u + 6, u + 9, j1, i1);
+
+    normalize(v + 0);
+    normalize(v + 3);
+    normalize(v + 6);
+    normalize(v + 9);
+}
+
+void scm_get_samp_vector(const float *u, int i, int j, int n, float *v)
+{
+    const float ic = (float) (i + 1.5f) / (n + 2);
+    const float jc = (float) (j + 1.5f) / (n + 2);
+
+    slerp2(v, u + 0, u + 3, u + 6, u + 9, jc, ic);
+
+    normalize(v);
 }
 
 //------------------------------------------------------------------------------

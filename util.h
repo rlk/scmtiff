@@ -5,6 +5,8 @@
 
 //------------------------------------------------------------------------------
 
+void  normalize(float *);
+
 void  mid2(float *, const float *, const float *);
 void  mid4(float *, const float *, const float *,
                     const float *, const float *);

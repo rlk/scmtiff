@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 		   "\t%s -combine [-o outfile]                         infile...\n"
 		   "\t%s -mipmap  [-o outfile]                         infile\n"
 		   "\t%s -border  [-o outfile]                         infile\n"
-		   "\t%s -normal  [-o outfile] [-r radius]             infile",
+		   "\t%s -normal  [-o outfile] [-r0 rad] [-r1 rad]     infile",
 		argv[0], argv[0], argv[0], argv[0], argv[0]);
 
     return 0;
