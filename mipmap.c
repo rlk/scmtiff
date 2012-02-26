@@ -18,10 +18,8 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
     for     (int qi = 0; qi < n; ++qi)
         for (int qj = 0; qj < n; ++qj)
         {
-            // const int pi = qi / 2 + ki * n / 2;
-            // const int pj = qj / 2 + kj * n / 2;
-            const int pi = (qi + ki * n) / 2;
-            const int pj = (qj + kj * n) / 2;
+            const int pi = qi / 2 + ki * n / 2;
+            const int pj = qj / 2 + kj * n / 2;
 
             float *qq = q + ((n + 2) * (qi + 1) + (qj + 1)) * c;
             float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;

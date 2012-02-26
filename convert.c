@@ -120,7 +120,7 @@ int process(scm *s, img *p, int d)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
                     k += sample(p, i, j, n, vec + x * 12,
-                                            dat + C * ((i + 1) * N + (j + 1)));
+                                            dat + C * (N * (i + 1) + (j + 1)));
 
             if (k) b = scm_append(s, b, x, dat);
         }

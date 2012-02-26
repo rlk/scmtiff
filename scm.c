@@ -624,10 +624,10 @@ void scm_get_page_corners(int d, float *p)
 
 void scm_get_samp_corners(const float *u, int i, int j, int n, float *v)
 {
-    const float i0 = (float) (i + 1) / (n + 2);
-    const float i1 = (float) (i + 2) / (n + 2);
-    const float j0 = (float) (j + 1) / (n + 2);
-    const float j1 = (float) (j + 2) / (n + 2);
+    const float i0 = (float) (i + 0) / n;
+    const float i1 = (float) (i + 1) / n;
+    const float j0 = (float) (j + 0) / n;
+    const float j1 = (float) (j + 1) / n;
 
     slerp2(v + 0, u + 0, u + 3, u + 6, u + 9, j0, i0);
     slerp2(v + 3, u + 0, u + 3, u + 6, u + 9, j1, i0);
@@ -642,8 +642,8 @@ void scm_get_samp_corners(const float *u, int i, int j, int n, float *v)
 
 void scm_get_samp_vector(const float *u, int i, int j, int n, float *v)
 {
-    const float ic = (float) (i + 1.5f) / (n + 2);
-    const float jc = (float) (j + 1.5f) / (n + 2);
+    const float ic = (float) (i + 0.5f) / n;
+    const float jc = (float) (j + 0.5f) / n;
 
     slerp2(v, u + 0, u + 3, u + 6, u + 9, jc, ic);
 

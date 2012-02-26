@@ -36,6 +36,7 @@ TODO:
 	Generalize channel counts in image access.
 		switch (c) no longer suffices
 
-	Fix the quincunx pattern
-	Fix the mipmap flaw
+-	Fix the mipmap flaw
+		Turns out it was in the corner vector calculator
+
 
