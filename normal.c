@@ -40,17 +40,17 @@ static void sampnorm(const float *u,
     float vw[3];
     float vc[3];
 
-    scm_get_samp_vector(u, i,     j - 1, n, vn);
-    scm_get_samp_vector(u, i,     j + 1, n, vs);
-    scm_get_samp_vector(u, i - 1, j,     n, ve);
-    scm_get_samp_vector(u, i + 1, j,     n, vw);
     scm_get_samp_vector(u, i,     j,     n, vc);
+    scm_get_samp_vector(u, i - 1, j,     n, vn);
+    scm_get_samp_vector(u, i + 1, j,     n, vs);
+    scm_get_samp_vector(u, i,     j - 1, n, ve);
+    scm_get_samp_vector(u, i,     j + 1, n, vw);
 
+    float rc = p[((n + 2) * (i + 1) + (j + 1)) * c] * (r1 - r0) + r0;
     float rn = p[((n + 2) * (i + 0) + (j + 1)) * c] * (r1 - r0) + r0;
     float rs = p[((n + 2) * (i + 2) + (j + 1)) * c] * (r1 - r0) + r0;
     float re = p[((n + 2) * (i + 1) + (j + 0)) * c] * (r1 - r0) + r0;
     float rw = p[((n + 2) * (i + 1) + (j + 2)) * c] * (r1 - r0) + r0;
-    float rc = p[((n + 2) * (i + 1) + (j + 1)) * c] * (r1 - r0) + r0;
 
     vn[0] *= rn; vn[1] *= rn; vn[2] *= rn;
     vs[0] *= rs; vs[1] *= rs; vs[2] *= rs;
@@ -63,10 +63,10 @@ static void sampnorm(const float *u,
     float nc[3];
     float nd[3];
 
-    facenorm(vc, ve, vn, na);
-    facenorm(vc, vn, vw, nb);
-    facenorm(vc, vw, vs, nd);
-    facenorm(vc, vs, ve, nc);
+    facenorm(vc, vn, ve, na);
+    facenorm(vc, ve, vs, nb);
+    facenorm(vc, vs, vw, nc);
+    facenorm(vc, vw, vn, nd);
 
     float *v = q + 3 * ((n + 2) * (i + 1) + (j + 1));
 

@@ -245,6 +245,8 @@ float img_cylindrical(img *p, float lon, float lat, float *c)
     return img_linear(p, l, s, c);
 }
 
+// If panoramas come out reversed, it's because this function hasn't been fixed.
+
 float img_default(img *p, float lon, float lat, float *c)
 {
     float l = (p->h - 1) * 0.5f * (M_PI_2 - lat) / M_PI_2;
@@ -252,6 +254,15 @@ float img_default(img *p, float lon, float lat, float *c)
 
     return img_linear(p, l, s, c);
 }
+
+// Panoramas are spheres viewed from the inside while planets are spheres
+// viewed from the outside. This difference reverses the handedness of the
+// coordinate system. The default projection is "inside" and is applied to
+// panorama images, which do not contain projection specifications. All other
+// projections are "outside" and are applied to planets, which are usually
+// aquired in PDS format, which does contain a projection specification. This is
+// the means by which the handedness of the coordinate system is inferred. Be
+// advised that this will fail in obscure cases.
 
 //------------------------------------------------------------------------------
 
@@ -299,7 +310,8 @@ static float angle(float a, float b)
 
 float img_sample(img *p, const float *v, float *c)
 {
-    const float lon = tolon(atan2f(v[0], -v[2])), lat = asinf(v[1]);
+//  const float lon = tolon(atan2f(v[0], -v[2])), lat = asinf(v[1]);
+    const float lon = tolon(atan2f(v[0], v[2])), lat = asinf(v[1]);
 
     const float dlon = angle(lon, p->lonp);
     const float dlat = angle(lat, p->latp);
