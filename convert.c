@@ -41,7 +41,7 @@ char *load_txt(const char *name)
 }
 
 //------------------------------------------------------------------------------
-
+#if 1
 static void quincunx(float *w, const float *v)
 {
     mid4(w + 12, v +  0, v +  3, v +  6, v +  9);
@@ -75,17 +75,37 @@ static int sample(img *p, int i, int j, int n, const float *c, float *x)
         {
             switch (p->c)
             {
-                case 4: x[3] += t[3] / 5.0;
-                case 3: x[2] += t[2] / 5.0;
-                case 2: x[1] += t[1] / 5.0;
-                case 1: x[0] += t[0] / 5.0;
+                case 4: x[3] += t[3];
+                case 3: x[2] += t[2];
+                case 2: x[1] += t[1];
+                case 1: x[0] += t[0];
             }
-
             A += a;
         }
     }
-    return (A > 0.0);
+    if (A)
+    {
+        switch (p->c)
+        {
+            case 4: x[3] /= A;
+            case 3: x[2] /= A;
+            case 2: x[1] /= A;
+            case 1: x[0] /= A;
+        }
+        return 1;
+    }
+    return 0;
 }
+
+#else
+static int sample(img *p, int i, int j, int n, const float *c, float *x)
+{
+    float v[3];
+
+    scm_get_samp_vector(c, i, j, n, v);
+    return img_sample(p, v, x);
+}
+#endif
 
 int process(scm *s, img *p, int d)
 {
@@ -214,7 +234,8 @@ int convert(int argc, char **argv)
 
     // Load the description text, if any.
 
-    T = t ? load_txt(t) : "Copyright (C) 2011 Robert Kooima";
+    if (t == NULL || (T = load_txt(t)) == NULL)
+        T = "Copyright (C) 2011 Robert Kooima";
 
     // Process the output.
 

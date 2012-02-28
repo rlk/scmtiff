@@ -22,11 +22,6 @@ int main(int argc, char **argv)
 
 	setexe(argv[0]);
 
-	for (i = 0; i < argc; ++i)
-		printf("%s ", argv[i]);
-
-	printf("\n");
-
 	for (i = 1; i < argc; ++i)
 		if      (strcmp(argv[i], "-convert") == 0) return convert(argc, argv);
 		else if (strcmp(argv[i], "-combine") == 0) return combine(argc, argv);

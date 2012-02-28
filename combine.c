@@ -8,6 +8,9 @@
 #include "err.h"
 #include "util.h"
 
+#define SUM(a, b) ((a) + (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 //------------------------------------------------------------------------------
 
 // This structure encapsulates an input file. We need to retain more than just
@@ -63,7 +66,7 @@ static int addin(struct input *v, int c, const char *name)
 
 // Sum all SCMs given by the input array. Write the output to SCM s.
 
-static void process(scm *s, struct input *v, int c)
+static void process(scm *s, struct input *v, int c, int m)
 {
     const int N = scm_get_n(s) + 2;
     const int C = scm_get_c(s);
@@ -117,8 +120,14 @@ static void process(scm *s, struct input *v, int c)
                     if (x < v[i].n && v[i].m[x])
 
                         if (scm_read_page(v[i].s, v[i].m[x], q))
-                            for (int j = 0; j < N * N * C; ++j)
-                                p[j] += q[j];
+                        {
+                            if (m)
+                                for (int j = 0; j < N * N * C; ++j)
+                                    p[j] = MAX(p[j], q[j]);
+                            else
+                                for (int j = 0; j < N * N * C; ++j)
+                                    p[j] = SUM(p[j], q[j]);
+                        }
 
                 b = scm_append(s, b, x, p);
             }
@@ -134,6 +143,7 @@ static void process(scm *s, struct input *v, int c)
 int combine(int argc, char **argv)
 {
     int           l = 0;
+    int           m = 0;
     struct input *v = NULL;
 
     if ((v = (struct input *) calloc(argc - 1, sizeof (struct input))))
@@ -142,6 +152,7 @@ int combine(int argc, char **argv)
 
         for (int i = 1; i < argc; ++i)
             if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
+            else if (strcmp(argv[i], "-max") == 0) m   = 1;
             else if (extcmp(argv[i], ".tif") == 0) l   = addin(v, l, argv[i]);
 
         if (l)
@@ -157,7 +168,7 @@ int combine(int argc, char **argv)
 
             if ((s = scm_ofile(out, n, c, b, g, str)))
             {
-                process(s, v, l);
+                process(s, v, l, m);
                 scm_relink(s);
                 scm_close(s);
             }

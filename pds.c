@@ -147,7 +147,7 @@ static void parse_element(img *p, const char *key, const char *val)
     }
 }
 
-static void parse_file(FILE *f, img *p, const char *lbl)
+static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 {
     char str[STRMAX];
     char key[STRMAX];
@@ -171,8 +171,11 @@ static void parse_file(FILE *f, img *p, const char *lbl)
         {
             if      (!strcmp(key, "RECORD_BYTES"))  rs = get_int(val);
             else if (!strcmp(key, "LABEL_RECORDS")) rc = get_int(val);
-            else if (!strcmp(key, "FILE_NAME"))          strcpy(img, val);
-
+            else if (!strcmp(key, "FILE_NAME"))
+            {
+                strcpy(img, dir);
+                strcat(img, val);
+            }
             else parse_element(p, key, val);
         }
     }
@@ -203,14 +206,22 @@ static void parse_file(FILE *f, img *p, const char *lbl)
 
 img *pds_load(const char *name)
 {
+    char file[256];
+    char path[256];
+
     FILE *f = NULL;
     img  *p = NULL;
+
+    // Separate the file name from its path.
+
+    if (get_pair(name, path, file, "(.*/)([^/].*)") == 0)
+        strcpy(path, "");
 
     if ((f = fopen(name, "r")))
     {
         if ((p = (img *) calloc(1, sizeof (img))))
         {
-            parse_file(f, p, name);
+            parse_file(f, p, name, path);
             return p;
         }
         else apperr("Failed to allocate image structure");

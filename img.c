@@ -81,62 +81,93 @@ void *img_scanline(img *p, int r)
 
 //------------------------------------------------------------------------------
 
-// Detect PDS saturation codes. This should be generalized.
-
-static float cleanf(float f)
+static int normu8(const img *p, uint8_t d, float *f)
 {
-    unsigned int *w = (unsigned int *) (&f);
-
-    if (*w == 0xFF7FFFFB) return 0.0;  // Core null
-    if (*w == 0xFF7FFFFC) return 0.0;  // Representation saturation low
-    if (*w == 0xFF7FFFFD) return 0.0;  // Instrumentation saturation low
-    if (*w == 0xFF7FFFFE) return 1.0;  // Representation saturation high
-    if (*w == 0xFF7FFFFF) return 1.0;  // Instrumentation saturation high
-
-    if (isnormal(f))
-        return (float) f;
-    else
-        return 0.0;
+    *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    return 1;
 }
 
-static float getchan(const img *p, int i, int j, int k)
+static int norms8(const img *p, int8_t d, float *f)
+{
+    *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    return 1;
+}
+
+static int normu16(const img *p, uint16_t d, float *f)
+{
+    *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    return 1;
+}
+
+static int norms16(const img *p, int16_t d, float *f)
+{
+    if      (d == -32768) return 0;  // Core null
+    else if (d == -32767) *f = 0.0;  // Representation saturation low
+    else if (d == -32766) *f = 0.0;  // Instrumentation saturation low
+    else if (d == -32764) *f = 1.0;  // Representation saturation high
+    else if (d == -32765) *f = 1.0;  // Instrumentation saturation high
+
+    else *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+
+    return 1;
+}
+
+static float normf(const img *p, float d, float *f)
+{
+    unsigned int *w = (unsigned int *) (&d);
+
+    if      (*w == 0xFF7FFFFB) return 0;  // Core null
+    else if (*w == 0xFF7FFFFC) *f = 0.0;  // Representation saturation low
+    else if (*w == 0xFF7FFFFD) *f = 0.0;  // Instrumentation saturation low
+    else if (*w == 0xFF7FFFFE) *f = 1.0;  // Representation saturation high
+    else if (*w == 0xFF7FFFFF) *f = 1.0;  // Instrumentation saturation high
+
+    else if (isnormal(d)) *f = (d * p->scaling_factor - p->dnorm) * p->knorm;
+    else return 0;
+
+    return 1;
+}
+
+//------------------------------------------------------------------------------
+
+// TODO: complete this for all types.
+
+static int getchan(const img *p, int i, int j, int k, float *f)
 {
     const int s = p->c * (p->w * i + j);
 
     if (p->b == 8)
     {
         if (p->g)
-            return (float) (( int8_t  *) p->p + s)[k];
+            return norms8(p, (( int8_t *) p->p + s)[k], f);
         else
-            return (float) ((uint8_t  *) p->p + s)[k];
+            return normu8(p, ((uint8_t *) p->p + s)[k], f);
     }
     if (p->b == 16)
     {
         if (p->g)
-            return (float) (( int16_t *) p->p + s)[k];
+            return norms16(p, (( int16_t *) p->p + s)[k], f);
         else
-            return (float) ((uint16_t *) p->p + s)[k];
+            return normu16(p, ((uint16_t *) p->p + s)[k], f);
     }
-    return             cleanf(((float *) p->p + s)[k]);
+    return normf(p, ((float *) p->p + s)[k], f);
 }
 
 static  int getsamp(img *p, int i, int j, float *c)
 {
+    int d = 0;
+
     if (0 <= i && i < p->h && 0 <= j && j < p->w)
     {
-        const double k = p->scaling_factor;
-
         switch (p->c)
         {
-            case 4: c[3] = (getchan(p, i, j, 3) * k - p->dnorm) * p->knorm;
-            case 3: c[2] = (getchan(p, i, j, 2) * k - p->dnorm) * p->knorm;
-            case 2: c[1] = (getchan(p, i, j, 1) * k - p->dnorm) * p->knorm;
-            case 1: c[0] = (getchan(p, i, j, 0) * k - p->dnorm) * p->knorm;
+            case 4: d |= getchan(p, i, j, 3, c + 3);
+            case 3: d |= getchan(p, i, j, 2, c + 2);
+            case 2: d |= getchan(p, i, j, 1, c + 1);
+            case 1: d |= getchan(p, i, j, 0, c + 0);
         }
-        return 1;
     }
-    memset(c, 0, p->c * sizeof (float));
-    return 0;
+    return d;
 }
 
 // Perform a linearly-filtered sampling of the image p. The filter position
@@ -145,9 +176,6 @@ static  int getsamp(img *p, int i, int j, float *c)
 
 float img_linear(img *p, float i, float j, float *c)
 {
-    const float s = i - floorf(i);
-    const float t = j - floorf(j);
-
     const int ia = (int) floorf(i);
     const int ib = (int)  ceilf(i);
     const int ja = (int) floorf(j);
@@ -161,14 +189,67 @@ float img_linear(img *p, float i, float j, float *c)
     int kba = getsamp(p, ib, ja, ba);
     int kbb = getsamp(p, ib, jb, bb);
 
-    switch (p->c)
+    if (kaa && kab && kba && kbb)
     {
-        case 4: c[3] = lerp2(aa[3], ab[3], ba[3], bb[3], s, t);
-        case 3: c[2] = lerp2(aa[2], ab[2], ba[2], bb[2], s, t);
-        case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], s, t);
-        case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], s, t);
+        const float s = i - floorf(i);
+        const float t = j - floorf(j);
+
+        switch (p->c)
+        {
+            case 4: c[3] = lerp2(aa[3], ab[3], ba[3], bb[3], s, t);
+            case 3: c[2] = lerp2(aa[2], ab[2], ba[2], bb[2], s, t);
+            case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], s, t);
+            case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], s, t);
+        }
+        return 1.0;
     }
-    return (kaa || kab || kba || kbb) ? 1.0 : 0.0;
+    else if (kaa)
+    {
+        switch (p->c)
+        {
+            case 4: c[3] = aa[3];
+            case 3: c[2] = aa[2];
+            case 2: c[1] = aa[1];
+            case 1: c[0] = aa[0];
+        }
+        return 1.0;
+    }
+    else if (kab)
+    {
+        switch (p->c)
+        {
+            case 4: c[3] = ab[3];
+            case 3: c[2] = ab[2];
+            case 2: c[1] = ab[1];
+            case 1: c[0] = ab[0];
+        }
+        return 1.0;
+    }
+    else if (kba)
+    {
+        switch (p->c)
+        {
+            case 4: c[3] = ba[3];
+            case 3: c[2] = ba[2];
+            case 2: c[1] = ba[1];
+            case 1: c[0] = ba[0];
+        }
+        return 1.0;
+    }
+    else if (kbb)
+    {
+        switch (p->c)
+        {
+            case 4: c[3] = bb[3];
+            case 3: c[2] = bb[2];
+            case 2: c[1] = bb[1];
+            case 1: c[0] = bb[0];
+        }
+        return 1.0;
+    }
+    return 0.0;
+//  return (kaa && kab && kba && kbb) ? 1.0 : 0.0;
+//  return (kaa || kab || kba || kbb) ? 1.0 : 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -200,6 +281,10 @@ float img_equirectangular(img *p, float lon, float lat, float *c)
 
     float l = p->l0 - y / p->scale;
     float s = p->s0 + x / p->scale;
+
+    // WAT
+    // l -= 1;
+    // s -= 1;
 
     return img_linear(p, l, s, c);
 }
@@ -233,6 +318,10 @@ float img_stereographic(img *p, float lon, float lat, float *c)
 
     float l = p->l0 - y / p->scale;
     float s = p->s0 + x / p->scale;
+
+    // WAT
+    // l -= 1;
+    // s -= 1;
 
     return img_linear(p, l, s, c);
 }
@@ -328,20 +417,22 @@ float img_sample(img *p, const float *v, float *c)
     if (p->dlat0 || p->dlat1) klat = blend(p->dlat1, p->dlat0, dlat);
     if (p->dlon0 || p->dlon1) klon = blend(p->dlon1, p->dlon0, dlon);
 
-    float k = klat * klon * kdlat * kdlon;
+    float k;
+    float a;
 
-    if (k > 0.f)
+    if ((k = klat * klon * kdlat * kdlon))
     {
-        float a = p->sample(p, lon, lat, c);
-
-        switch (p->c)
+        if ((a = p->sample(p, lon, lat, c)))
         {
-            case 4: c[3] *= k;
-            case 3: c[2] *= k;
-            case 2: c[1] *= k;
-            case 1: c[0] *= k;
+            switch (p->c)
+            {
+                case 4: c[3] *= k;
+                case 3: c[2] *= k;
+                case 2: c[1] *= k;
+                case 1: c[0] *= k;
+            }
+            return a;
         }
-        return a;
     }
     return 0;
 }
