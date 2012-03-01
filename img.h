@@ -44,7 +44,7 @@ struct img
     float lat0, lat1, dlat0, dlat1;
     float lon0, lon1, dlon0, dlon1;
 
-    float (*sample)(img *, float, float, float *);
+    void (*project)(img *, float, float, float *);
 };
 
 //------------------------------------------------------------------------------
@@ -62,13 +62,14 @@ void img_set_defaults(img *);
 //------------------------------------------------------------------------------
 
 void *img_scanline(img *, int);
-float img_sample  (img *, const float *, float *);
+int   img_sample  (img *, const float *, float *);
+int   img_locate  (img *, const float *);
 
-float img_equirectangular (img *, float, float, float *);
-float img_orthographic    (img *, float, float, float *);
-float img_stereographic   (img *, float, float, float *);
-float img_cylindrical     (img *, float, float, float *);
-float img_default         (img *, float, float, float *);
+void  img_equirectangular (img *, float, float, float *);
+void  img_orthographic    (img *, float, float, float *);
+void  img_stereographic   (img *, float, float, float *);
+void  img_cylindrical     (img *, float, float, float *);
+void  img_default         (img *, float, float, float *);
 
 //------------------------------------------------------------------------------
 

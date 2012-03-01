@@ -150,7 +150,7 @@ int combine(int argc, char **argv)
     {
         const char *out = "out.tif";
 
-        for (int i = 1; i < argc; ++i)
+        for (int i = 0; i < argc; ++i)
             if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
             else if (strcmp(argv[i], "-max") == 0) m   = 1;
             else if (extcmp(argv[i], ".tif") == 0) l   = addin(v, l, argv[i]);

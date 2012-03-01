@@ -137,13 +137,13 @@ static void parse_element(img *p, const char *key, const char *val)
     else if (!strcmp(key, "MAP_PROJECTION_TYPE"))
     {
         if      (!strcmp(val, "EQUIRECTANGULAR"))
-            p->sample = img_equirectangular;
+            p->project = img_equirectangular;
         else if (!strcmp(val, "ORTHOGRAPHIC"))
-            p->sample = img_orthographic;
+            p->project = img_orthographic;
         else if (!strcmp(val, "POLAR STEREOGRAPHIC"))
-            p->sample = img_stereographic;
+            p->project = img_stereographic;
         else if (!strcmp(val, "SIMPLE CYLINDRICAL"))
-            p->sample = img_cylindrical;
+            p->project = img_cylindrical;
     }
 }
 

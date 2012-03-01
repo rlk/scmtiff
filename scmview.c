@@ -107,6 +107,30 @@ static int data_load(int x)
     return 0;
 }
 
+// Determine the depth of the deepest loaded file.
+
+static int data_depth()
+{
+    int d = 0;
+
+    for (int i = 0; i < filec; ++i)
+        if (d < filev[i].paged)
+            d = filev[i].paged;
+
+    return d;
+}
+
+// Determine whether any of the loaded files has a page at index x.
+
+static int data_test(int x)
+{
+    for (int i = 0; i < filec; ++i)
+        if (filev[i].pageo[x])
+            return 1;
+
+    return 0;
+}
+
 // Iterate the list of files given on the command line and initialize a data
 // file structure for each. Note the size and channel extreme, and allocate
 // working buffers to accommodate the largest file.
@@ -224,7 +248,7 @@ static GLuint cmap_init(GLuint prog)
 // Set the current page. Load the appropriate data from each file and set the
 // window title accordingly.
 
-static void page(int x)
+static void jump(int x)
 {
     char str[256];
 
@@ -232,10 +256,21 @@ static void page(int x)
 
     pagei = x;
 
-    sprintf(str, "Page %d\n", x);
-
+    sprintf(str, "%d\n", x);
     glutSetWindowTitle(str);
     glutPostRedisplay();
+}
+
+
+static void page(int d, int s)
+{
+    int M = scm_get_page_count(data_depth());
+    int x = pagei + d;
+
+    while (s && x >= 0 && x <= M && !data_test(x))
+        x += d;
+
+    jump(x);
 }
 
 //------------------------------------------------------------------------------
@@ -259,7 +294,7 @@ static int start(int argc, char **argv)
 
         glUseProgram(0);
 
-        page(0);
+        jump(0);
 
         return 1;
     }
@@ -281,16 +316,16 @@ static void keyboard(unsigned char key, int x, int y)
         glutPostRedisplay();
     }
 
-    else if (key == '0') page(0);
-    else if (key == '1') page(scm_get_page_count(0));
-    else if (key == '2') page(scm_get_page_count(1));
-    else if (key == '3') page(scm_get_page_count(2));
-    else if (key == '4') page(scm_get_page_count(3));
-    else if (key == '5') page(scm_get_page_count(4));
-    else if (key == '6') page(scm_get_page_count(5));
-    else if (key == '7') page(scm_get_page_count(6));
-    else if (key == '8') page(scm_get_page_count(7));
-    else if (key == '9') page(scm_get_page_count(8));
+    else if (key == '0') jump(0);
+    else if (key == '1') jump(scm_get_page_count(0));
+    else if (key == '2') jump(scm_get_page_count(1));
+    else if (key == '3') jump(scm_get_page_count(2));
+    else if (key == '4') jump(scm_get_page_count(3));
+    else if (key == '5') jump(scm_get_page_count(4));
+    else if (key == '6') jump(scm_get_page_count(5));
+    else if (key == '7') jump(scm_get_page_count(6));
+    else if (key == '8') jump(scm_get_page_count(7));
+    else if (key == '9') jump(scm_get_page_count(8));
 }
 
 // GLUT special keyboard callback.
@@ -298,9 +333,10 @@ static void keyboard(unsigned char key, int x, int y)
 static void special(int key, int x, int y)
 {
     int d = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? 10 : 1;
+    int s = (glutGetModifiers() & GLUT_ACTIVE_CTRL)  ?  1 : 0;
 
-    if      (key == GLUT_KEY_PAGE_UP)   page(pagei + d);
-    else if (key == GLUT_KEY_PAGE_DOWN) page(pagei - d);
+    if      (key == GLUT_KEY_PAGE_UP)   page(+d, s);
+    else if (key == GLUT_KEY_PAGE_DOWN) page(-d, s);
     else if (key == GLUT_KEY_F1)
     {
         glUseProgram(0);

@@ -29,7 +29,7 @@ img *img_alloc(int w, int h, int c, int b, int g)
     {
         if ((p->p = malloc(n)))
         {
-            p->sample = img_default;
+            p->project = img_default;
             p->n = n;
             p->w = w;
             p->h = h;
@@ -49,6 +49,8 @@ img *img_alloc(int w, int h, int c, int b, int g)
     return NULL;
 }
 
+// Close the image file and release any mapped or allocated buffers.
+
 void img_close(img *p)
 {
     if (p)
@@ -64,8 +66,6 @@ void img_close(img *p)
         free(p);
     }
 }
-
-//------------------------------------------------------------------------------
 
 // Calculate and return a pointer to scanline r of the given image. This is
 // useful during image I/O.
@@ -130,8 +130,6 @@ static float normf(const img *p, float d, float *f)
 
 //------------------------------------------------------------------------------
 
-// TODO: complete this for all types.
-
 static int getchan(const img *p, int i, int j, int k, float *f)
 {
     const int s = p->c * (p->w * i + j);
@@ -153,7 +151,7 @@ static int getchan(const img *p, int i, int j, int k, float *f)
     return normf(p, ((float *) p->p + s)[k], f);
 }
 
-static  int getsamp(img *p, int i, int j, float *c)
+static int getsamp(img *p, int i, int j, float *c)
 {
     int d = 0;
 
@@ -171,15 +169,14 @@ static  int getsamp(img *p, int i, int j, float *c)
 }
 
 // Perform a linearly-filtered sampling of the image p. The filter position
-// i, j is smoothly-varying in the range [0, w), [0, h). Return the sample
-// coverage.
+// is smoothly-varying in the range [0, w), [0, h).
 
-float img_linear(img *p, float i, float j, float *c)
+static int img_linear(img *p, const float *t, float *c)
 {
-    const int ia = (int) floorf(i);
-    const int ib = (int)  ceilf(i);
-    const int ja = (int) floorf(j);
-    const int jb = (int)  ceilf(j);
+    const int ia = (int) floorf(t[0]);
+    const int ib = (int)  ceilf(t[0]);
+    const int ja = (int) floorf(t[1]);
+    const int jb = (int)  ceilf(t[1]);
 
     float aa[4], ab[4];
     float ba[4], bb[4];
@@ -191,17 +188,17 @@ float img_linear(img *p, float i, float j, float *c)
 
     if (kaa && kab && kba && kbb)
     {
-        const float s = i - floorf(i);
-        const float t = j - floorf(j);
+        const float u = t[0] - floorf(t[0]);
+        const float v = t[1] - floorf(t[1]);
 
         switch (p->c)
         {
-            case 4: c[3] = lerp2(aa[3], ab[3], ba[3], bb[3], s, t);
-            case 3: c[2] = lerp2(aa[2], ab[2], ba[2], bb[2], s, t);
-            case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], s, t);
-            case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], s, t);
+            case 4: c[3] = lerp2(aa[3], ab[3], ba[3], bb[3], u, v);
+            case 3: c[2] = lerp2(aa[2], ab[2], ba[2], bb[2], u, v);
+            case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], u, v);
+            case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], u, v);
         }
-        return 1.0;
+        return 1;
     }
     else if (kaa)
     {
@@ -212,7 +209,7 @@ float img_linear(img *p, float i, float j, float *c)
             case 2: c[1] = aa[1];
             case 1: c[0] = aa[0];
         }
-        return 1.0;
+        return 1;
     }
     else if (kab)
     {
@@ -223,7 +220,7 @@ float img_linear(img *p, float i, float j, float *c)
             case 2: c[1] = ab[1];
             case 1: c[0] = ab[0];
         }
-        return 1.0;
+        return 1;
     }
     else if (kba)
     {
@@ -234,7 +231,7 @@ float img_linear(img *p, float i, float j, float *c)
             case 2: c[1] = ba[1];
             case 1: c[0] = ba[0];
         }
-        return 1.0;
+        return 1;
     }
     else if (kbb)
     {
@@ -245,11 +242,9 @@ float img_linear(img *p, float i, float j, float *c)
             case 2: c[1] = bb[1];
             case 1: c[0] = bb[0];
         }
-        return 1.0;
+        return 1;
     }
-    return 0.0;
-//  return (kaa && kab && kba && kbb) ? 1.0 : 0.0;
-//  return (kaa || kab || kba || kbb) ? 1.0 : 0.0;
+    return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -274,33 +269,25 @@ static inline float tolon(float a)
 
 //------------------------------------------------------------------------------
 
-float img_equirectangular(img *p, float lon, float lat, float *c)
+void img_equirectangular(img *p, float lon, float lat, float *t)
 {
     float x = p->radius * (lon - p->lonp) * cosf(p->latp);
     float y = p->radius * (lat);
 
-    float l = p->l0 - y / p->scale;
-    float s = p->s0 + x / p->scale;
-
-    // WAT
-    // l -= 1;
-    // s -= 1;
-
-    return img_linear(p, l, s, c);
+    t[0] = p->l0 - y / p->scale;
+    t[1] = p->s0 + x / p->scale;
 }
 
-float img_orthographic(img *p, float lon, float lat, float *c)
+void img_orthographic(img *p, float lon, float lat, float *t)
 {
     float x = p->radius * cosf(lat) * sinf(lon - p->lonp);
     float y = p->radius * sinf(lat);
 
-    float l = p->l0 - y / p->scale;
-    float s = p->s0 + x / p->scale;
-
-    return img_linear(p, l, s, c);
+    t[0] = p->l0 - y / p->scale;
+    t[1] = p->s0 + x / p->scale;
 }
 
-float img_stereographic(img *p, float lon, float lat, float *c)
+void img_stereographic(img *p, float lon, float lat, float *t)
 {
     float x;
     float y;
@@ -316,32 +303,22 @@ float img_stereographic(img *p, float lon, float lat, float *c)
         y =  2 * p->radius * tanf(M_PI_4 + lat / 2) * cosf(lon - p->lonp);
     }
 
-    float l = p->l0 - y / p->scale;
-    float s = p->s0 + x / p->scale;
-
-    // WAT
-    // l -= 1;
-    // s -= 1;
-
-    return img_linear(p, l, s, c);
+    t[0] = p->l0 - y / p->scale;
+    t[1] = p->s0 + x / p->scale;
 }
 
-float img_cylindrical(img *p, float lon, float lat, float *c)
+void img_cylindrical(img *p, float lon, float lat, float *t)
 {
-    float s = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
-    float l = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
-
-    return img_linear(p, l, s, c);
+    t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
+    t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
 }
 
 // If panoramas come out reversed, it's because this function hasn't been fixed.
 
-float img_default(img *p, float lon, float lat, float *c)
+void img_default(img *p, float lon, float lat, float *t)
 {
-    float l = (p->h - 1) * 0.5f * (M_PI_2 - lat) / M_PI_2;
-    float s = (p->w    ) * 0.5f * (M_PI   + lon) / M_PI;
-
-    return img_linear(p, l, s, c);
+    t[0] = (p->h - 1) * 0.5f * (M_PI_2 - lat) / M_PI_2;
+    t[1] = (p->w    ) * 0.5f * (M_PI   + lon) / M_PI;
 }
 
 // Panoramas are spheres viewed from the inside while planets are spheres
@@ -397,10 +374,10 @@ static float angle(float a, float b)
     }
 }
 
-float img_sample(img *p, const float *v, float *c)
+int img_sample(img *p, const float *v, float *c)
 {
 //  const float lon = tolon(atan2f(v[0], -v[2])), lat = asinf(v[1]);
-    const float lon = tolon(atan2f(v[0], v[2])), lat = asinf(v[1]);
+    const float lon = tolon(atan2f(v[0],  v[2])), lat = asinf(v[1]);
 
     const float dlon = angle(lon, p->lonp);
     const float dlat = angle(lat, p->latp);
@@ -418,11 +395,14 @@ float img_sample(img *p, const float *v, float *c)
     if (p->dlon0 || p->dlon1) klon = blend(p->dlon1, p->dlon0, dlon);
 
     float k;
-    float a;
 
     if ((k = klat * klon * kdlat * kdlon))
     {
-        if ((a = p->sample(p, lon, lat, c)))
+        float t[2];
+
+        p->project(p, lon, lat, t);
+
+        if (img_linear(p, t, c))
         {
             switch (p->c)
             {
@@ -431,10 +411,24 @@ float img_sample(img *p, const float *v, float *c)
                 case 2: c[1] *= k;
                 case 1: c[0] *= k;
             }
-            return a;
+            return 1;
         }
     }
     return 0;
+}
+
+int img_locate(img *p, const float *v)
+{
+    const float lon = tolon(atan2f(v[0],  v[2])), lat = asinf(v[1]);
+
+    float t[2];
+
+    p->project(p, lon, lat, t);
+
+    if (0 <= t[0] && t[0] < p->h && 0 <= t[1] && t[1] < p->w)
+        return 1;
+    else
+        return 0;
 }
 
 //------------------------------------------------------------------------------

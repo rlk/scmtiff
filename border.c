@@ -172,7 +172,7 @@ int border(int argc, char **argv)
 
     int r = EXIT_FAILURE;
 
-    for (int i = 1; i < argc; ++i)
+    for (int i = 0; i < argc; ++i)
         if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
         else if (extcmp(argv[i], ".tif") == 0) in  = argv[  i];
 

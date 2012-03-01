@@ -14,10 +14,14 @@ NOT invariant: No page order is defined.
 
 TODO:
 
+-	Optimize convert overlap detection
+
+	MPI frontend
+
 	Parallelize the zip.
 		This may involve generalizing the number of "scanlines".
 
-	Fix the error at the international date line.
+-	Fix the error at the international date line.
 
 -	Skip the decode-encode in the append phase of the mipmap tool.
 		(Cache the compression by noting the state of the zip buffer.)

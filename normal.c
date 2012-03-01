@@ -146,7 +146,7 @@ int normal(int argc, char **argv)
     scm *s;
     scm *t;
 
-    for (int i = 1; i < argc; ++i)
+    for (int i = 0; i < argc; ++i)
         if      (extcmp(argv[i], ".tif") == 0) in  =      argv[  i];
         else if (strcmp(argv[i],   "-o") == 0) out =      argv[++i];
         else if (strcmp(argv[i],  "-r0") == 0) r0  = farg(argv[++i]);

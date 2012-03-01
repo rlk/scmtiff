@@ -41,7 +41,10 @@ char *load_txt(const char *name)
 }
 
 //------------------------------------------------------------------------------
-#if 1
+
+// Given the four corner vectors of a sample, compute the five internal vectors
+// of a quincunx filtering of that sample.
+
 static void quincunx(float *w, const float *v)
 {
     mid4(w + 12, v +  0, v +  3, v +  6, v +  9);
@@ -53,14 +56,14 @@ static void quincunx(float *w, const float *v)
 
 // Compute the corner vectors of the pixel at row i column j of the n-by-n page
 // with corners c. Sample that pixel by projection into image p using a quincunx
-// filtering patterns. This do-it-all function forms the kernel of the OpenMP
+// filtering pattern. This do-it-all function forms the kernel of the OpenMP
 // parallelization.
 
 static int sample(img *p, int i, int j, int n, const float *c, float *x)
 {
     float v[12];
     float w[15];
-    float A = 0;
+    int   A = 0;
 
     scm_get_samp_corners(c, i, j, n, v);
 
@@ -69,7 +72,7 @@ static int sample(img *p, int i, int j, int n, const float *c, float *x)
     for (int l = 4; l >= 0; --l)
     {
         float t[4];
-        float a;
+        int a;
 
         if ((a = img_sample(p, w + l * 3, t)))
         {
@@ -97,170 +100,214 @@ static int sample(img *p, int i, int j, int n, const float *c, float *x)
     return 0;
 }
 
-#else
-static int sample(img *p, int i, int j, int n, const float *c, float *x)
+// Determine whether the image intersects the four corners of a page.
+// This function is inefficient and only works under limited circumstances.
+
+int overlap(img *p, int n, const float *v)
 {
-    float v[3];
-
-    scm_get_samp_vector(c, i, j, n, v);
-    return img_sample(p, v, x);
-}
-#endif
-
-int process(scm *s, img *p, int d)
-{
-    const int M = scm_get_page_count(d);
-    const int n = scm_get_n(s);
-    const int N = scm_get_n(s) + 2;
-    const int C = scm_get_c(s);
-
-    float *vec;
-    float *dat;
-
-    if ((vec = (float *) calloc(M * 12,    sizeof (float))) &&
-        (dat = (float *) calloc(N * N * C, sizeof (float))))
-    {
-        const int x0 = d ? scm_get_page_count(d - 1) : 0;
-        const int x1 = d ? scm_get_page_count(d)     : 6;
-
-        off_t b = 0;
-        int   x;
-
-        scm_get_page_corners(d, vec);
-
-        for (x = x0; x < x1; ++x)
+    for     (int i = 0; i <= n; ++i)
+        for (int j = 0; j <= n; ++j)
         {
-            int i;
-            int j;
-            int k = 0;
+            float u[3];
 
-            memset(dat, 0, N * N * C * sizeof (float));
+            scm_get_samp_vector(v, i, j, n, u);
+
+            if (img_locate(p, u))
+                return 1;
+        }
+
+    return 0;
+}
+
+// Consider page x of SCM s. Determine whether it contains any of image p.
+// If so, sample it or recursively subdivide it as needed.
+
+off_t divide(scm *s, off_t b, img *p, int x, int d, const float *v, float *o)
+{
+    off_t B = b;
+
+    if (overlap(p, scm_get_n(s), v + x * 12))
+    {
+        if (d == 0)
+        {
+            const int N = scm_get_n(s) + 2;
+            const int n = scm_get_n(s);
+            const int c = scm_get_c(s);
+            int k = 0;
+            int j;
+            int i;
+
+            memset(o, 0, N * N * c * sizeof (float));
 
             #pragma omp parallel for private(j) reduction(+:k)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
-                    k += sample(p, i, j, n, vec + x * 12,
-                                            dat + C * (N * (i + 1) + (j + 1)));
+                    k += sample(p, i, j, n, v + x * 12,
+                                            o + c * (N * (i + 1) + (j + 1)));
 
-            if (k) b = scm_append(s, b, x, dat);
+            if (k) B = scm_append(s, B, x, o);
         }
-
-        free(dat);
-        free(vec);
+        else
+        {
+            B = divide(s, B, p, scm_get_page_child(x, 0), d - 1, v, o);
+            B = divide(s, B, p, scm_get_page_child(x, 1), d - 1, v, o);
+            B = divide(s, B, p, scm_get_page_child(x, 2), d - 1, v, o);
+            B = divide(s, B, p, scm_get_page_child(x, 3), d - 1, v, o);
+        }
     }
+    return B;
+}
 
+// Convert image p to SCM s at depth d. Allocate working buffers, precompute
+// page corners, and perform a depth-first traversal of the page tree.
+
+int process(scm *s, img *p, int d)
+{
+    const int m = scm_get_page_count(d);
+    const int N = scm_get_n(s) + 2;
+    const int c = scm_get_c(s);
+
+    float *v;
+    float *o;
+
+    if ((v = (float *) calloc(m * 12,    sizeof (float))) &&
+        (o = (float *) calloc(N * N * c, sizeof (float))))
+    {
+        off_t b = 0;
+
+        scm_get_page_corners(d, v);
+
+        b = divide(s, b, p, 0, d, v, o);
+        b = divide(s, b, p, 1, d, v, o);
+        b = divide(s, b, p, 2, d, v, o);
+        b = divide(s, b, p, 3, d, v, o);
+        b = divide(s, b, p, 4, d, v, o);
+        b = divide(s, b, p, 5, d, v, o);
+
+        free(o);
+        free(v);
+    }
     return 0;
 }
 
 //------------------------------------------------------------------------------
 
-static float farg(const char *arg) { return (float) strtod(arg, NULL);    }
-static int   iarg(const char *arg) { return   (int) strtol(arg, NULL, 0); }
-
-static float torad(float d) { return d * M_PI / 180.0f; }
-
-int convert(int argc, char **argv)
+static float aarg(const char *arg)
 {
-    const char *o = "out.tif";
+    return (float) strtod(arg, NULL) * M_PI / 180.0f;
+}
+
+static float farg(const char *arg)
+{
+    return (float) strtod(arg, NULL);
+}
+
+static int   iarg(const char *arg)
+{
+    return   (int) strtol(arg, NULL, 0);
+}
+
+int convert(int argc, char **argv, char *in)
+{
+    for (int i = 0; i < argc; ++i)
+        printf("%s ", argv[i]);
+    printf("%s\n", in);
+
+    return 0;
+
     const char *t = NULL;
     int         n = 512;
     int         d = 0;
     int         b = 0;
     int         g = 0;
-
-    float  lat0 = 0.f;
-    float  lat1 = 0.f;
-    float  lon0 = 0.f;
-    float  lon1 = 0.f;
-    float dlat0 = 0.f;
-    float dlat1 = 0.f;
-    float dlon0 = 0.f;
-    float dlon1 = 0.f;
-    float norm0 = 0.f;
-    float norm1 = 0.f;
+    float   norm0 = 0.f;
+    float   norm1 = 0.f;
 
     img  *p = NULL;
     scm  *s = NULL;
     char *T = NULL;
+    char *e = NULL;
 
-    // Parse command line options.
+    // Load the input file.
 
-    int i;
-
-    for (i = 1; i < argc; ++i)
-        if      (strcmp(argv[i], "-o")     == 0)  o    =      argv[++i];
-        else if (strcmp(argv[i], "-t")     == 0)  t    =      argv[++i];
-        else if (strcmp(argv[i], "-n")     == 0)  n    = iarg(argv[++i]);
-        else if (strcmp(argv[i], "-d")     == 0)  d    = iarg(argv[++i]);
-        else if (strcmp(argv[i], "-b")     == 0)  b    = iarg(argv[++i]);
-        else if (strcmp(argv[i], "-g")     == 0)  g    = iarg(argv[++i]);
-        else if (strcmp(argv[i], "-lat0")  == 0)  lat0 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-lat1")  == 0)  lat1 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-lon0")  == 0)  lon0 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-lon1")  == 0)  lon1 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-dlat0") == 0) dlat0 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-dlat1") == 0) dlat1 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-dlon0") == 0) dlon0 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-dlon1") == 0) dlon1 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-norm0") == 0) norm0 = farg(argv[++i]);
-        else if (strcmp(argv[i], "-norm1") == 0) norm1 = farg(argv[++i]);
-
-    // Assume the last argument is an input file.  Load it.
-
-    if      (extcmp(argv[argc - 1], ".jpg") == 0) p = jpg_load(argv[argc - 1]);
-    else if (extcmp(argv[argc - 1], ".png") == 0) p = png_load(argv[argc - 1]);
-    else if (extcmp(argv[argc - 1], ".tif") == 0) p = tif_load(argv[argc - 1]);
-    else if (extcmp(argv[argc - 1], ".img") == 0) p = pds_load(argv[argc - 1]);
-    else if (extcmp(argv[argc - 1], ".lbl") == 0) p = pds_load(argv[argc - 1]);
-
-    if (b == 0) b = p->b;
-    if (g == 0) g = p->g;
-
-    // Set the default data normalization values.
-
-    if (norm0 == 0.f && norm1 == 0.f)
-    {
-        if (b == 8)
-        {
-            if (g) { norm0 = 0.f; norm1 =   127.f; }
-            else   { norm0 = 0.f; norm1 =   255.f; }
-        }
-        if (b == 16)
-        {
-            if (g) { norm0 = 0.f; norm1 = 32767.f; }
-            else   { norm0 = 0.f; norm1 = 65535.f; }
-        }
-    }
-
-    // Load the description text, if any.
-
-    if (t == NULL || (T = load_txt(t)) == NULL)
-        T = "Copyright (C) 2011 Robert Kooima";
-
-    // Process the output.
+    if      (extcmp(in, ".jpg") == 0) p = jpg_load(in);
+    else if (extcmp(in, ".png") == 0) p = png_load(in);
+    else if (extcmp(in, ".tif") == 0) p = tif_load(in);
+    else if (extcmp(in, ".img") == 0) p = pds_load(in);
+    else if (extcmp(in, ".lbl") == 0) p = pds_load(in);
 
     if (p)
     {
-        p->lat0  = torad(lat0);
-        p->lat1  = torad(lat1);
-        p->lon0  = torad(lon0);
-        p->lon1  = torad(lon1);
-        p->dlat0 = torad(dlat0);
-        p->dlat1 = torad(dlat1);
-        p->dlon0 = torad(dlon0);
-        p->dlon1 = torad(dlon1);
+        // Generate the default output by replacing the extension of the input.
+
+        char out[256];
+
+        if ((e = strrchr(in, '.')))
+        {
+            memset (out, 0, 256);
+            strncpy(out, in, e - in);
+            strcat (out, ".tif");
+        }
+        else strcpy(out, "out.tif");
+
+        // Parse command line options.
+
+        int i;
+
+        for (i = 0; i < argc; ++i)
+            if      (strcmp(argv[i], "-o")     == 0)     strcpy(out, argv[++i]);
+            else if (strcmp(argv[i], "-t")     == 0) t        =      argv[++i];
+            else if (strcmp(argv[i], "-n")     == 0) n        = iarg(argv[++i]);
+            else if (strcmp(argv[i], "-d")     == 0) d        = iarg(argv[++i]);
+            else if (strcmp(argv[i], "-b")     == 0) b        = iarg(argv[++i]);
+            else if (strcmp(argv[i], "-g")     == 0) g        = iarg(argv[++i]);
+            else if (strcmp(argv[i], "-lat0")  == 0) p->lat0  = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-lat1")  == 0) p->lat1  = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-lon0")  == 0) p->lon0  = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-lon1")  == 0) p->lon1  = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-dlat0") == 0) p->dlat0 = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-dlat1") == 0) p->dlat1 = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-dlon0") == 0) p->dlon0 = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-dlon1") == 0) p->dlon1 = aarg(argv[++i]);
+            else if (strcmp(argv[i], "-norm0") == 0) norm0    = farg(argv[++i]);
+            else if (strcmp(argv[i], "-norm1") == 0) norm1    = farg(argv[++i]);
+
+        if (b == 0) b = p->b;
+        if (g == 0) g = p->g;
+
+        // Set the default data normalization values.
+
+        if (norm0 == 0.f && norm1 == 0.f)
+        {
+            if (b == 8)
+            {
+                if (g) { norm0 = 0.f; norm1 =   127.f; }
+                else   { norm0 = 0.f; norm1 =   255.f; }
+            }
+            if (b == 16)
+            {
+                if (g) { norm0 = 0.f; norm1 = 32767.f; }
+                else   { norm0 = 0.f; norm1 = 65535.f; }
+            }
+        }
 
         p->dnorm = norm0;
         p->knorm = 1.f / (norm1 - norm0);
 
-        s = scm_ofile(o, n, p->c, b, g, T);
+        // Load the description text, if any.
+
+        if (t == NULL || (T = load_txt(t)) == NULL)
+            T = "Copyright (C) 2011 Robert Kooima";
+
+        // Process the output.
+
+        if ((s = scm_ofile(out, n, p->c, b, g, T)))
+        {
+            process(s, p, d);
+            scm_close(s);
+        }
+        img_close(p);
     }
-    if (s && p)
-        process(s, p, d);
-
-    scm_close(s);
-    img_close(p);
-
     return 0;
 }
 
