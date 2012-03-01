@@ -209,12 +209,6 @@ static int   iarg(const char *arg)
 
 int convert(int argc, char **argv, char *in)
 {
-    for (int i = 0; i < argc; ++i)
-        printf("%s ", argv[i]);
-    printf("%s\n", in);
-
-    return 0;
-
     const char *t = NULL;
     int         n = 512;
     int         d = 0;
