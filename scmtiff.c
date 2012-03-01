@@ -16,42 +16,7 @@ int normal (int argc, char **argv);
 
 //------------------------------------------------------------------------------
 
-#if 0
-
-int main(int argc, char **argv)
-{
-    setexe(argv[0]);
-
-    if (argc > 3)
-    {
-        if      (strcmp(argv[1], "-convert") == 0)
-            return convert(argc - 3, argv + 2, argv[argc - 1]);
-
-        else if (strcmp(argv[1], "-combine") == 0)
-            return combine(argc - 2, argv + 2);
-
-        else if (strcmp(argv[1], "-mipmap")  == 0)
-            return mipmap (argc - 2, argv + 2);
-
-        else if (strcmp(argv[1], "-border")  == 0)
-            return border (argc - 2, argv + 2);
-
-        else if (strcmp(argv[1], "-normal")  == 0)
-            return normal (argc - 2, argv + 2);
-    }
-    else
-        apperr("\nUsage:"
-               "\t%s -convert [-o outfile] [-n samples] [-d depth] infile\n"
-               "\t%s -combine [-o outfile]                         infile...\n"
-               "\t%s -mipmap  [-o outfile]                         infile\n"
-               "\t%s -border  [-o outfile]                         infile\n"
-               "\t%s -normal  [-o outfile] [-r0 rad] [-r1 rad]     infile",
-            argv[0], argv[0], argv[0], argv[0], argv[0]);
-
-    return 0;
-}
-
-#else
+#ifdef CONFMPI
 #include <mpi.h>
 
 int main(int argc, char **argv)
@@ -86,6 +51,41 @@ int main(int argc, char **argv)
 
         MPI_Finalize();
     }
+}
+
+#else
+
+int main(int argc, char **argv)
+{
+    setexe(argv[0]);
+
+    if (argc > 3)
+    {
+        if      (strcmp(argv[1], "-convert") == 0)
+            return convert(argc - 3, argv + 2, argv[argc - 1]);
+
+        else if (strcmp(argv[1], "-combine") == 0)
+            return combine(argc - 2, argv + 2);
+
+        else if (strcmp(argv[1], "-mipmap")  == 0)
+            return mipmap (argc - 2, argv + 2);
+
+        else if (strcmp(argv[1], "-border")  == 0)
+            return border (argc - 2, argv + 2);
+
+        else if (strcmp(argv[1], "-normal")  == 0)
+            return normal (argc - 2, argv + 2);
+    }
+    else
+        apperr("\nUsage:"
+               "\t%s -convert [-o outfile] [-n samples] [-d depth] infile\n"
+               "\t%s -combine [-o outfile]                         infile...\n"
+               "\t%s -mipmap  [-o outfile]                         infile\n"
+               "\t%s -border  [-o outfile]                         infile\n"
+               "\t%s -normal  [-o outfile] [-r0 rad] [-r1 rad]     infile",
+            argv[0], argv[0], argv[0], argv[0], argv[0]);
+
+    return 0;
 }
 
 #endif

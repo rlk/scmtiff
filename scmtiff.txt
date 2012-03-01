@@ -48,4 +48,22 @@ TODO:
 -	Fix the mipmap flaw
 		Turns out it was in the corner vector calculator
 
+	$ time mpirun -np 16 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
+	real    4m0.345s
+	user    0m0.035s
+	sys     0m0.075s
 
+	$ time mpirun -np 32 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
+	real    4m1.559s
+	user    0m0.048s
+	sys     0m0.094s
+
+	$ time mpirun -np 48 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
+	real    3m41.149s
+	user    0m0.061s
+	sys     0m0.080s
+
+	time mpirun -np 60 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
+	real    4m8.795s
+	user    0m0.072s
+	sys     0m0.132s
