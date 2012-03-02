@@ -48,6 +48,32 @@ TODO:
 -	Fix the mipmap flaw
 		Turns out it was in the corner vector calculator
 
+
+scmtiff [opts] [files ...]
+
+	-o <output>
+	-p <process>
+
+		-p convert
+			-t <text>		image description text file
+			-n <n>			page size
+			-d <d>			tree depth
+			-b <b>			channel depth
+			-g <g>			channel signedness
+			-L <f>,<f>,<f>	longitude blend range
+			-P <f>,<f>,<f>	latitude blend range
+			-N <f>,<f>		normalization range
+		-p combine
+			-m max			max operation
+			-m sum			sum operation
+		-p mipmap
+		-p border
+		-p normal
+			-r <f>,<f>		radius
+
+scmtiff -pconvert -n512 -d3 -P90,12,15 ldem_45n_100m.lbl
+
+
 	$ time mpirun -np 16 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
 	real    4m0.345s
 	user    0m0.035s

@@ -192,51 +192,39 @@ int process(scm *s, img *p, int d)
 
 //------------------------------------------------------------------------------
 
-static float aarg(const char *arg)
+int convert(int argc, char **argv, const char *o,
+                                   const char *t,
+                                           int n,
+                                           int d,
+                                           int b,
+                                           int g,
+                                  const float *L,
+                                  const float *P,
+                                  const float *N)
 {
-    return (float) strtod(arg, NULL) * M_PI / 180.0f;
-}
-
-static float farg(const char *arg)
-{
-    return (float) strtod(arg, NULL);
-}
-
-static int   iarg(const char *arg)
-{
-    return   (int) strtol(arg, NULL, 0);
-}
-
-int convert(int argc, char **argv, char *in)
-{
-    const char *t = NULL;
-    int         n = 512;
-    int         d = 0;
-    int         b = 0;
-    int         g = 0;
-    float   norm0 = 0.f;
-    float   norm1 = 0.f;
-
     img  *p = NULL;
     scm  *s = NULL;
     char *T = NULL;
     char *e = NULL;
 
-    // Load the input file.
+    char out[256];
 
-    if      (extcmp(in, ".jpg") == 0) p = jpg_load(in);
-    else if (extcmp(in, ".png") == 0) p = png_load(in);
-    else if (extcmp(in, ".tif") == 0) p = tif_load(in);
-    else if (extcmp(in, ".img") == 0) p = pds_load(in);
-    else if (extcmp(in, ".lbl") == 0) p = pds_load(in);
+    // Load the description text, if any.
 
-    if (p)
+    if (t == NULL || (T = load_txt(t)) == NULL)
+        T = "Copyright (C) 2011 Robert Kooima";
+
+    // Iterate over all input file arguments.
+
+    for (int i = 0; i < argc; i++)
     {
-        // Generate the default output by replacing the extension of the input.
+        const char *in = argv[i];
 
-        char out[256];
+        // Generate the output file name.
 
-        if ((e = strrchr(in, '.')))
+        if (o) strcpy(out, o);
+
+        else if ((e = strrchr(in, '.')))
         {
             memset (out, 0, 256);
             strncpy(out, in, e - in);
@@ -244,63 +232,63 @@ int convert(int argc, char **argv, char *in)
         }
         else strcpy(out, "out.tif");
 
-        // Parse command line options.
+        // Load the input file.
 
-        int i;
+        if      (extcmp(in, ".jpg") == 0) p = jpg_load(in);
+        else if (extcmp(in, ".png") == 0) p = png_load(in);
+        else if (extcmp(in, ".tif") == 0) p = tif_load(in);
+        else if (extcmp(in, ".img") == 0) p = pds_load(in);
+        else if (extcmp(in, ".lbl") == 0) p = pds_load(in);
 
-        for (i = 0; i < argc; ++i)
-            if      (strcmp(argv[i], "-o")     == 0)     strcpy(out, argv[++i]);
-            else if (strcmp(argv[i], "-t")     == 0) t        =      argv[++i];
-            else if (strcmp(argv[i], "-n")     == 0) n        = iarg(argv[++i]);
-            else if (strcmp(argv[i], "-d")     == 0) d        = iarg(argv[++i]);
-            else if (strcmp(argv[i], "-b")     == 0) b        = iarg(argv[++i]);
-            else if (strcmp(argv[i], "-g")     == 0) g        = iarg(argv[++i]);
-            else if (strcmp(argv[i], "-lat0")  == 0) p->lat0  = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-lat1")  == 0) p->lat1  = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-lon0")  == 0) p->lon0  = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-lon1")  == 0) p->lon1  = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-dlat0") == 0) p->dlat0 = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-dlat1") == 0) p->dlat1 = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-dlon0") == 0) p->dlon0 = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-dlon1") == 0) p->dlon1 = aarg(argv[++i]);
-            else if (strcmp(argv[i], "-norm0") == 0) norm0    = farg(argv[++i]);
-            else if (strcmp(argv[i], "-norm1") == 0) norm1    = farg(argv[++i]);
-
-        if (b == 0) b = p->b;
-        if (g == 0) g = p->g;
-
-        // Set the default data normalization values.
-
-        if (norm0 == 0.f && norm1 == 0.f)
+        if (p)
         {
-            if (b == 8)
+            // Set the channel format overrides.
+
+            if (b == 0) b = p->b;
+            if (g == 0) g = p->g;
+
+            // Set the blending parameters.
+
+            p->latc = P[0] * M_PI / 180.0;
+            p->lat0 = P[1] * M_PI / 180.0;
+            p->lat1 = P[2] * M_PI / 180.0;
+
+            p->lonc = L[0] * M_PI / 180.0;
+            p->lon0 = L[1] * M_PI / 180.0;
+            p->lon1 = L[2] * M_PI / 180.0;
+
+            // Set the normalization parameters.
+
+            if (N[0] || N[1])
             {
-                if (g) { norm0 = 0.f; norm1 =   127.f; }
-                else   { norm0 = 0.f; norm1 =   255.f; }
+                p->norm0 = N[0];
+                p->norm1 = N[1];
             }
-            if (b == 16)
+            else if (b == 8)
             {
-                if (g) { norm0 = 0.f; norm1 = 32767.f; }
-                else   { norm0 = 0.f; norm1 = 65535.f; }
+                if (g) { p->norm0 = 0.0f; p->norm1 =   127.0f; }
+                else   { p->norm0 = 0.0f; p->norm1 =   255.0f; }
             }
+            else if (b == 16)
+            {
+                if (g) { p->norm0 = 0.0f; p->norm1 = 32767.0f; }
+                else   { p->norm0 = 0.0f; p->norm1 = 65535.0f; }
+            }
+            else
+            {
+                p->norm0 = 0.0f;
+                p->norm1 = 1.0f;
+            }
+
+            // Process the output.
+
+            if ((s = scm_ofile(out, n, p->c, b, g, T)))
+            {
+                process(s, p, d);
+                scm_close(s);
+            }
+            img_close(p);
         }
-
-        p->dnorm = norm0;
-        p->knorm = 1.f / (norm1 - norm0);
-
-        // Load the description text, if any.
-
-        if (t == NULL || (T = load_txt(t)) == NULL)
-            T = "Copyright (C) 2011 Robert Kooima";
-
-        // Process the output.
-
-        if ((s = scm_ofile(out, n, p->c, b, g, T)))
-        {
-            process(s, p, d);
-            scm_close(s);
-        }
-        img_close(p);
     }
     return 0;
 }

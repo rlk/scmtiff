@@ -133,34 +133,27 @@ static void process(scm *s, scm *t, float r0, float r1)
 
 //------------------------------------------------------------------------------
 
-static float farg(const char *arg) { return (float) strtod(arg, NULL); }
-
-int normal(int argc, char **argv)
+int normal(int argc, char **argv, const char *o, const float *R)
 {
-    const char *in  = "in.tif";
-    const char *out = "out.tif";
-
-    float r0 = 0.0;
-    float r1 = 1.0;
-
-    scm *s;
-    scm *t;
-
-    for (int i = 0; i < argc; ++i)
-        if      (extcmp(argv[i], ".tif") == 0) in  =      argv[  i];
-        else if (strcmp(argv[i],   "-o") == 0) out =      argv[++i];
-        else if (strcmp(argv[i],  "-r0") == 0) r0  = farg(argv[++i]);
-        else if (strcmp(argv[i],  "-r1") == 0) r1  = farg(argv[++i]);
-
-    if ((s = scm_ifile(in)))
+    if (argc > 0)
     {
-        if ((t = scm_ofile(out, scm_get_n(s), 3, 8, 0, scm_get_description(s))))
+        const char *out = "out.tif";
+
+        scm *s;
+        scm *t;
+
+        if ((s = scm_ifile(argv[0])))
         {
-            process(s, t, r0, r1);
-            scm_relink(t);
-            scm_close(t);
+            int   n = scm_get_n(s);
+            char *T = scm_get_description(s);
+
+            if ((t = scm_ofile(out, n, 3, 8, 0, T)))
+            {
+                process(s, t, R[0], R[1]);
+                scm_close(t);
+            }
+            scm_close(s);
         }
-        scm_close(s);
     }
     return 0;
 }

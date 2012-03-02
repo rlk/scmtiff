@@ -111,45 +111,39 @@ static int process(scm *s, scm *t)
     if ((b = sample(s, t)))
     {
         append(s, t, b);
-        return EXIT_SUCCESS;
+        return 1;
     }
-    return EXIT_FAILURE;
+    return 0;
 }
 
 //------------------------------------------------------------------------------
 
-int mipmap(int argc, char **argv)
+int mipmap(int argc, char **argv, const char *o)
 {
-    const char *out = "out.tif";
-    const char *in  = "in.tif";
-
-    scm *s = NULL;
-    scm *t = NULL;
-
-    int r = EXIT_FAILURE;
-
-    for (int i = 0; i < argc; ++i)
-        if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
-        else if (extcmp(argv[i], ".tif") == 0) in  = argv[  i];
-
-    if ((s = scm_ifile(in)))
+    if (argc > 0)
     {
-        char *str = scm_get_description(s);
+        const char *out = o ? o : "out.tif";
 
-        int n = scm_get_n(s);
-        int c = scm_get_c(s);
-        int b = scm_get_b(s);
-        int g = scm_get_g(s);
+        scm *s = NULL;
+        scm *t = NULL;
 
-        if ((t = scm_ofile(out, n, c, b, g, str)))
+        if ((s = scm_ifile(argv[0])))
         {
-            r = process(s, t);
-            scm_relink(t);
-            scm_close(t);
+            int   n = scm_get_n(s);
+            int   c = scm_get_c(s);
+            int   b = scm_get_b(s);
+            int   g = scm_get_g(s);
+            char *T = scm_get_description(s);
+
+            if ((t = scm_ofile(out, n, c, b, g, T)))
+            {
+                process(s, t);
+                scm_close(t);
+            }
+            scm_close(s);
         }
-        scm_close(s);
     }
-    return r;
+    return 0;
 }
 
 //------------------------------------------------------------------------------

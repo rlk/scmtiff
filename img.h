@@ -21,8 +21,10 @@ struct img
     int    d;
     size_t n;
 
-    float dnorm;
-    float knorm;
+    float norm0;
+    float norm1;
+    // float dnorm;
+    // float knorm;
 
     // Projection parameters
 
@@ -39,10 +41,12 @@ struct img
     float radius;
     float scaling_factor;
 
-    // Mask parameters
+    // Blending parameters
 
-    float lat0, lat1, dlat0, dlat1;
-    float lon0, lon1, dlon0, dlon1;
+    float latc, lat0, lat1;
+    float lonc, lon0, lon1;
+    // float lat0, lat1, dlat0, dlat1;
+    // float lon0, lon1, dlon0, dlon1;
 
     void (*project)(img *, float, float, float *);
 };

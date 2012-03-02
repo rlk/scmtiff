@@ -28,7 +28,7 @@ struct input
 // Attempt to read and map the SCM TIFF with the given name. If successful,
 // append it to the given list. Return the number of elements in the list.
 
-static int addin(struct input *v, int c, const char *name)
+static int enlist(struct input *v, int c, const char *name)
 {
     static int N = 0;
     static int C = 0;
@@ -140,36 +140,38 @@ static void process(scm *s, struct input *v, int c, int m)
 
 //------------------------------------------------------------------------------
 
-int combine(int argc, char **argv)
+int combine(int argc, char **argv, const char *o, const char *m)
 {
-    int           l = 0;
-    int           m = 0;
     struct input *v = NULL;
+    int           l = 0;
+    int           M = 0;
 
-    if ((v = (struct input *) calloc(argc - 1, sizeof (struct input))))
+    const char *out = o ? o : "out.tif";
+
+    if (m)
     {
-        const char *out = "out.tif";
+        if      (strcmp(m, "sum") == 0) M = 0;
+        else if (strcmp(m, "max") == 0) M = 1;
+    }
 
+    if ((v = (struct input *) calloc(argc, sizeof (struct input))))
+    {
         for (int i = 0; i < argc; ++i)
-            if      (strcmp(argv[i],   "-o") == 0) out = argv[++i];
-            else if (strcmp(argv[i], "-max") == 0) m   = 1;
-            else if (extcmp(argv[i], ".tif") == 0) l   = addin(v, l, argv[i]);
+            l = enlist(v, l, argv[i]);
 
         if (l)
         {
-            char *str = scm_get_description(v[0].s);
-
-            int n = scm_get_n(v[0].s);
-            int c = scm_get_c(v[0].s);
-            int b = scm_get_b(v[0].s);
-            int g = scm_get_g(v[0].s);
+            int   n = scm_get_n(v[0].s);
+            int   c = scm_get_c(v[0].s);
+            int   b = scm_get_b(v[0].s);
+            int   g = scm_get_g(v[0].s);
+            char *T = scm_get_description(v[0].s);
 
             scm *s;
 
-            if ((s = scm_ofile(out, n, c, b, g, str)))
+            if ((s = scm_ofile(out, n, c, b, g, T)))
             {
-                process(s, v, l, m);
-                scm_relink(s);
+                process(s, v, l, M);
                 scm_close(s);
             }
         }

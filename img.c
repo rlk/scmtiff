@@ -83,19 +83,22 @@ void *img_scanline(img *p, int r)
 
 static int normu8(const img *p, uint8_t d, float *f)
 {
-    *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    *f = ((float) d * p->scaling_factor - p->norm0)
+                            / (p->norm1 - p->norm0);
     return 1;
 }
 
 static int norms8(const img *p, int8_t d, float *f)
 {
-    *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    *f = ((float) d * p->scaling_factor - p->norm0)
+                            / (p->norm1 - p->norm0);
     return 1;
 }
 
 static int normu16(const img *p, uint16_t d, float *f)
 {
-    *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    *f = ((float) d * p->scaling_factor - p->norm0)
+                            / (p->norm1 - p->norm0);
     return 1;
 }
 
@@ -107,7 +110,8 @@ static int norms16(const img *p, int16_t d, float *f)
     else if (d == -32764) *f = 1.0;  // Representation saturation high
     else if (d == -32765) *f = 1.0;  // Instrumentation saturation high
 
-    else *f = ((float) d * p->scaling_factor - p->dnorm) * p->knorm;
+    else *f = ((float) d * p->scaling_factor - p->norm0)
+                                 / (p->norm1 - p->norm0);
 
     return 1;
 }
@@ -122,7 +126,8 @@ static float normf(const img *p, float d, float *f)
     else if (*w == 0xFF7FFFFE) *f = 1.0;  // Representation saturation high
     else if (*w == 0xFF7FFFFF) *f = 1.0;  // Instrumentation saturation high
 
-    else if (isnormal(d)) *f = (d * p->scaling_factor - p->dnorm) * p->knorm;
+    else if (isnormal(d)) *f = (d * p->scaling_factor - p->norm0)
+                                          / (p->norm1 - p->norm0);
     else return 0;
 
     return 1;
@@ -376,27 +381,19 @@ static float angle(float a, float b)
 
 int img_sample(img *p, const float *v, float *c)
 {
-//  const float lon = tolon(atan2f(v[0], -v[2])), lat = asinf(v[1]);
-    const float lon = tolon(atan2f(v[0],  v[2])), lat = asinf(v[1]);
+    const float lon = tolon(atan2f(v[0], v[2])), lat = asinf(v[1]);
 
-    const float dlon = angle(lon, p->lonp);
-    const float dlat = angle(lat, p->latp);
+    float klat = 1.f;
+    float klon = 1.f;
 
-    float klat  = 1.f;
-    float klon  = 1.f;
-
-    if (p->lat0  || p->lat1)  klat = blend(p->lat1,  p->lat0,  lat);
-    if (p->lon0  || p->lon1)  klon = blend(p->lon1,  p->lon0,  lon);
-
-    float kdlat = 1.f;
-    float kdlon = 1.f;
-
-    if (p->dlat0 || p->dlat1) klat = blend(p->dlat1, p->dlat0, dlat);
-    if (p->dlon0 || p->dlon1) klon = blend(p->dlon1, p->dlon0, dlon);
+    if (p->latc || p->lat0 || p->lat1)
+        klat = blend(p->lat1, p->lat0, angle(lat, p->latc));
+    if (p->lonc || p->lon0 || p->lon1)
+        klon = blend(p->lon1, p->lon0, angle(lon, p->lonc));
 
     float k;
 
-    if ((k = klat * klon * kdlat * kdlon))
+    if ((k = klat * klon))
     {
         float t[2];
 
@@ -419,7 +416,7 @@ int img_sample(img *p, const float *v, float *c)
 
 int img_locate(img *p, const float *v)
 {
-    const float lon = tolon(atan2f(v[0],  v[2])), lat = asinf(v[1]);
+    const float lon = tolon(atan2f(v[0], v[2])), lat = asinf(v[1]);
 
     float t[2];
 
