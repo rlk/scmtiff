@@ -387,9 +387,9 @@ int img_sample(img *p, const float *v, float *c)
     float klon = 1.f;
 
     if (p->latc || p->lat0 || p->lat1)
-        klat = blend(p->lat1, p->lat0, angle(lat, p->latc));
+        klat = blend(p->lat0, p->lat1, angle(lat, p->latc));
     if (p->lonc || p->lon0 || p->lon1)
-        klon = blend(p->lon1, p->lon0, angle(lon, p->lonc));
+        klon = blend(p->lon0, p->lon1, angle(lon, p->lonc));
 
     float k;
 

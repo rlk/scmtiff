@@ -137,7 +137,7 @@ int normal(int argc, char **argv, const char *o, const float *R)
 {
     if (argc > 0)
     {
-        const char *out = "out.tif";
+        const char *out = o ? o : "out.tif";
 
         scm *s;
         scm *t;
