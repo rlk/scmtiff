@@ -25,9 +25,8 @@ void scm_close(scm *s)
     if (s)
     {
         fclose(s->fp);
+        scm_free(s);
         free(s->str);
-        free(s->bin);
-        free(s->zip);
         free(s);
     }
 }
@@ -83,6 +82,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
         s->c   = c;
         s->b   = b;
         s->g   = g;
+        s->r   = 8;
 
         if ((s->fp = fopen(name, "w+b")))
         {
@@ -116,25 +116,28 @@ off_t scm_append(scm *s, off_t b, int x, const float *f)
     assert(s);
     assert(f);
 
-    size_t d;
-    off_t  o;
-    ifd    D = s->D;
+    ifd   D = s->D;
+    off_t o;
+
+    uint64_t oo;
+    uint64_t lo;
+    uint16_t sc;
 
     if ((o = ftello(s->fp)) >= 0)
     {
         if (scm_write_ifd(s, &D, o) == 1)
         {
-            if ((d = scm_write_data(s, f)) > 0)
+            if ((scm_write_data(s, f, &oo, &lo, &sc)) > 0)
             {
                 if (scm_align(s) >= 0)
                 {
                     uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
-                    uint64_t od = (uint64_t) (o + sizeof  (ifd));
 
-                    set_field(&D.strip_offsets,     0x0111, 16, 1, od);
-                    set_field(&D.strip_byte_counts, 0x0117,  4, 1,  d);
-                    set_field(&D.sub_ifds,          0x014A, 18, 4, os);
-                    set_field(&D.page_index,        0xFFB1,  4, 1,  x);
+                    set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
+                    set_field(&D.rows_per_strip,    0x0116,  3,  1, s->r);
+                    set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
+                    set_field(&D.sub_ifds,          0x014A, 18,  4, os);
+                    set_field(&D.page_index,        0xFFB1,  4,  1,  x);
 
                     if (scm_write_ifd(s, &D, o) == 1)
                     {
@@ -169,6 +172,7 @@ off_t scm_append(scm *s, off_t b, int x, const float *f)
 // s or encoding t. If data types do not match, then a read from s and an append
 // to t are required.
 
+#if 0
 off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
 {
     ifd D;
@@ -229,6 +233,7 @@ off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
 
     return 0;
 }
+#endif
 
 // Move the SCM TIFF file pointer to the first IFD and return its offset.
 
@@ -295,7 +300,11 @@ size_t scm_read_page(scm *s, off_t o, float *p)
 
     if (scm_read_ifd(s, &i, o) == 1)
     {
-        return scm_read_data(s, p, (size_t) i.strip_byte_counts.offset);
+        uint64_t oo = (size_t) i.strip_offsets.offset;
+        uint64_t lo = (size_t) i.strip_byte_counts.offset;
+        uint16_t sc = (size_t) i.strip_byte_counts.count;
+
+        return scm_read_data(s, p, oo, lo, sc);
     }
     else apperr("Failed to read SCM TIFF IFD");
 

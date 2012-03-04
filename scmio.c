@@ -7,6 +7,7 @@
 #include <zlib.h>
 
 #include "scmdat.h"
+#include "util.h"
 #include "err.h"
 
 //------------------------------------------------------------------------------
@@ -15,26 +16,60 @@
 
 int scm_alloc(scm *s)
 {
-    size_t bs = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
+    size_t bs = (s->n + 2) * s->r * s->c * s->b / 8;
     size_t zs = compressBound(bs);
 
-    assert(bs);
-    assert(zs);
+    int c = (s->n + 2 + s->r - 1) / s->r;
 
-    if ((s->bin = malloc(bs)))
+    if ((s->binv = (uint8_t **) calloc(c, sizeof (uint8_t *))) &&
+        (s->zipv = (uint8_t **) calloc(c, sizeof (uint8_t *))))
     {
-        if ((s->zip = malloc(zs)))
+        for (int i = 0; i < c; i++)
+        {
+            s->binv[i] = (uint8_t *) malloc(bs);
+            s->zipv[i] = (uint8_t *) malloc(zs);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+// Free the bin and zip scratch buffers.
+
+void scm_free(scm *s)
+{
+    int c = (s->n + 2 + s->r - 1) / s->r;
+
+    for (int i = 0; i < c; i++)
+    {
+        if (s->zipv) free(s->zipv[i]);
+        if (s->binv) free(s->binv[i]);
+    }
+
+    free(s->zipv);
+    free(s->binv);
+
+    s->zipv = NULL;
+    s->binv = NULL;
+}
+
+//------------------------------------------------------------------------------
+
+// Read from the SCM file at the given offset, to the given buffer.
+
+int scm_read(scm *s, void *ptr, size_t len, off_t off)
+{
+    if (fseeko(s->fp, off, SEEK_SET) == 0)
+    {
+        if (fread(ptr, 1, len, s->fp) == len)
         {
             return 1;
         }
+        else syserr("Failed to read SCM");
     }
+    else syserr("Failed to seek SCM");
 
-    free(s->zip);
-    s->zip = 0;
-    free(s->bin);
-    s->bin = 0;
-
-    return 0;
+    return -1;
 }
 
 // Write the given buffer to the SCM file, returning the offset of the beginning
@@ -265,6 +300,7 @@ int scm_read_preface(scm *s)
 
             s->n = s->D.image_width.offset - 2;
             s->c = s->D.samples_per_pixel.offset;
+            s->r = s->D.rows_per_strip.offset;
 
             // Image description string.
 
@@ -320,6 +356,7 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.description,       0x010E, 2, l,    0);
         set_field(&s->D.orientation,       0x0112, 3, 1,    2);
         set_field(&s->D.samples_per_pixel, 0x0115, 3, 1,    s->c);
+        set_field(&s->D.rows_per_strip,    0x0116, 3, 1,    s->r);
         set_field(&s->D.configuration,     0x011C, 3, 1,    1);
         set_field(&s->D.predictor,         0x013D, 3, 1,    p);
         set_field(&s->D.sample_format,     0x0153, 3, s->c, 0);
@@ -331,7 +368,7 @@ int scm_write_preface(scm *s, const char *str)
         scm_write_field(s, &s->D.sample_format,   fv);
         scm_align(s);
 
-        s->D.count = 16;
+        s->D.count = 17;
 
         return 1;
     }
@@ -339,7 +376,7 @@ int scm_write_preface(scm *s, const char *str)
 }
 
 //------------------------------------------------------------------------------
-
+#if 0
 // Read, uncompress, and decode the data at the current position in SCM TIFF s.
 
 size_t scm_read_data(scm *s, float *p, size_t z)
@@ -392,6 +429,156 @@ size_t scm_write_data(scm *s, const float *p)
     else apperr("Failed to compress data");
 
     return 0;
+}
+#endif
+
+//------------------------------------------------------------------------------
+// The following ancillary functions perform the fine-grained tasks of binary
+// data conversion, compression and decompression, and application of the
+// horizontal difference predictor. These are abstracted into tiny adapter
+// functions to ease the implementation of threaded file I/O with OpenMP.
+
+// Translate rows i through i+r from floating point to binary and back.
+
+static void tobin(scm *s, uint8_t *bin, const float *dat, int i)
+{
+    const int n = s->n + 2;
+    const int m = s->c * n;
+    const int d = s->b * m / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        ftob(bin + j * d, dat + (i + j) * m, m, s->b, s->g);
+}
+
+static void frombin(scm *s, const uint8_t *bin, float *dat, int i)
+{
+    const int n = s->n + 2;
+    const int m = s->c * n;
+    const int d = s->b * m / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        btof(bin + j * d, dat + (i + j) * m, m, s->b, s->g);
+}
+
+// Apply or reverse the horizontal difference predector in rows i through i+r.
+
+static void todif(scm *s, uint8_t *bin, int i)
+{
+    const int n = s->n + 2;
+    const int d = s->c * s->b * n / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        enhdif(bin + j * d, n, s->c, s->b);
+}
+
+static void fromdif(scm *s, uint8_t *bin, int i)
+{
+    const int n = s->n + 2;
+    const int d = s->c * s->b * n / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        dehdif(bin + j * d, n, s->c, s->b);
+}
+
+// Compress or decompress rows i through i+r.
+
+static void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
+{
+    uLong l = (uLong) ((s->n + 2) * MIN(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong z = compressBound(l);
+
+    compress((Bytef *) zip, &z, (const Bytef *) bin, l);
+    *c = (uint32_t) z;
+}
+
+static void fromzip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t c)
+{
+    uLong l = (uLong) ((s->n + 2) * MIN(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong z = (uLong) c;
+
+    uncompress((Bytef *) bin, &l, (const Bytef *) zip, z);
+}
+
+//------------------------------------------------------------------------------
+
+int scm_read_data(scm *s, float *p, uint64_t oo,
+                                    uint64_t lo,
+                                    uint16_t sc)
+{
+    // Strip count and rows-per-strip are given by the IFD.
+
+    int i, c = sc;
+    uint64_t o[c];
+    uint32_t l[c];
+
+    // Read the strip offset and length arrays.
+
+    if (scm_read(s, o, c * sizeof (uint64_t), oo) == -1) return -1;
+    if (scm_read(s, l, c * sizeof (uint32_t), lo) == -1) return -1;
+
+    // Read each strip.
+
+    for (i = 0; i < c; i++)
+        if (scm_read(s, s->zipv[i], (size_t) l[i], (off_t) o[i]) == -1)
+            return -1;
+
+    // Decode each strip.
+
+    #pragma omp parallel for
+    for (i = 0; i < c; i++)
+    {
+        fromzip(s, s->binv[i],    i * s->r, s->zipv[i], l[i]);
+        fromdif(s, s->binv[i],    i * s->r);
+        frombin(s, s->binv[i], p, i * s->r);
+    }
+
+    return 1;
+}
+
+int scm_write_data(scm *s, const float *p, uint64_t *oo,
+                                           uint64_t *lo,
+                                           uint16_t *sc)
+{
+    // Strip count is total rows / rows-per-strip rounded up.
+
+    int i, c = (s->n + 2 + s->r - 1) / s->r;
+    uint64_t o[c];
+    uint32_t l[c];
+    off_t t;
+
+    // Encode each strip for writing. This is our hot spot.
+
+    #pragma omp parallel for
+    for (i = 0; i < c; i++)
+    {
+        tobin(s, s->binv[i], p, i * s->r);
+        todif(s, s->binv[i],    i * s->r);
+        tozip(s, s->binv[i],    i * s->r, s->zipv[i], l + i);
+    }
+
+    // Write each strip to the file, noting all offsets.
+
+    for (i = 0; i < c; i++)
+        if ((t = scm_write(s, s->zipv[i], (size_t) l[i])) > 0)
+            o[i] = (uint64_t) t;
+        else
+            return -1;
+
+    // Write the strip offset and length arrays.
+
+    if ((t = scm_write(s, o, c * sizeof (uint64_t))) > 0)
+        *oo = (uint64_t) t;
+    else
+        return -1;
+
+    if ((t = scm_write(s, l, c * sizeof (uint32_t))) > 0)
+        *lo = (uint64_t) t;
+    else
+        return -1;
+
+    *sc = (uint16_t) c;
+
+    return 1;
 }
 
 //------------------------------------------------------------------------------

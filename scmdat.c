@@ -44,7 +44,7 @@ int is_header(header *hp)
 
 int is_ifd(ifd *ip)
 {
-    return (ip->count == 16
+    return (ip->count == 17
 
         &&  ip->subfile_type.tag      == 0x00FE
         &&  ip->image_width.tag       == 0x0100
@@ -56,6 +56,7 @@ int is_ifd(ifd *ip)
         &&  ip->strip_offsets.tag     == 0x0111
         &&  ip->orientation.tag       == 0x0112
         &&  ip->samples_per_pixel.tag == 0x0115
+        &&  ip->rows_per_strip.tag    == 0x0116
         &&  ip->strip_byte_counts.tag == 0x0117
         &&  ip->configuration.tag     == 0x011C
         &&  ip->predictor.tag         == 0x013D
@@ -220,11 +221,12 @@ void enhdif(void *p, int n, int c, int b)
 {
     const int s = n * c;
     const int m = n - 1;
+    const int i = 0;
 
     if      (b == 8)
     {
         char  *q = (char  *) p;
-        for         (int i = 0; i < n; ++i)
+//      for         (int i = 0; i < n; ++i)
             for     (int j = m; j > 0; --j)
                 for (int k = 0; k < c; ++k)
                     q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
@@ -232,18 +234,18 @@ void enhdif(void *p, int n, int c, int b)
     else if (b == 16)
     {
         short *q = (short *) p;
-        for         (int i = 0; i < n; ++i)
+//      for         (int i = 0; i < n; ++i)
             for     (int j = m; j > 0; --j)
                 for (int k = 0; k < c; ++k)
                     q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
     }
     else if (b == 32)
     {
-        float *q = (float *) p;
-        for         (int i = 0; i < n; ++i)
-            for     (int j = m; j > 0; --j)
-                for (int k = 0; k < c; ++k)
-                    q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
+//      float *q = (float *) p;
+//      for         (int i = 0; i < n; ++i)
+//          for     (int j = m; j > 0; --j)
+//              for (int k = 0; k < c; ++k)
+//                  q[i * s + j * c + k] -= q[i * s + (j - 1) * c + k];
     }
 }
 
@@ -253,11 +255,12 @@ void dehdif(void *p, int n, int c, int b)
 {
     const int s = n * c;
     const int m = n - 1;
+    const int i = 0;
 
     if      (b == 8)
     {
         char  *q = (char  *) p;
-        for         (int i = 0; i < n; ++i)
+//      for         (int i = 0; i < n; ++i)
             for     (int j = 0; j < m; ++j)
                 for (int k = 0; k < c; ++k)
                     q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
@@ -265,18 +268,18 @@ void dehdif(void *p, int n, int c, int b)
     else if (b == 16)
     {
         short *q = (short *) p;
-        for         (int i = 0; i < n; ++i)
+//      for         (int i = 0; i < n; ++i)
             for     (int j = 0; j < m; ++j)
                 for (int k = 0; k < c; ++k)
                     q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
     }
     else if (b == 32)
     {
-        float *q = (float *) p;
-        for         (int i = 0; i < n; ++i)
-            for     (int j = 0; j < m; ++j)
-                for (int k = 0; k < c; ++k)
-                    q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
+//      float *q = (float *) p;
+//      for         (int i = 0; i < n; ++i)
+//          for     (int j = 0; j < m; ++j)
+//              for (int k = 0; k < c; ++k)
+//                  q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
     }
 }
 

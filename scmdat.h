@@ -48,6 +48,7 @@ struct ifd
     field strip_offsets;        // 0x0111 *
     field orientation;          // 0x0112
     field samples_per_pixel;    // 0x0115
+    field rows_per_strip;       // 0x0116
     field strip_byte_counts;    // 0x0117 *
     field configuration;        // 0x011C
     field predictor;            // 0x013D
@@ -65,18 +66,19 @@ struct ifd
 
 struct scm
 {
-    FILE   *fp;                // I/O file pointer
-    char   *str;               // Description text
+    FILE *fp;                   // I/O file pointer
+    char *str;                  // Description text
 
-    int n;                     // Page sample count
-    int c;                     // Sample channel count
-    int b;                     // Channel bit count
-    int g;                     // Channel signed flag
+    int n;                      // Page sample count
+    int c;                      // Sample channel count
+    int b;                      // Channel bit count
+    int g;                      // Channel signed flag
+    int r;                      // Rows per strip
 
-    ifd D;                     // IFD template
+    ifd D;                      // IFD template
 
-    void *bin;                 // Bin scratch buffer pointer
-    void *zip;                 // Zip scratch buffer pointer
+    uint8_t **binv;             // Strip bin scratch buffer pointers
+    uint8_t **zipv;             // Strip zip scratch buffer pointers
 };
 
 typedef struct scm scm;

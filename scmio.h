@@ -6,7 +6,9 @@
 //------------------------------------------------------------------------------
 
 int    scm_alloc(scm *);
+void   scm_free (scm *);
 
+int    scm_read (scm *,       void *, size_t, off_t);
 off_t  scm_write(scm *, const void *, size_t);
 off_t  scm_align(scm *);
 
@@ -24,8 +26,8 @@ int    scm_write_ifd    (scm *, ifd *, off_t);
 int    scm_read_preface (scm *);
 int    scm_write_preface(scm *, const char *);
 
-size_t scm_read_data    (scm *,       float *, size_t);
-size_t scm_write_data   (scm *, const float *);
+size_t scm_read_data (scm *,       float *, uint64_t,   uint64_t,   uint16_t);
+size_t scm_write_data(scm *, const float *, uint64_t *, uint64_t *, uint16_t *);
 
 //------------------------------------------------------------------------------
 

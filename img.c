@@ -318,12 +318,10 @@ void img_cylindrical(img *p, float lon, float lat, float *t)
     t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
 }
 
-// If panoramas come out reversed, it's because this function hasn't been fixed.
-
 void img_default(img *p, float lon, float lat, float *t)
 {
-    t[0] = (p->h - 1) * 0.5f * (M_PI_2 - lat) / M_PI_2;
-    t[1] = (p->w    ) * 0.5f * (M_PI   + lon) / M_PI;
+    t[0] = (p->h - 1) * (M_PI_4 - 0.5f * lat) / M_PI_2;
+    t[1] = (p->w    ) * (M_PI   - 0.5f * lon) / M_PI;
 }
 
 // Panoramas are spheres viewed from the inside while planets are spheres

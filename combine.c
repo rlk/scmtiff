@@ -9,7 +9,6 @@
 #include "util.h"
 
 #define SUM(a, b) ((a) + (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 //------------------------------------------------------------------------------
 
@@ -107,12 +106,14 @@ static void process(scm *s, struct input *v, int c, int m)
 
             // If there is exactly one contributor, repeat its page.
 
-            if (k == 1)
+            /* if (k == 1)
                 b = scm_repeat(s, b, t, o);
 
             // If there is more than one, append their summed pages.
 
-            else if (k > 1)
+            else if (k > 1) */
+
+            if (k > 0)
             {
                 memset(p, 0, N * N * C * sizeof (float));
 

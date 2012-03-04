@@ -23,8 +23,6 @@ struct img
 
     float norm0;
     float norm1;
-    // float dnorm;
-    // float knorm;
 
     // Projection parameters
 
@@ -45,8 +43,6 @@ struct img
 
     float latc, lat0, lat1;
     float lonc, lon0, lon1;
-    // float lat0, lat1, dlat0, dlat1;
-    // float lon0, lon1, dlon0, dlon1;
 
     void (*project)(img *, float, float, float *);
 };

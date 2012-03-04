@@ -5,6 +5,9 @@
 
 //------------------------------------------------------------------------------
 
+#define MIN(A, B) (((A) < (B)) ? (A) : (B))
+#define MAX(A, B) (((A) > (B)) ? (A) : (B))
+
 void  normalize(float *);
 
 void  mid2(float *, const float *, const float *);

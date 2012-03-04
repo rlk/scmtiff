@@ -27,7 +27,7 @@ void mid2(float *m, const float *a, const float *b)
 }
 
 void mid4(float *m, const float *a, const float *b,
-                     const float *c, const float *d)
+                    const float *c, const float *d)
 {
     m[0] = a[0] + b[0] + c[0] + d[0];
     m[1] = a[1] + b[1] + c[1] + d[1];
