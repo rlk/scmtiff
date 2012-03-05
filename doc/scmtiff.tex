@@ -1,30 +1,37 @@
-\documentclass[article,oneside,11pt]{memoir}
+\documentclass[oneside,11pt]{memoir}
 
 \usepackage{microtype}
 \usepackage{mathptmx}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{color}
+\usepackage[group-minimum-digits=3,
+            group-separator={,}]{siunitx}
+\usepackage{bigstrut}
 
 \setverbatimfont{\normalfont\ttfamily\small}
 
 \headstyles{bringhurst}
 \hypersetup{bookmarksopen,
-            bookmarksnumbered,
-            colorlinks=true,
-            citecolor=red,
-            filecolor=red,
-            urlcolor=red}
+      bookmarksnumbered,
+      colorlinks=true,
+      citecolor=red,
+      filecolor=red,
+      urlcolor=red}
 
 %-------------------------------------------------------------------------------
 
 \newcommand{\opengl}  {\textsc{OpenGL}}
+\newcommand{\scm}     {\textsc{scm}}
 \newcommand{\tiff}    {\textsc{tiff}}
 \newcommand{\xml}     {\textsc{xml}}
 \newcommand{\panopath}{\textsc{panopath}}
 \newcommand{\rgb}     {\textsc{rgb}}
 \newcommand{\mb}    {\,\textsc{mb}}
 \newcommand{\vram}    {\textsc{vram}}
+
+\newcommand{\B}{\bigstrut[b]}
+\newcommand{\T}{\bigstrut[t]}
 
 %-------------------------------------------------------------------------------
 
@@ -48,6 +55,50 @@
 % Example: WAC DTM / LOLA merge
 
 % Appendix: Panoview configuration
+
+\chapter{Spherical Cube Map}
+
+The effective sphere map resolution of an \scm\ tree with page size $n$ and depth $d$ is
+\[w=n\,2^{d+2}\qquad h=n\,2^{d+1}.\]
+
+The total number of pages in an \scm\ tree of depth $d$ is
+\[m=2^{2\,d+3}-2.\]
+
+For reference, the following table shows the effective resolutions and page counts of \scm\ trees with depths down to $7$. Page size $n=512$ is often used for power-of-two source images, and $n=720$ works well for geographic and planetary gridded data.
+
+\begin{center}
+\begin{tabular}{r|rr|rr|r}
+$d$& $w_{\,512}$& $h_{\,512}$& $w_{\,720}$& $h_{\,720}$& $m$ \B\\\hline
+\num{0}&  \num{2048}&  \num{1024}&  \num{2880}&  \num{1440}&     \num{6} \T\\
+\num{1}&  \num{4096}&  \num{2048}&  \num{5760}&  \num{2880}&    \num{30} \\
+\num{2}&  \num{8192}&  \num{4096}& \num{11520}&  \num{5760}&   \num{126} \\
+\num{3}& \num{16384}&  \num{8192}& \num{23040}& \num{11520}&   \num{510} \\
+\num{4}& \num{32768}& \num{16384}& \num{46080}& \num{23040}&  \num{2046} \\
+\num{5}& \num{65536}& \num{32768}& \num{92160}& \num{46080}&  \num{8190} \\
+\num{6}&\num{131072}& \num{65536}&\num{184320}& \num{92160}& \num{32766} \\
+\num{7}&\num{262144}&\num{262144}&\num{368640}&\num{184320}&\num{131070} \\
+\end{tabular}
+\end{center}
+
+Each page is identified by an index giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
+
+The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. This root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
+
+\[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
+
+Much like the classical binary heap data structure, \scm\ tree indices represent positions in a complete tree, and parent-child relationships follow from straightforward integer arithmetic. If page $p_j$ is the parent of page $p_i$ then
+\[j=(i-6)/4.\]
+
+If page $p_i$ is the $k$th child of page $p_j$ then
+\[i=6+4\,j+k\]
+
+The child order $k$ of page $p_i$ is
+\[k=(i-6)-4\,((i-6)/4).\]
+
+The \scm\ tree level $l$ at which page $p_i$ appears is
+\[l=\frac{\lfloor\log_2\,(i+2)\rfloor - 1}{2}\]
+
+When processing and rendering \scm\ data, it is often necessary to know the indices of spatially adjacent pages. This relationship does not emerge readily, and is somewhat more challenging to compute. An implementation, provided in the source, has complexity linear in the distance to the adjacent pages' first common ancestor.
 
 \chapter{Interactive Display}
 
@@ -78,11 +129,11 @@ Here is an example of a basic stereo panorama definition, named Blue-Mounds-8.xm
 \begin{verbatim}
 <?xml version="1.0"?>
   <panorama channels="2" depth="4" size="512"
-            mesh="16" height="0" radius="6"
-            vert="glsl/sph-zoomer.vert"
-            frag="glsl/sph-render.frag">
-    <image channel="0" file="Blue-Mounds-8-L-512-4.tif" />
-    <image channel="1" file="Blue-Mounds-8-R-512-4.tif" />
+      mesh="16" height="0" radius="6"
+      vert="glsl/sph-zoomer.vert"
+      frag="glsl/sph-render.frag">
+  <image channel="0" file="Blue-Mounds-8-L-512-4.tif" />
+  <image channel="1" file="Blue-Mounds-8-R-512-4.tif" />
   </panorama>
 \end{verbatim}
 
@@ -105,24 +156,24 @@ The following example, Taliesin-Path, is more complex. It defines several images
 \begin{verbatim}
 <?xml version="1.0"?>
   <panorama channels="2" depth="3" size="512"
-            vert="glsl/sph-zoomer.vert"
-            frag="glsl/sph-blend.frag">
-    <image channel="0" file="Taliesin-Path-A-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-A-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-B-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-B-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-C-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-C-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-D-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-D-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-E-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-E-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-F-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-F-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-G-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-G-R-512-3.tif" />
-    <image channel="0" file="Taliesin-Path-H-L-512-3.tif" />
-    <image channel="1" file="Taliesin-Path-H-R-512-3.tif" />
+      vert="glsl/sph-zoomer.vert"
+      frag="glsl/sph-blend.frag">
+  <image channel="0" file="Taliesin-Path-A-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-A-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-B-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-B-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-C-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-C-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-D-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-D-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-E-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-E-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-F-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-F-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-G-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-G-R-512-3.tif" />
+  <image channel="0" file="Taliesin-Path-H-L-512-3.tif" />
+  <image channel="1" file="Taliesin-Path-H-R-512-3.tif" />
   </panorama>
 \end{verbatim}
 
