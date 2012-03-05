@@ -14,11 +14,13 @@ NOT invariant: No page order is defined.
 
 TODO:
 
+-	Deal with repeat on combine and mipmap.
+
 -	Optimize convert overlap detection
 
-	MPI frontend
+-	MPI frontend
 
-	Parallelize the zip.
+-	Parallelize the zip.
 		This may involve generalizing the number of "scanlines".
 
 -	Fix the error at the international date line.

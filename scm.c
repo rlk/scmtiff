@@ -82,7 +82,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
         s->c   = c;
         s->b   = b;
         s->g   = g;
-        s->r   = 8;
+        s->r   = 16;
 
         if ((s->fp = fopen(name, "w+b")))
         {

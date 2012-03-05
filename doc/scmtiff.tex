@@ -1,4 +1,4 @@
-\documentclass[article,twocolumn,10pt]{memoir}
+\documentclass[article,oneside,11pt]{memoir}
 
 \usepackage{microtype}
 \usepackage{mathptmx}
@@ -22,6 +22,9 @@
 \newcommand{\tiff}    {\textsc{tiff}}
 \newcommand{\xml}     {\textsc{xml}}
 \newcommand{\panopath}{\textsc{panopath}}
+\newcommand{\rgb}     {\textsc{rgb}}
+\newcommand{\mb}    {\,\textsc{mb}}
+\newcommand{\vram}    {\textsc{vram}}
 
 %-------------------------------------------------------------------------------
 
@@ -72,17 +75,16 @@ Like any data file, Thumb must be able to find these panorama definitions. They 
 
 Here is an example of a basic stereo panorama definition, named Blue-Mounds-8.xml.
 
-\begin{figure*}
 \begin{verbatim}
 <?xml version="1.0"?>
-  <panorama channels="2" depth="4" mesh="16" size="512" height="1.5" radius="6.0"
-               vert="glsl/sph-zoomer.vert"
-               frag="glsl/sph-render.frag">
+  <panorama channels="2" depth="4" size="512"
+            mesh="16" height="0" radius="6"
+            vert="glsl/sph-zoomer.vert"
+            frag="glsl/sph-render.frag">
     <image channel="0" file="Blue-Mounds-8-L-512-4.tif" />
     <image channel="1" file="Blue-Mounds-8-R-512-4.tif" />
   </panorama>
 \end{verbatim}
-\end{figure*}
 
 The file begins with an \xml\ header and contains a single root panorama element with several attributes and one image sub-element for each panorama image.
 
@@ -90,9 +92,9 @@ The channels attribute gives the number view positions. This adapts a panorama d
 
 The size and depth attributes give the size of each page in the panorama image files and the depth of their page hierarchies. Note that the values coincide with the image parameters given by the file names. Other values are allowed, and may enable quality-speed tradeoffs.
 
-The mesh attribute determines the tesselation of the geometry mesh used to render each page of data. The example value, 16, indicates that each page of the sphere will be rendered using a 16 × 16 grid of polygons. There is little reason to change this.
+The mesh attribute determines the tesselation of the geometry mesh used to render each page of data. The example value, 16, indicates that each page of the sphere will be rendered using a $16\times 16$ grid of polygons. There is little reason to change this.
 
-The radius attribute determines the radius of the spherical proxy geometry used to render the panorama. The height attribute determines the placement of the proxy geometry in the scene, and should match the height of the camera at the time the panorama was captured. These values are given in meters, and are mostly significant in VR display environments. The default radius is 6 meters, and the default height is 1.5 meters.
+The radius attribute determines the radius of the spherical proxy geometry used to render the panorama. The height attribute determines the placement of the proxy geometry in the scene, and should match the height of the camera at the time the panorama was captured. These values are given in meters, and are mostly significant in VR display environments. The default radius is 6 meters, and the default height is 0 meters.
 
 The vert and frag attributes give the vertex and fragment programs to be used by the renderer, named relative to the root of the Thumb data hierarchy. These will remain the same for most panorama definitions.The zoomer; vertex program must be specified for zoomable panoramas. The render fragment program is used for static panoramas such as this one.
 
@@ -100,10 +102,9 @@ The vert and frag attributes give the vertex and fragment programs to be used by
 
 The following example, Taliesin-Path, is more complex. It defines several images for each channel. This will behave as a circular list of images, and the renderer will interpolate between them in order, following an internal “playback head.”
 
-\begin{figure*}
 \begin{verbatim}
 <?xml version="1.0"?>
-  <panorama channels="2" depth="3" mesh="16" size="512"
+  <panorama channels="2" depth="3" size="512"
             vert="glsl/sph-zoomer.vert"
             frag="glsl/sph-blend.frag">
     <image channel="0" file="Taliesin-Path-A-L-512-3.tif" />
@@ -124,21 +125,22 @@ The following example, Taliesin-Path, is more complex. It defines several images
     <image channel="1" file="Taliesin-Path-H-R-512-3.tif" />
   </panorama>
 \end{verbatim}
-\end{figure*}
+
+Note that the frag attribute of the panorama element specifies the blend fragment program. This program performs the interpolation. Non-interpolating panoramas should use the \texttt{sph-render.vert} program, as \texttt{sph-blend.vert} doubles the texture access load of the renderer.
 
 \section{Panoview Usage}
 
-Note that the frag attribute of the panorama element specifies the blend fragment program. This program performs the interpolation. Non-interpolating panoramas should not use the blend program, as it floats the texture access load of the renderer.
-
 Panoview is configured and run like any other Thumb application. The following keyboard commands are defined.
 
-F1 … Toggle the panoview file selection dialog. This dialog allows the user to navigate the Thumb data hierarchy and select a panorama definition for viewing.
+\begin{itemize}
+\item[F1] Toggle the panoview file selection dialog. This dialog allows the user to navigate the Thumb data hierarchy and select a panorama definition for viewing.
 
-F2 … Toggle the cache visualization overlay. This allows the set of all resident pages to be viewed in thumbnail.
+\item[F2] Toggle the cache visualization overlay. This allows the set of all resident pages to be viewed in thumbnail.
 
-F3 … Toggle the page coloration debug view. This feature recolors each incoming page to indicate its depth in the page tree.
+\item[F3] Toggle the page coloration debug view. This feature recolors each incoming page to indicate its depth in the page tree.
 
-F4 … Toggle automatic zoom centering. This option controls whether the center of the zoom is static or dynamic.
+\item[F4] Toggle automatic zoom centering. This option controls whether the center of the zoom is static or dynamic.
+\end{itemize}
 
 In addition, there is one option in the Thumb configuration file conf.xml that impacts the behavior and performance of the panorama renderer.
 
@@ -146,16 +148,14 @@ In addition, there is one option in the Thumb configuration file conf.xml that i
 <option name="panoview_cache_size">128</option>
 \end{verbatim}
 
-This option selects the maximum number of pages that may be loaded at any given moment. A 512 × 512 page of RGB data consumes 1MB of VRAM, and this cache size option should be set accordingly. A larger value gives better performance, but too large a value will result in catastrophically bad performance.
-
-
+This option selects the maximum number of pages that may be loaded at any given moment. A $512\times 512$ page of \rgb\ data consumes 1\mb\ of \vram\, and this cache size option should be set accordingly. A larger value gives better performance, but too large a value will result in catastrophically bad performance.
 
 \section{Troubleshooting}
 
 This is a list of issues to be aware of, should trouble arise.
 
 \begin{itemize}
-\item If the panorama definition \xml\ files are not visible in the panoview file loader, then be sure they are located within the Thumb data hierarchy, or add their location to the Thumb data hierarchy by including the path in the THUMB\_RO\_PATH environment variable.
+\item If the panorama definition \xml\ files are not visible in the panoview file loader, then be sure they are located within the Thumb data hierarchy, or add their location to the Thumb data hierarchy by including the path in the \textsc{thumb\_ro\_path} environment variable.
 
 \item If the panorama definition loads but does not display an image, be sure the path to the spherical cube map \tiff\ files appears in the \panopath\ environment variable.
 
