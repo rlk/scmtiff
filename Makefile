@@ -47,3 +47,45 @@ scmtiff     : err.o util.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o 
 
 scmview : err.o util.o scmdat.o scmio.o scm.o img.o scmview.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -lz
+
+#-------------------------------------------------------------------------------
+
+border.o : scm.h
+border.o : util.h
+combine.o : scm.h
+combine.o : err.h
+combine.o : util.h
+convert.o : scm.h
+convert.o : img.h
+convert.o : util.h
+img.o : img.h
+img.o : err.h
+img.o : util.h
+jpg.o : img.h
+jpg.o : err.h
+mipmap.o : scm.h
+mipmap.o : err.h
+mipmap.o : util.h
+normal.o : scm.h
+normal.o : err.h
+normal.o : util.h
+pds.o : img.h
+pds.o : err.h
+png.o : img.h
+png.o : err.h
+scm.o : scmdat.h
+scm.o : scmio.h
+scm.o : scm.h
+scm.o : err.h
+scm.o : util.h
+scm.h  : scmdat.h
+scmdat.o : scmdat.h
+scmio.o : scmdat.h
+scmio.o : util.h
+scmio.o : err.h
+scmtiff.o : scm.h
+scmtiff.o : err.h
+scmview.o : scm.h
+scmview.o : err.h
+tif.o : img.h
+tif.o : err.h

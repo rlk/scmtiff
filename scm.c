@@ -172,37 +172,43 @@ off_t scm_append(scm *s, off_t b, int x, const float *f)
 // s or encoding t. If data types do not match, then a read from s and an append
 // to t are required.
 
-#if 0
 off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
 {
-    ifd D;
-
     assert(s);
     assert(t);
     assert(s->n == t->n);
     assert(s->c == t->c);
     assert(s->b == t->b);
     assert(s->g == t->g);
+    assert(s->r == t->r);
+
+    ifd D;
 
     if (scm_read_ifd(t, &D, o) == 1)
     {
-        size_t d = (size_t) D.strip_byte_counts.offset;
+        uint64_t oo = D.strip_offsets.offset;
+        uint64_t lo = D.strip_byte_counts.offset;
+        uint16_t sc = D.strip_byte_counts.count;
 
-        if (fread(t->zip, 1, d, t->fp) == d)
+        uint64_t O[sc];
+        uint32_t L[sc];
+
+        if (scm_read_cache(t, t->zipv, oo, lo, sc, O, L) > 0)
         {
             if ((o = ftello(s->fp)) >= 0)
             {
                 if (scm_write_ifd(s, &D, o) == 1)
                 {
-                    if (fwrite(t->zip, 1, d, s->fp) == d)
+                    if (scm_write_cache(s, t->zipv, &oo, &lo, &sc, O, L) > 0)
                     {
                         if (scm_align(s) >= 0)
                         {
                             uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
-                            uint64_t od = (uint64_t) (o + sizeof  (ifd));
 
-                            set_field(&D.strip_offsets, 0x0111, 16, 1, od);
-                            set_field(&D.sub_ifds,      0x014A, 18, 4, os);
+                            set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
+                            set_field(&D.rows_per_strip,    0x0116,  3,  1, s->r);
+                            set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
+                            set_field(&D.sub_ifds,          0x014A, 18,  4, os);
 
                             if (scm_write_ifd(s, &D, o) == 1)
                             {
@@ -233,7 +239,6 @@ off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
 
     return 0;
 }
-#endif
 
 // Move the SCM TIFF file pointer to the first IFD and return its offset.
 

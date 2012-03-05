@@ -38,14 +38,16 @@ int scm_alloc(scm *s)
 
 void scm_free(scm *s)
 {
-    int c = (s->n + 2 + s->r - 1) / s->r;
-
-    for (int i = 0; i < c; i++)
+    if (s->r)
     {
-        if (s->zipv) free(s->zipv[i]);
-        if (s->binv) free(s->binv[i]);
-    }
+        int c = (s->n + 2 + s->r - 1) / s->r;
 
+        for (int i = 0; i < c; i++)
+        {
+            if (s->zipv) free(s->zipv[i]);
+            if (s->binv) free(s->binv[i]);
+        }
+    }
     free(s->zipv);
     free(s->binv);
 
@@ -376,63 +378,6 @@ int scm_write_preface(scm *s, const char *str)
 }
 
 //------------------------------------------------------------------------------
-#if 0
-// Read, uncompress, and decode the data at the current position in SCM TIFF s.
-
-size_t scm_read_data(scm *s, float *p, size_t z)
-{
-    const size_t l = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
-    const size_t n = (s->n + 2) * (s->n + 2) * s->c;
-
-    uLong b = (uLong) l;
-
-    if (fread(s->zip, 1, z, s->fp) == z)
-    {
-        if (uncompress((Bytef *) s->bin, &b, (const Bytef *) s->zip, z) == Z_OK)
-        {
-            if (s->D.predictor.offset == 2)
-                dehdif(s->bin, s->n + 2, s->c, s->b);
-
-            btof(s->bin, p, n, s->b, s->g);
-
-            return b;
-        }
-        else apperr("Failed to uncompress data");
-    }
-    else syserr("Failed to read compressed data");
-
-    return 0;
-}
-
-// Encode, compress, and write buffer p at the current position in SCM TIFF s.
-
-size_t scm_write_data(scm *s, const float *p)
-{
-    const size_t l = (s->n + 2) * (s->n + 2) * s->c * s->b / 8;
-    const size_t n = (s->n + 2) * (s->n + 2) * s->c;
-
-    ftob(s->bin, p, n, s->b, s->g);
-
-    if (s->D.predictor.offset == 2)
-        enhdif(s->bin, s->n + 2, s->c, s->b);
-
-    uLong z = compressBound(l);
-
-    if (compress((Bytef *) s->zip, &z, (const Bytef *) s->bin, l) == Z_OK)
-    {
-        if (fwrite(s->zip, 1, z, s->fp) == z)
-        {
-            return z;
-        }
-        else syserr("Failed to write compressed data");
-    }
-    else apperr("Failed to compress data");
-
-    return 0;
-}
-#endif
-
-//------------------------------------------------------------------------------
 // The following ancillary functions perform the fine-grained tasks of binary
 // data conversion, compression and decompression, and application of the
 // horizontal difference predictor. These are abstracted into tiny adapter
@@ -501,65 +446,45 @@ static void fromzip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t c)
 
 //------------------------------------------------------------------------------
 
-int scm_read_data(scm *s, float *p, uint64_t oo,
-                                    uint64_t lo,
-                                    uint16_t sc)
+// Read a page of data into the zip caches. Store the strip offsets and lengths
+// in the given arrays. This is the serial part of the parallel input handler.
+
+int scm_read_cache(scm *s, uint8_t **zv,
+                           uint64_t oo,
+                           uint64_t lo,
+                           uint16_t sc, uint64_t *o, uint32_t *l)
 {
-    // Strip count and rows-per-strip are given by the IFD.
-
-    int i, c = sc;
-    uint64_t o[c];
-    uint32_t l[c];
-
     // Read the strip offset and length arrays.
 
-    if (scm_read(s, o, c * sizeof (uint64_t), oo) == -1) return -1;
-    if (scm_read(s, l, c * sizeof (uint32_t), lo) == -1) return -1;
+    if (scm_read(s, o, sc * sizeof (uint64_t), oo) == -1) return -1;
+    if (scm_read(s, l, sc * sizeof (uint32_t), lo) == -1) return -1;
 
     // Read each strip.
 
-    for (i = 0; i < c; i++)
-        if (scm_read(s, s->zipv[i], (size_t) l[i], (off_t) o[i]) == -1)
+    for (int i = 0; i < sc; i++)
+        if (scm_read(s, zv[i], (size_t) l[i], (off_t) o[i]) == -1)
             return -1;
-
-    // Decode each strip.
-
-    #pragma omp parallel for
-    for (i = 0; i < c; i++)
-    {
-        fromzip(s, s->binv[i],    i * s->r, s->zipv[i], l[i]);
-        fromdif(s, s->binv[i],    i * s->r);
-        frombin(s, s->binv[i], p, i * s->r);
-    }
 
     return 1;
 }
 
-int scm_write_data(scm *s, const float *p, uint64_t *oo,
-                                           uint64_t *lo,
-                                           uint16_t *sc)
+// Write a page of data from the zip caches. This is the serial part of the
+// parallel output handler. Also, in concert with scm_read_cache, this function
+// allows data to be copied from one SCM to another without the computational
+// cost of an unnecessary encode-decode cycle.
+
+int scm_write_cache(scm *s, uint8_t **zv,
+                            uint64_t *oo,
+                            uint64_t *lo,
+                            uint16_t *sc, uint64_t *o, uint32_t *l)
 {
-    // Strip count is total rows / rows-per-strip rounded up.
-
-    int i, c = (s->n + 2 + s->r - 1) / s->r;
-    uint64_t o[c];
-    uint32_t l[c];
+    int   c = (int) (*sc);
     off_t t;
-
-    // Encode each strip for writing. This is our hot spot.
-
-    #pragma omp parallel for
-    for (i = 0; i < c; i++)
-    {
-        tobin(s, s->binv[i], p, i * s->r);
-        todif(s, s->binv[i],    i * s->r);
-        tozip(s, s->binv[i],    i * s->r, s->zipv[i], l + i);
-    }
 
     // Write each strip to the file, noting all offsets.
 
-    for (i = 0; i < c; i++)
-        if ((t = scm_write(s, s->zipv[i], (size_t) l[i])) > 0)
+    for (int i = 0; i < c; i++)
+        if ((t = scm_write(s, zv[i], (size_t) l[i])) > 0)
             o[i] = (uint64_t) t;
         else
             return -1;
@@ -576,9 +501,64 @@ int scm_write_data(scm *s, const float *p, uint64_t *oo,
     else
         return -1;
 
+    return 1;
+}
+
+//------------------------------------------------------------------------------
+
+// Read and decode a page of data to the given float buffer.
+
+int scm_read_data(scm *s, float *p, uint64_t oo,
+                                    uint64_t lo,
+                                    uint16_t sc)
+{
+    // Strip count and rows-per-strip are given by the IFD.
+
+    int i, c = sc;
+    uint64_t o[c];
+    uint32_t l[c];
+
+    if (scm_read_cache(s, s->zipv, oo, lo, sc, o, l) > 0)
+    {
+        // Decode each strip.
+
+        #pragma omp parallel for
+        for (i = 0; i < c; i++)
+        {
+            fromzip(s, s->binv[i],    i * s->r, s->zipv[i], l[i]);
+            fromdif(s, s->binv[i],    i * s->r);
+            frombin(s, s->binv[i], p, i * s->r);
+        }
+        return 1;
+    }
+    return -1;
+}
+
+// Encode and write a page of data from the given float buffer.
+
+int scm_write_data(scm *s, const float *p, uint64_t *oo,
+                                           uint64_t *lo,
+                                           uint16_t *sc)
+{
+    // Strip count is total rows / rows-per-strip rounded up.
+
+    int i, c = (s->n + 2 + s->r - 1) / s->r;
+    uint64_t o[c];
+    uint32_t l[c];
+
+    // Encode each strip for writing. This is our hot spot.
+
+    #pragma omp parallel for
+    for (i = 0; i < c; i++)
+    {
+        tobin(s, s->binv[i], p, i * s->r);
+        todif(s, s->binv[i],    i * s->r);
+        tozip(s, s->binv[i],    i * s->r, s->zipv[i], l + i);
+    }
+
     *sc = (uint16_t) c;
 
-    return 1;
+    return scm_write_cache(s, s->zipv, oo, lo, sc, o, l);
 }
 
 //------------------------------------------------------------------------------

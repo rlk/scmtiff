@@ -20,7 +20,7 @@ int convert(int, char **, const char *, const char *,
 
 int main(int argc, char **argv)
 {
-    const char *p    = "convert";
+    const char *p    = NULL;
     const char *m    = "sum";
     const char *o    = NULL;
     const char *t    = NULL;
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
             case '?': apperr("Bad option -%c", optopt);             break;
         }
 
-    if (h)
+    if (p == NULL || h)
         apperr("\nUsage: %s [-p process] [-o output] [options] input [...]\n\n"
                 "\t%s -p convert [options]\n"
                 "\t\t-t text  . . . Image description text file\n"
@@ -99,38 +99,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-#if 0
-int main(int argc, char **argv)
-{
-    setexe(argv[0]);
-
-    if (argc > 3)
-    {
-        if      (strcmp(argv[1], "-convert") == 0)
-            return convert(argc, argv);
-
-        else if (strcmp(argv[1], "-combine") == 0)
-            return combine(argc, argv);
-
-        else if (strcmp(argv[1], "-mipmap")  == 0)
-            return mipmap (argc, argv);
-
-        else if (strcmp(argv[1], "-border")  == 0)
-            return border (argc, argv);
-
-        else if (strcmp(argv[1], "-normal")  == 0)
-            return normal (argc, argv);
-    }
-    else
-        apperr("\nUsage:"
-               "\t%s -convert [-o outfile] [-n samples] [-d depth] infile\n"
-               "\t%s -combine [-o outfile]                         infile...\n"
-               "\t%s -mipmap  [-o outfile]                         infile\n"
-               "\t%s -border  [-o outfile]                         infile\n"
-               "\t%s -normal  [-o outfile] [-r0 rad] [-r1 rad]     infile",
-            argv[0], argv[0], argv[0], argv[0], argv[0]);
-
-    return 0;
-}
-#endif

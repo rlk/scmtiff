@@ -163,7 +163,7 @@ static int data_init(int argc, char **argv)
                 filev[filec++].paged = d;
             }
 
-    if (N && C)
+    if (filec && N && C)
     {
         if ((buf = (GLfloat *) malloc(N * N * C * sizeof (GLfloat))))
         {
