@@ -182,7 +182,6 @@ int border(int argc, char **argv, const char *o)
             if ((t = scm_ofile(out, n, c, b, g, T)))
             {
                 process(s, t);
-                scm_relink(t);
                 scm_close(t);
             }
             scm_close(s);

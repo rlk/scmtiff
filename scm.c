@@ -42,7 +42,7 @@ scm *scm_ifile(const char *name)
 
     if ((s = (scm *) calloc(sizeof (scm), 1)))
     {
-        if ((s->fp = fopen(name, "rb")))
+        if ((s->fp = fopen(name, "r+b")))
         {
             if (scm_read_preface(s) == 1)
             {

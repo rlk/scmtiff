@@ -10,6 +10,7 @@
 //------------------------------------------------------------------------------
 
 int normal (int, char **, const char *, const float *);
+int relink (int, char **);
 int border (int, char **, const char *);
 int mipmap (int, char **, const char *);
 int combine(int, char **, const char *, const char *);
@@ -73,12 +74,13 @@ int main(int argc, char **argv)
                 "\t%s -p combine [-m mode]\n"
                 "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m sum . . . . Combine by sum\n\n"
-                "\t%s -p mipmap [options]\n\n"
-                "\t%s -p border [options]\n\n"
+                "\t%s -p mipmap\n\n"
+                "\t%s -p border\n\n"
+                "\t%s -p relink\n\n"
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
 
-                argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
+                argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
 
     else if (strcmp(p, "convert") == 0)
         return convert(argc - optind, argv + optind, o, t, n, d, b, g, L, P, N);
@@ -91,6 +93,9 @@ int main(int argc, char **argv)
 
     else if (strcmp(p, "border") == 0)
         return border (argc - optind, argv + optind, o);
+
+    else if (strcmp(p, "relink") == 0)
+        return relink (argc - optind, argv + optind);
 
     else if (strcmp(p, "normal") == 0)
         return normal (argc - optind, argv + optind, o, R);
