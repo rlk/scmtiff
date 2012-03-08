@@ -55,8 +55,9 @@ float lerp2(float a, float b, float c, float d, float s, float t)
 void slerp1(float *a, const float *b, const float *c, float t)
 {
     const float k = acosf(b[0] * c[0] + b[1] * c[1] + b[2] * c[2]);
-    const float u = sinf(k - t * k) / sinf(k);
-    const float v = sinf(    t * k) / sinf(k);
+    const float s = 1.f - t;
+    const float u = sinf(s * k) / sinf(k);
+    const float v = sinf(t * k) / sinf(k);
 
     a[0] = b[0] * u + c[0] * v;
     a[1] = b[1] * u + c[1] * v;

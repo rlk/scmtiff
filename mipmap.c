@@ -95,14 +95,8 @@ static void append(scm *s, scm *t, off_t b)
 
         int x;
 
-#if 0
         for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
             b = scm_repeat(t, b, s, o);
-#else
-        for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
-            if (scm_read_page(s, o, p))
-                b = scm_append(t, b, x, p);
-#endif
     }
 }
 
