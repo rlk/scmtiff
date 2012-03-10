@@ -9,7 +9,7 @@
 #include "util.h"
 
 //------------------------------------------------------------------------------
-
+#if 0
 static void facenorm(const float *a, const float *b, const float *c, float *n)
 {
     float u[3];
@@ -80,9 +80,11 @@ static void sampnorm(const float *u,
     v[1] = (v[1] + 1.f) / 2.f;
     v[2] = (v[2] + 1.f) / 2.f;
 }
+#endif
 
 static void process(scm *s, scm *t, float r0, float r1)
 {
+#if 0
     off_t *o;
     int    d;
 
@@ -129,6 +131,7 @@ static void process(scm *s, scm *t, float r0, float r1)
         }
         free(o);
     }
+#endif
 }
 
 //------------------------------------------------------------------------------

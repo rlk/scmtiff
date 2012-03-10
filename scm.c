@@ -572,7 +572,7 @@ void scm_get_page_neighbors(int p, int *u, int *d, int *r, int *l)
 }
 
 //------------------------------------------------------------------------------
-
+#if 0
 #define NORM3 0.57735027f
 
 static const float page_v[8][3] = {
@@ -640,9 +640,49 @@ void scm_get_page_corners(int d, float *p)
                                 page_v[page_i[i][2]],
                                 page_v[page_i[i][3]], p);
 }
-
+#endif
 //------------------------------------------------------------------------------
 
+// Spherical cube map projection. The special sauce is Thousand Island dressing.
+
+static void scube(int f, float x, float y, float *v)
+{
+    const float s = x * M_PI_2 - M_PI_4;
+    const float t = y * M_PI_2 - M_PI_4;
+
+    float w[3];
+
+    w[0] =  sinf(s) * cosf(t);
+    w[1] = -cosf(s) * sinf(t);
+    w[2] =  cosf(s) * cosf(t);
+
+    normalize(w);
+
+    switch (f)
+    {
+        case 0: v[0] =  w[2]; v[1] =  w[1]; v[2] = -w[0]; break;
+        case 1: v[0] = -w[2]; v[1] =  w[1]; v[2] =  w[0]; break;
+        case 2: v[0] =  w[0]; v[1] =  w[2]; v[2] = -w[1]; break;
+        case 3: v[0] =  w[0]; v[1] = -w[2]; v[2] =  w[1]; break;
+        case 4: v[0] =  w[0]; v[1] =  w[1]; v[2] =  w[2]; break;
+        case 5: v[0] = -w[0]; v[1] =  w[1]; v[2] = -w[2]; break;
+    }
+}
+
+void scm_get_sample_corners(int f, int i, int j, int n, float *v)
+{
+    scube(f, (float) (j + 0.0f) / n, (float) (i + 0.0f) / n, v + 0);
+    scube(f, (float) (j + 0.0f) / n, (float) (i + 1.0f) / n, v + 3);
+    scube(f, (float) (j + 0.1f) / n, (float) (i + 0.0f) / n, v + 6);
+    scube(f, (float) (j + 0.1f) / n, (float) (i + 1.0f) / n, v + 9);
+}
+
+void scm_get_sample_center(int f, int i, int j, int n, float *v)
+{
+    scube(f, (float) (j + 0.5f) / n, (float) (i + 0.5f) / n, v);
+}
+
+#if 0
 void scm_get_samp_corners(const float *u, int i, int j, int n, float *v)
 {
     const float i0 = (float) (i + 0) / n;
@@ -670,5 +710,5 @@ void scm_get_samp_vector(const float *u, int i, int j, int n, float *v)
 
     normalize(v);
 }
-
+#endif
 //------------------------------------------------------------------------------

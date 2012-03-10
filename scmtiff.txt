@@ -95,3 +95,15 @@ scmtiff -pconvert -n512 -d3 -P90,12,15 ldem_45n_100m.lbl
 	real    4m8.795s
 	user    0m0.072s
 	sys     0m0.132s
+
+a b g h l o p q y z
+
+c
+d e
+f
+x y z
+i j k
+m n
+s t r
+u v w
+x
