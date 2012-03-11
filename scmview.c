@@ -379,13 +379,13 @@ static void display(void)
         glBegin(GL_QUADS);
         {
             glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-            glTexCoord2f(1.f, 1.f);
-            glVertex2f(0.f, 0.f);
             glTexCoord2f(0.f, 1.f);
+            glVertex2f(0.f, 0.f);
+            glTexCoord2f(1.f, 1.f);
             glVertex2f(1.f, 0.f);
-            glTexCoord2f(0.f, 0.f);
-            glVertex2f(1.f, 1.f);
             glTexCoord2f(1.f, 0.f);
+            glVertex2f(1.f, 1.f);
+            glTexCoord2f(0.f, 0.f);
             glVertex2f(0.f, 1.f);
         }
         glEnd();

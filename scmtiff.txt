@@ -96,6 +96,19 @@ scmtiff -pconvert -n512 -d3 -P90,12,15 ldem_45n_100m.lbl
 	user    0m0.072s
 	sys     0m0.132s
 
+
+Process output order
+	breadth-first
+		combine
+		border
+		mipmap
+	depth-first
+		convert
+		normal
+	input-order
+		relink
+
+
 a b g h l o p q y z
 
 c

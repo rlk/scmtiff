@@ -100,11 +100,11 @@ static int process(scm *s, scm *t)
     const int n = scm_get_n(s) + 2;
     const int c = scm_get_c(s);
 
-    off_t   b = 0;
-    off_t  *m;
+    off_t  b = 0;
+    off_t *m;
     float *p;
     float *q;
-    int     d;
+    int    d;
 
     if ((d = scm_mapping(s, &m)) >= 0)
     {

@@ -277,9 +277,9 @@ void scm_relink(scm *s)
 
     if ((d = scm_mapping(s, &m)))
     {
-	int X = scm_get_page_count(d);
+    	int e = scm_get_page_count(d);
 
-        for (int x = 0; x < X; ++x)
+        for (int x = 0; x < e; ++x)
             if (m[x] && scm_read_ifd(s, &i, m[x]) == 1)
             {
                 int x0 = scm_get_page_child(x, 0);
@@ -287,10 +287,10 @@ void scm_relink(scm *s)
                 int x2 = scm_get_page_child(x, 2);
                 int x3 = scm_get_page_child(x, 3);
 
-                i.sub[0] = (x0 < X) ? m[x0] : 0;
-                i.sub[1] = (x1 < X) ? m[x1] : 0;
-                i.sub[2] = (x1 < X) ? m[x2] : 0;
-                i.sub[3] = (x1 < X) ? m[x3] : 0;
+                i.sub[0] = (x0 < e) ? m[x0] : 0;
+                i.sub[1] = (x1 < e) ? m[x1] : 0;
+                i.sub[2] = (x1 < e) ? m[x2] : 0;
+                i.sub[3] = (x1 < e) ? m[x3] : 0;
 
                 scm_write_ifd(s, &i, m[x]);
             }
