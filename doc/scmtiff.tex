@@ -3,24 +3,29 @@
 \usepackage{microtype}
 \usepackage{mathptmx}
 \usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{color}
-\usepackage[group-minimum-digits=3,
-            group-separator={,}]{siunitx}
+\usepackage{amsmath}
+%\usepackage{color}
+\usepackage{xfrac}
+\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 \usepackage{bigstrut}
+\usepackage{hyperref}
 
 \setverbatimfont{\normalfont\ttfamily\small}
 
 \headstyles{bringhurst}
 \hypersetup{bookmarksopen,
-      bookmarksnumbered,
-      colorlinks=true,
-      citecolor=red,
-      filecolor=red,
-      urlcolor=red}
+            bookmarksnumbered,
+            colorlinks=true,
+            citecolor=red,
+            filecolor=red,
+            urlcolor=red}
+
+\newsubfloat{figure}
+\makepagenote
 
 %-------------------------------------------------------------------------------
 
+\newcommand{\threed}  {3D}
 \newcommand{\opengl}  {\textsc{OpenGL}}
 \newcommand{\scm}     {\textsc{scm}}
 \newcommand{\tiff}    {\textsc{tiff}}
@@ -32,6 +37,9 @@
 
 \newcommand{\B}{\bigstrut[b]}
 \newcommand{\T}{\bigstrut[t]}
+
+\newcommand{\Pos}[1]{\phantom{-}{#1}}
+\newcommand{\Neg}[1]{        {-}{#1}}
 
 %-------------------------------------------------------------------------------
 
@@ -83,7 +91,6 @@ $d$& $w_{\,512}$& $h_{\,512}$& $w_{\,720}$& $h_{\,720}$& $m$ \B\\\hline
 Each page is identified by an index giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
 
 The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. This root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
-
 \[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
 
 Much like the classical binary heap data structure, \scm\ tree indices represent positions in a complete tree, and parent-child relationships follow from straightforward integer arithmetic. If page $p_j$ is the parent of page $p_i$ then
@@ -99,6 +106,48 @@ The \scm\ tree level $l$ at which page $p_i$ appears is
 \[l=\frac{\lfloor\log_2\,(i+2)\rfloor - 1}{2}\]
 
 When processing and rendering \scm\ data, it is often necessary to know the indices of spatially adjacent pages. This relationship does not emerge readily, and is somewhat more challenging to compute. An implementation, provided in the source, has complexity linear in the distance to the adjacent pages' first common ancestor.
+
+The mapping of \scm\ image data onto the sphere proceeds as follows. For an $n\times n$ raster image applied to the $+Z$ face of the cube, the pixel at row~$r$ and column~$c$ gives a datum at a position on the sphere $(\alpha, \beta)$, where
+\[\alpha=90^{\circ}\,\frac{c + \sfrac{1}{2}}{n} - 45^{\circ}\qquad\beta=90^{\circ}\,\frac{r + \sfrac{1}{2}}{n} - 45^{\circ}.\]
+which corresponds to the \threed\ vector
+\begin{align*}
+x& = \phantom{-}\sin\alpha\, \cos\beta\\
+y& =         {-}\cos\alpha\, \sin\beta\\
+z& = \phantom{-}\cos\alpha\, \cos\beta.
+\end{align*}
+
+This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\), but when normalization is required, that formulation is not necessarily preferable to the more general \(\sqrt{x^2+y^2+z^2}\).
+
+Vectors within all six root faces are simple $90^\circ$ rotations of this definition, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
+
+\begin{center}
+\begin{tabular}{rr|r|r|r|r|r}
+    &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\\\hline
+$x'=$&$\Pos{z}$&$\Neg{z}$&$\Pos{x}$&$\Pos{x}$&$\Pos{x}$&$\Neg{x}$\\
+$y'=$&$\Pos{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$&$\Pos{y}$&$\Pos{y}$\\
+$z'=$&$\Neg{x}$&$\Pos{x}$&$\Neg{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$\\
+\end{tabular}
+\end{center}
+
+The root face orientations given by this swizzle table do match the definition of a standard \opengl\ cube map, and it is the non-linear mapping from row and column to 3D vector that puts the ``spherical'' in ``spherical cube map.'' While more expensive to compute, this mapping is more amenable to the delivery of high resolution spherical data sets, as it provides a more uniform tesselation of the sphere, and thus a more consistent density of data at every point on its surface.
+
+As depicted by Figure~\ref{fig:cube}, linear cube map samples stretch in the center of the face and compress toward the edges. All tessellations of the sphere demonstrate some degree of similar non-uniformity, but the spherical cube map, shown in Figure~\ref{fig:scube} is visibly closer to the impossible ideal. Specifically, the very smallest pixels of a linear cube map, found at the corners, have only $19\%$ of the area of the largest pixels at the cube face centers. In contrast, the smallest pixels of a spherical cube map face, found at the centers of the face edges, have $70\%$ of the area of the largest pixels at the face centers.\pagenote{In an unexpected result, as the resolution of an \scm\ page tends toward infinity, the ratio of the solid angle of a center pixel (the largest pixel) to the solid angle of an edge pixel (the smallest pixel) tends toward exactly $\sqrt{2}/2$.} The corners pixels of an \scm\ are actually \emph{not} the smallest, with $76\%$ the area of the center pixels.
+
+Furthermore, all of the pixels along each row and column of an \scm\ page have equal edge length. Additionally (though not obviously useful) the \scm\ mapping has the elegant property that each row and column of pixels falls along a great circle on the sphere.
+
+\begin{figure}
+  \centering
+  \subbottom[Linear cube map]{\includegraphics[width=0.3\textwidth]{fig/cube.pdf}\label{fig:cube}}
+  \hfil
+  \subbottom[Spherical cube map]{\includegraphics[width=0.3\textwidth]{fig/scube.pdf}\label{fig:scube}}
+  \hfil
+  \subbottom[Overlaid]{\includegraphics[width=0.3\textwidth]{fig/both.pdf}\label{fig:both}}
+  \caption{A comparison of linear and spherical cube map pixel uniformity}
+  \label{fig:uniformity}
+\end{figure}
+
+% ratios of longest to shortest sides
+% most extreme angles
 
 \chapter{Interactive Display}
 
@@ -217,5 +266,6 @@ This is a list of issues to be aware of, should trouble arise.
 \item If performance is sluggish, be sure that panorama image files are not being accessed from a network share.
 \end{itemize}
 
+\printpagenotes
 \end{Spacing}
 \end{document}
