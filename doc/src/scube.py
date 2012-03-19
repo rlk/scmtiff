@@ -8,7 +8,7 @@ from svg    import *
 
 def cube(r, c, n):
     return vnormalize((2.0 * float(c) / float(n) - 1.0,
-                       2.0 * float(r) / float(n) - 1.0, 1.0))
+                      -2.0 * float(r) / float(n) + 1.0, 1.0))
 
 # Return the vector at the lower-left corner of the the pixel at row r and
 # column c of an n-by-n spherical cube map face.
@@ -122,41 +122,37 @@ def write_both_face(name, n):
 #-------------------------------------------------------------------------------
 # Compute the ratios of largest to smallest pixel areas
 
-def report(a, b):
-    print(a, b, a / b)
+def report(s, a, b):
+    print(s, a, b, a / b)
 
-n = 1024
+n = 256
 
-report(reduce(min, map(lambda c:  cube_edge_length(0, c, n), range(0, n+1))),
-       reduce(max, map(lambda c:  cube_edge_length(0, c, n), range(0, n+1))))
+def grid(n):
+    for r in range(0, n-1):
+        for c in range(0, n-1):
+            yield((r, c))
 
-report(reduce(min, map(lambda c:  cube_edge_length(n/2, c, n), range(0, n+1))),
-       reduce(max, map(lambda c:  cube_edge_length(n/2, c, n), range(0, n+1))))
+# report("Cube edge length:",
+#        reduce(min, [cube_edge_length(r, c, n) for (r, c) in grid(n)]),
+#        reduce(max, [cube_edge_length(r, c, n) for (r, c) in grid(n)]))
 
-report(reduce(min, map(lambda c:  cube_edge_length(0,   c, n), range(0, n+1))),
-       reduce(max, map(lambda c:  cube_edge_length(n/2, c, n), range(0, n+1))))
+# report("Scube edge length:",
+#        reduce(min, [scube_edge_length(r, c, n) for (r, c) in grid(n)]),
+#        reduce(max, [scube_edge_length(r, c, n) for (r, c) in grid(n)]))
 
-report(reduce(min, map(lambda c: scube_edge_length(0, c, n), range(0, n+1))),
-       reduce(max, map(lambda c: scube_edge_length(0, c, n), range(0, n+1))))
+# report("Cube sample area:",
+#        reduce(min, [cube_solid_angle(r, c, n) for (r, c) in grid(n)]),
+#        reduce(max, [cube_solid_angle(r, c, n) for (r, c) in grid(n)]))
 
-report(reduce(min, map(lambda c: scube_edge_length(n/2, c, n), range(0, n+1))),
-       reduce(max, map(lambda c: scube_edge_length(n/2, c, n), range(0, n+1))))
+# report("Scube sample area:",
+#        reduce(min, [scube_solid_angle(r, c, n) for (r, c) in grid(n)]),
+#        reduce(max, [scube_solid_angle(r, c, n) for (r, c) in grid(n)]))
 
-report(reduce(min, map(lambda c: scube_edge_length(0,   c, n), range(0, n+1))),
-       reduce(max, map(lambda c: scube_edge_length(n/2, c, n), range(0, n+1))))
+# If these give zero, then each row and column falls along a great circle.
+# Both do.
 
-#-------------------------------------------------------------------------------
-# Compute the variation in edge length
-
-n = 1024
-
-print(vdistance(cube(0,   0,   n), cube(0,   1,     n)))
-print(vdistance(cube(0,   n/2, n), cube(0,   n/2+1, n)))
-print(vdistance(cube(n/2, n/2, n), cube(n/2, n/2+1, n)))
-
-print(vdistance(scube(0,   0,   n), scube(0,   1,     n)))
-print(vdistance(scube(0,   n/2, n), scube(0,   n/2+1, n)))
-print(vdistance(scube(n/2, n/2, n), scube(n/2, n/2+1, n)))
+print(reduce(max, [vplane(cube(r, 0, n), cube(r, n/2, n), cube(r, n, n))[3] for r in range(0, n+1)]))
+print(reduce(max, [vplane(scube(r, 0, n), scube(r, n/2, n), scube(r, n, n))[3] for r in range(0, n+1)]))
 
 #-------------------------------------------------------------------------------
 # Draw figures of the cube and scube faces

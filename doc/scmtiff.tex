@@ -4,7 +4,6 @@
 \usepackage{mathptmx}
 \usepackage{graphicx}
 \usepackage{amsmath}
-%\usepackage{color}
 \usepackage{xfrac}
 \usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 \usepackage{bigstrut}
@@ -51,12 +50,8 @@
 
 % Recursive subdivision
 % Effective resolution
-% SLERP
-%     Demonstrate equivalence of SLERP and recursion?
-% Page index mathematical relationships
-% Page neighbor relationships
 
-% SCM TIFF
+% SCMTIFF
 %     Many modes
 
 % Example: WAC global ortho blending
@@ -66,12 +61,69 @@
 
 \chapter{Spherical Cube Map}
 
-\section{Page Indexing}
-The effective sphere map resolution of an \scm\ tree with page size $n$ and depth $d$ is
-\[w=n\,2^{d+2}\qquad h=n\,2^{d+1}.\]
+\section{Spherical sampling}
 
-The total number of pages in an \scm\ tree of depth $d$ is
+The mapping of image data onto the sphere is intuitively similar to a standard \opengl\ cube map. Begin by considering an $n\times n$ raster image applied to the $+Z$ face of a cube. For a spherical cube map, the pixel at row~$r$ and column~$c$ gives a sample at a position $(\alpha, \beta)$ on the sphere, where
+\[\alpha=90^{\circ}\,\frac{c + \sfrac{1}{2}}{n} - 45^{\circ}\qquad\beta=90^{\circ}\,\frac{r + \sfrac{1}{2}}{n} - 45^{\circ}.\]
+This corresponds to the \threed\ vector
+\begin{align*}
+x& = \phantom{-}\sin\alpha\, \cos\beta\\
+y& =         {-}\cos\alpha\, \sin\beta\\
+z& = \phantom{-}\cos\alpha\, \cos\beta.
+\end{align*}
+
+This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\), but when normalization is required, one will probably prefer the more familiar divisor \(\sqrt{x^2+y^2+z^2}\).
+
+Vectors within the remaining cube faces are simple $90^\circ$ rotations of the definition for $+Z$, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
+\begin{center}
+\begin{tabular}{rr|r|r|r|r|r}
+    &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\\\hline
+$x'=$&$\Pos{z}$&$\Neg{z}$&$\Pos{x}$&$\Pos{x}$&$\Pos{x}$&$\Neg{x}$\\
+$y'=$&$\Pos{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$&$\Pos{y}$&$\Pos{y}$\\
+$z'=$&$\Neg{x}$&$\Pos{x}$&$\Neg{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$\\
+\end{tabular}
+\end{center}
+
+The cube face orientations given by this swizzle table match the definition of a standard \opengl\ linear cube map. It is the non-linear mapping from row and column to 3D vector that puts the ``spherical'' in ``spherical cube map.'' While more expensive to compute, this mapping is more amenable to the delivery of high resolution spherical data sets, as it provides a more uniform tesselation of the sphere, and thus a more consistent density of data at every point on its surface.
+
+As depicted by Figure~\ref{fig:cube}, linear cube map samples stretch in the center of the face and compress toward the edges. While all tessellations of the sphere necessarily demonstrate some degree of similar non-uniformity, the spherical cube map, Figure~\ref{fig:scube}, is visibly closer to the impossible ideal. Specifically, the very smallest samples of a linear cube map, found at the corners, have only $19\%$ of the area of the largest samples at the cube face centers. That is, samples near the center of a cube map face cover more than \emph{five times} the area of samples at the corners. In contrast, the smallest samples of a spherical cube map face, found at the centers of the face edges, have $70\%$ of the area of the largest samples at the face centers.\pagenote{In an unexpected result, as the resolution of an \scm\ page tends toward infinity, the ratio of the solid angle of a center pixel (the largest pixel) to the solid angle of an edge pixel (the smallest pixel) tends toward exactly $\sqrt{2}/2$.} The corner samples of an \scm\ are actually \emph{not} the smallest, with $76\%$ the area of the center samples.
+
+\begin{figure}
+  \centering
+  \subbottom[Linear cube map]{\includegraphics[width=0.3\textwidth]{fig/cube.pdf}\label{fig:cube}}
+  \hfil
+  \subbottom[Spherical cube map]{\includegraphics[width=0.3\textwidth]{fig/scube.pdf}\label{fig:scube}}
+  \hfil
+  \subbottom[Overlaid]{\includegraphics[width=0.3\textwidth]{fig/both.pdf}\label{fig:both}}
+  \caption{A comparison of linear and spherical cube map sample uniformity}
+  \label{fig:uniformity}
+\end{figure}
+
+Similarly, the shortest edge of the linear cube map is only $47\%$ of the length of the longest, while the shortest edge of the spherical cube map is $70\%$ of the length of the longest.\pagenote{Compounding the surprise, the ratio of the length of the shortest edge to the length of the longest edge also tends toward $\sqrt{2}/2$.}  Notably, the vertical and horizontal edges along the center of the \scm\ page all have equal lengths, which means that an \scm\ data set has constant data density along the equator, as well as along the four $90^\circ$ meridians.
+
+\section{Paging}
+
+While the \scm\ mapping does a good job of uniformly representing data on the surface of the sphere, we're not content to simply map six large images onto the six faces of an inflated cube. Large images are slow to load, and the ultimate objective of the \scm\ data structure is to support real-time viewing with near-instantaneous data access. To render a multi-giga-pixel spherical data set in real-time, an application must calculate frame-by-frame the specific subset of the data visible to the user, as well as the minimum data resolution necessary to fill all pixels of the user's display. Toward that end, the \scm\ represents a large data set in the form of a number of small pages, at a range of resolutions.
+
+The mechanism is akin to a standard \opengl\ mipmap applied to each face of the cube map. Cube faces are recursively subdivided, as shown in Figure~\ref{fig:subdivision}, with each four-sided face cut into four child faces, and the newly-created center vertex placed on the surface of the sphere. Each face of the resulting polyhedron gives one spherically-mapped page of image data. A full \scm\ tree gives \emph{all} levels of detail, up to and including the native resolution of the source data set. The six pages at depth zero (Figure~\ref{fig:cube0}) give low-resolution coverage of the entire sphere. The 24 pages at depth one (Figure~\ref{fig:cube1}) give coverage at twice that density. With each successive increase in depth, the number of pages and the total quantity of image data increases by a factor of four.
+
+\begin{figure}
+  \centering
+  \subbottom[0]{\includegraphics[width=0.18\textwidth]{fig/cube0.pdf}\label{fig:cube0}}
+  \subbottom[1]{\includegraphics[width=0.18\textwidth]{fig/cube1.pdf}\label{fig:cube1}}
+  \subbottom[2]{\includegraphics[width=0.18\textwidth]{fig/cube2.pdf}\label{fig:cube2}}
+  \subbottom[3]{\includegraphics[width=0.18\textwidth]{fig/cube3.pdf}\label{fig:cube3}}
+  \subbottom[4]{\includegraphics[width=0.18\textwidth]{fig/cube4.pdf}\label{fig:cube4}}
+  \hfil
+  \caption{Recursive subdivisions of the cube.}
+  \label{fig:subdivision}
+\end{figure}
+
+Let $d$ be the number of recursive subdivisions applied to the cube. The total number of pages in an \scm\ tree of depth $d$ is
 \[m=2^{2\,d+3}-2.\]
+
+Let $n$ be the size in pixels of each page of image data. The effective sphere map resolution of an \scm\ tree with page size $n$ and depth $d$ is
+\[w=n\,2^{d+2}\qquad h=n\,2^{d+1}.\]
 
 For reference, the following table shows the effective resolutions and page counts of \scm\ trees with depths down to $7$. Page size $n=512$ is often used for power-of-two source images, and $n=720$ works well for geographic and planetary gridded data.
 
@@ -91,7 +143,7 @@ $d$& $w_{\,512}$& $h_{\,512}$& $w_{\,720}$& $h_{\,720}$& $m$ \B\\\hline
 
 Each page is identified by an index giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
 
-The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. This root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
+The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
 \[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
 
 Much like the classical binary heap data structure, \scm\ tree indices represent positions in a complete tree, and parent-child relationships follow from straightforward integer arithmetic. If page $p_j$ is the parent of page $p_i$ then
@@ -108,50 +160,6 @@ The \scm\ tree level $l$ at which page $p_i$ appears is
 
 When processing and rendering \scm\ data, it is often necessary to know the indices of spatially adjacent pages. This relationship does not emerge readily, and is somewhat more challenging to compute. An implementation, provided in the source, has complexity linear in the distance to the adjacent pages' first common ancestor.
 
-\section{Sample Distribution}
-
-The mapping of \scm\ image data onto the sphere proceeds as follows. For an $n\times n$ raster image applied to the $+Z$ face of the cube, the pixel at row~$r$ and column~$c$ gives a datum at a position on the sphere $(\alpha, \beta)$, where
-\[\alpha=90^{\circ}\,\frac{c + \sfrac{1}{2}}{n} - 45^{\circ}\qquad\beta=90^{\circ}\,\frac{r + \sfrac{1}{2}}{n} - 45^{\circ}.\]
-which corresponds to the \threed\ vector
-\begin{align*}
-x& = \phantom{-}\sin\alpha\, \cos\beta\\
-y& =         {-}\cos\alpha\, \sin\beta\\
-z& = \phantom{-}\cos\alpha\, \cos\beta.
-\end{align*}
-
-This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\), but when normalization is required, that formulation is not necessarily preferable to the more general \(\sqrt{x^2+y^2+z^2}\).
-
-Vectors within all six root faces are simple $90^\circ$ rotations of this definition, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
-\begin{center}
-\begin{tabular}{rr|r|r|r|r|r}
-    &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\\\hline
-$x'=$&$\Pos{z}$&$\Neg{z}$&$\Pos{x}$&$\Pos{x}$&$\Pos{x}$&$\Neg{x}$\\
-$y'=$&$\Pos{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$&$\Pos{y}$&$\Pos{y}$\\
-$z'=$&$\Neg{x}$&$\Pos{x}$&$\Neg{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$\\
-\end{tabular}
-\end{center}
-
-The root face orientations given by this swizzle table do match the definition of a standard \opengl\ cube map, and it is the non-linear mapping from row and column to 3D vector that puts the ``spherical'' in ``spherical cube map.'' While more expensive to compute, this mapping is more amenable to the delivery of high resolution spherical data sets, as it provides a more uniform tesselation of the sphere, and thus a more consistent density of data at every point on its surface.
-
-As depicted by Figure~\ref{fig:cube}, linear cube map samples stretch in the center of the face and compress toward the edges. While all tessellations of the sphere necessarily demonstrate some degree of similar non-uniformity, the spherical cube map, Figure~\ref{fig:scube}, is visibly closer to the impossible ideal. Specifically, the very smallest pixels of a linear cube map, found at the corners, have only $19\%$ of the area of the largest pixels at the cube face centers. In contrast, the smallest pixels of a spherical cube map face, found at the centers of the face edges, have $70\%$ of the area of the largest pixels at the face centers.\pagenote{In an unexpected result, as the resolution of an \scm\ page tends toward infinity, the ratio of the solid angle of a center pixel (the largest pixel) to the solid angle of an edge pixel (the smallest pixel) tends toward exactly $\sqrt{2}/2$.} The corners pixels of an \scm\ are actually \emph{not} the smallest, with $76\%$ the area of the center pixels.
-
-\begin{figure}
-  \centering
-  \subbottom[Linear cube map]{\includegraphics[width=0.3\textwidth]{fig/cube.pdf}\label{fig:cube}}
-  \hfil
-  \subbottom[Spherical cube map]{\includegraphics[width=0.3\textwidth]{fig/scube.pdf}\label{fig:scube}}
-  \hfil
-  \subbottom[Overlaid]{\includegraphics[width=0.3\textwidth]{fig/both.pdf}\label{fig:both}}
-  \caption{A comparison of linear and spherical cube map pixel uniformity}
-  \label{fig:uniformity}
-\end{figure}
-
-Similarly, the shortest edge of the linear cube map is only $47\%$ of the length of the longest, while the shortest edge of the spherical cube map is $70\%$ of the length of the longest. Notably, the pixels along the center row and column of the \scm\ page have equal edge lengths, which means that an \scm\ data set has constant data density along the equator, as well as along four meridians.
-
-% The middle row and column of the scube face have constant edge length
-
-% ratios of longest to shortest sides
-% most extreme angles
 
 \chapter{Interactive Display}
 

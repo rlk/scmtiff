@@ -594,52 +594,6 @@ static const int page_i[6][4] = {
     { 1, 0, 3, 2 },
     { 4, 5, 6, 7 },
 };
-
-static void _get_page_corners(int i, int d, const float *A,
-                                            const float *B,
-                                            const float *C,
-                                            const float *D, float *p)
-{
-    memcpy(p + i * 12 + 0, A, 3 * sizeof (float));
-    memcpy(p + i * 12 + 3, B, 3 * sizeof (float));
-    memcpy(p + i * 12 + 6, C, 3 * sizeof (float));
-    memcpy(p + i * 12 + 9, D, 3 * sizeof (float));
-
-    if (d)
-    {
-        float N[3];
-        float S[3];
-        float W[3];
-        float E[3];
-        float M[3];
-
-        mid2(N, A, B);
-        mid2(S, C, D);
-        mid2(W, A, C);
-        mid2(E, B, D);
-        mid4(M, A, B, C, D);
-
-        _get_page_corners(scm_get_page_child(i, 0), d - 1, A, N, W, M, p);
-        _get_page_corners(scm_get_page_child(i, 1), d - 1, N, B, M, E, p);
-        _get_page_corners(scm_get_page_child(i, 2), d - 1, W, M, C, S, p);
-        _get_page_corners(scm_get_page_child(i, 3), d - 1, M, E, S, D, p);
-    }
-}
-
-// Recursively compute the corner vectors of all pages down to depth d. Assume
-// array p provides storage for scm_get_page_count(d) pages, where each page
-// is four 3D vectors (12 floats).
-
-void scm_get_page_corners(int d, float *p)
-{
-    int i;
-
-    for (i = 0; i < 6; ++i)
-        _get_page_corners(i, d, page_v[page_i[i][0]],
-                                page_v[page_i[i][1]],
-                                page_v[page_i[i][2]],
-                                page_v[page_i[i][3]], p);
-}
 #endif
 //------------------------------------------------------------------------------
 
@@ -682,33 +636,4 @@ void scm_get_sample_center(int f, int i, int j, int n, float *v)
     scube(f, (float) (j + 0.5f) / n, (float) (i + 0.5f) / n, v);
 }
 
-#if 0
-void scm_get_samp_corners(const float *u, int i, int j, int n, float *v)
-{
-    const float i0 = (float) (i + 0) / n;
-    const float i1 = (float) (i + 1) / n;
-    const float j0 = (float) (j + 0) / n;
-    const float j1 = (float) (j + 1) / n;
-
-    slerp2(v + 0, u + 0, u + 3, u + 6, u + 9, j0, i0);
-    slerp2(v + 3, u + 0, u + 3, u + 6, u + 9, j1, i0);
-    slerp2(v + 6, u + 0, u + 3, u + 6, u + 9, j0, i1);
-    slerp2(v + 9, u + 0, u + 3, u + 6, u + 9, j1, i1);
-
-    normalize(v + 0);
-    normalize(v + 3);
-    normalize(v + 6);
-    normalize(v + 9);
-}
-
-void scm_get_samp_vector(const float *u, int i, int j, int n, float *v)
-{
-    const float ic = (float) (i + 0.5f) / n;
-    const float jc = (float) (j + 0.5f) / n;
-
-    slerp2(v, u + 0, u + 3, u + 6, u + 9, jc, ic);
-
-    normalize(v);
-}
-#endif
 //------------------------------------------------------------------------------

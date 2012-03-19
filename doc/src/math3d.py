@@ -31,6 +31,16 @@ def vnormalize(v):
     k = vlength(v)
     return (v[0] / k, v[1] / k, v[2] / k)
 
+# Compute the sub of vectors a and b.
+
+def vadd(a, b):
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+# Compute the difference of vectors a and b.
+
+def vsub(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
 # Compute the cross product of vectors a and b.
 
 def vcross(a, b):
@@ -41,8 +51,13 @@ def vcross(a, b):
 # Compute the distance from a to b.
 
 def vdistance(a, b):
-    d = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-    return vlength(d)
+    return vlength(vsub(a, b))
+
+# Compute the coefficients of the plane passing through points a, b, and c.
+
+def vplane(a, b, c):
+    n = vnormalize(vcross(vsub(b, a), vsub(c, a)))
+    return (n[0], n[1], n[2], vdot(n, a))
 
 # Transform vector v by matrix M and project the result to a 3-vector.
 
