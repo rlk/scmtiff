@@ -143,7 +143,7 @@ off_t divide(scm *s, off_t b, int f, int x, int d,
 
             memset(o, 0, m * m * c * sizeof (float));
 
-            #pragma omp parallel for private(j) reduction(+:d)
+            #pragma omp parallel for private(j) reduction(+:h)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
                     h += sample(p, f, i, j, n, u, v, w,
