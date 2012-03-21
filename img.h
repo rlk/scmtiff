@@ -38,13 +38,14 @@ struct img
     float scale;
     float radius;
     float scaling_factor;
+    int   x;
 
     // Blending parameters
 
     float latc, lat0, lat1;
     float lonc, lon0, lon1;
 
-    void (*project)(img *, float, float, float *);
+    void (*project)(img *, const float *, float, float, float *);
 };
 
 //------------------------------------------------------------------------------
@@ -65,11 +66,12 @@ void *img_scanline(img *, int);
 int   img_sample  (img *, const float *, float *);
 int   img_locate  (img *, const float *);
 
-void  img_equirectangular (img *, float, float, float *);
-void  img_orthographic    (img *, float, float, float *);
-void  img_stereographic   (img *, float, float, float *);
-void  img_cylindrical     (img *, float, float, float *);
-void  img_default         (img *, float, float, float *);
+void  img_equirectangular (img *, const float *, float, float, float *);
+void  img_orthographic    (img *, const float *, float, float, float *);
+void  img_stereographic   (img *, const float *, float, float, float *);
+void  img_cylindrical     (img *, const float *, float, float, float *);
+void  img_default         (img *, const float *, float, float, float *);
+void  img_scube           (img *, const float *, float, float, float *);
 
 //------------------------------------------------------------------------------
 

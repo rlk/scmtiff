@@ -15,7 +15,7 @@ int border (int, char **, const char *);
 int mipmap (int, char **, const char *);
 int combine(int, char **, const char *, const char *);
 int convert(int, char **, const char *, const char *,
-            int, int, int, int, const float *, const float *, const float *);
+            int, int, int, int, int, const float *, const float *, const float *);
 
 //------------------------------------------------------------------------------
 
@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     int         b    = 0;
     int         g    = 0;
     int         h    = 0;
+    int         x    = -1;
     float       L[3] = { 0.f, 0.f, 0.f };
     float       P[3] = { 0.f, 0.f, 0.f };
     float       N[2] = { 0.f, 0.f };
@@ -41,7 +42,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "b:d:g:hL:m:n:N:o:p:P:t:R:")) != -1)
+    while ((c = getopt(argc, argv, "b:d:g:hL:m:n:N:o:p:P:t:R:x:")) != -1)
         switch (c)
         {
             case 'p': p = optarg;                                       break;
@@ -52,6 +53,7 @@ int main(int argc, char **argv)
             case 'd': sscanf(optarg, "%d", &d);                         break;
             case 'b': sscanf(optarg, "%d", &b);                         break;
             case 'g': sscanf(optarg, "%d", &g);                         break;
+            case 'x': sscanf(optarg, "%d", &x);                         break;
             case 'L': sscanf(optarg, "%f,%f,%f", L + 0, L + 1, L + 2);  break;
             case 'P': sscanf(optarg, "%f,%f,%f", P + 0, P + 1, P + 2);  break;
             case 'N': sscanf(optarg, "%f,%f",    N + 0, N + 1);         break;
@@ -83,7 +85,7 @@ int main(int argc, char **argv)
                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
 
     else if (strcmp(p, "convert") == 0)
-        return convert(argc - optind, argv + optind, o, t, n, d, b, g, L, P, N);
+        return convert(argc - optind, argv + optind, o, t, n, d, b, g, x, L, P, N);
 
     else if (strcmp(p, "combine") == 0)
         return combine(argc - optind, argv + optind, o, m);

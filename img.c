@@ -274,7 +274,30 @@ static inline float tolon(float a)
 
 //------------------------------------------------------------------------------
 
-void img_equirectangular(img *p, float lon, float lat, float *t)
+void img_scube(img *p, const float *v, float lon, float lat, float *t)
+{
+    float x = v[0];
+    float y = v[1];
+    float z = v[2];
+
+    switch (p->x)
+    {
+        case 0: z =  v[0]; y =  v[1]; x = -v[2]; break;
+        case 1: z = -v[0]; y =  v[1]; x =  v[2]; break;
+        case 2: x =  v[0]; z =  v[1]; y = -v[2]; break;
+        case 3: x =  v[0]; z = -v[1]; y =  v[2]; break;
+        case 4: x =  v[0]; y =  v[1]; z =  v[2]; break;
+        case 5: x = -v[0]; y =  v[1]; z = -v[2]; break;
+    }
+
+    float a = -atan2f(x, z);
+    float b = -atan2f(y, z);
+
+    t[0] = (b + M_PI / 4) / (M_PI / 2) * (p->h - 2) + 1;
+    t[1] = (a + M_PI / 4) / (M_PI / 2) * (p->w - 2) + 1;
+}
+
+void img_equirectangular(img *p, const float *v, float lon, float lat, float *t)
 {
     float x = p->radius * (lon - p->lonp) * cosf(p->latp);
     float y = p->radius * (lat);
@@ -283,7 +306,7 @@ void img_equirectangular(img *p, float lon, float lat, float *t)
     t[1] = p->s0 + x / p->scale;
 }
 
-void img_orthographic(img *p, float lon, float lat, float *t)
+void img_orthographic(img *p, const float *v, float lon, float lat, float *t)
 {
     float x = p->radius * cosf(lat) * sinf(lon - p->lonp);
     float y = p->radius * sinf(lat);
@@ -292,7 +315,7 @@ void img_orthographic(img *p, float lon, float lat, float *t)
     t[1] = p->s0 + x / p->scale;
 }
 
-void img_stereographic(img *p, float lon, float lat, float *t)
+void img_stereographic(img *p, const float *v, float lon, float lat, float *t)
 {
     float x;
     float y;
@@ -312,16 +335,17 @@ void img_stereographic(img *p, float lon, float lat, float *t)
     t[1] = p->s0 + x / p->scale;
 }
 
-void img_cylindrical(img *p, float lon, float lat, float *t)
+void img_cylindrical(img *p, const float *v, float lon, float lat, float *t)
 {
     t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
     t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
 }
 
-void img_default(img *p, float lon, float lat, float *t)
+void img_default(img *p, const float *v, float lon, float lat, float *t)
 {
     t[0] = (p->h - 1) * (M_PI_4 - 0.5f * lat) / M_PI_2;
-    t[1] = (p->w    ) * (M_PI   - 0.5f * lon) / M_PI;
+//  t[1] = (p->w    ) * (M_PI   - 0.5f * lon) / M_PI;
+    t[1] = (p->w    ) * (         0.5f * lon) / M_PI;
 }
 
 // Panoramas are spheres viewed from the inside while planets are spheres
@@ -395,7 +419,7 @@ int img_sample(img *p, const float *v, float *c)
     {
         float t[2];
 
-        p->project(p, lon, lat, t);
+        p->project(p, v, lon, lat, t);
 
         if (img_linear(p, t, c))
         {
@@ -418,7 +442,7 @@ int img_locate(img *p, const float *v)
 
     float t[2];
 
-    p->project(p, lon, lat, t);
+    p->project(p, v, lon, lat, t);
 
     if (0 <= t[0] && t[0] < p->h && 0 <= t[1] && t[1] < p->w)
         return 1;

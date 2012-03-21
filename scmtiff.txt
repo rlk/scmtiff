@@ -14,6 +14,19 @@ NOT invariant: No page order is defined.
 
 TODO:
 
+	There will HAVE to be some mechanism that limits very deep accesses
+		to shallow or sparse data sets.
+		We can't store half a billion flags for every loaded data set.
+
+		Perhaps mark known leaves and traverse to parent until a hit?
+		Perhaps the sparse map data structure will apply.
+
+	Convert all vector calculations to double
+		Leave the sample precision at single
+
+	Convert scm_mapping to a sparse representation
+		This will be necessary for NAC ROI
+
 -	Deal with repeat on combine and mipmap.
 
 -	Optimize convert overlap detection
