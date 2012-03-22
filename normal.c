@@ -12,10 +12,10 @@
 
 // Calculate the normal vector of the triangular face with vertices a, b, c.
 
-static void facenorm(const float *a, const float *b, const float *c, float *n)
+static void facenorm(const double *a, const double *b, const double *c, double *n)
 {
-    float u[3];
-    float v[3];
+    double u[3];
+    double v[3];
 
     u[0] = b[0] - a[0];
     u[1] = b[1] - a[1];
@@ -42,11 +42,11 @@ static void sampnorm(const float *p, float *q,
 {
     const float dr = r[1] - r[0];
 
-    float vn[3];
-    float vs[3];
-    float ve[3];
-    float vw[3];
-    float vc[3];
+    double vn[3];
+    double vs[3];
+    double ve[3];
+    double vw[3];
+    double vc[3];
 
     scm_get_sample_center(f, n * u + i,     n * v + j,     n * w, vc);
     scm_get_sample_center(f, n * u + i - 1, n * v + j,     n * w, vn);
@@ -54,11 +54,11 @@ static void sampnorm(const float *p, float *q,
     scm_get_sample_center(f, n * u + i,     n * v + j - 1, n * w, ve);
     scm_get_sample_center(f, n * u + i,     n * v + j + 1, n * w, vw);
 
-    float rc = p[((n + 2) * (i + 1) + (j + 1)) * c] * dr + r[0];
-    float rn = p[((n + 2) * (i + 0) + (j + 1)) * c] * dr + r[0];
-    float rs = p[((n + 2) * (i + 2) + (j + 1)) * c] * dr + r[0];
-    float re = p[((n + 2) * (i + 1) + (j + 0)) * c] * dr + r[0];
-    float rw = p[((n + 2) * (i + 1) + (j + 2)) * c] * dr + r[0];
+    double rc = p[((n + 2) * (i + 1) + (j + 1)) * c] * dr + r[0];
+    double rn = p[((n + 2) * (i + 0) + (j + 1)) * c] * dr + r[0];
+    double rs = p[((n + 2) * (i + 2) + (j + 1)) * c] * dr + r[0];
+    double re = p[((n + 2) * (i + 1) + (j + 0)) * c] * dr + r[0];
+    double rw = p[((n + 2) * (i + 1) + (j + 2)) * c] * dr + r[0];
 
     vn[0] *= rn; vn[1] *= rn; vn[2] *= rn;
     vs[0] *= rs; vs[1] *= rs; vs[2] *= rs;
@@ -66,27 +66,28 @@ static void sampnorm(const float *p, float *q,
     vw[0] *= rw; vw[1] *= rw; vw[2] *= rw;
     vc[0] *= rc; vc[1] *= rc; vc[2] *= rc;
 
-    float na[3];
-    float nb[3];
-    float nc[3];
-    float nd[3];
+    double na[3];
+    double nb[3];
+    double nc[3];
+    double nd[3];
+    double nn[3];
 
     facenorm(vc, vn, ve, na);
     facenorm(vc, ve, vs, nb);
     facenorm(vc, vs, vw, nc);
     facenorm(vc, vw, vn, nd);
 
+    nn[0] = na[0] + nb[0] + nc[0] + nd[0];
+    nn[1] = na[1] + nb[1] + nc[1] + nd[1];
+    nn[2] = na[2] + nb[2] + nc[2] + nd[2];
+
+    normalize(nn);
+
     float *o = q + 3 * ((n + 2) * (i + 1) + (j + 1));
 
-    o[0] = na[0] + nb[0] + nc[0] + nd[0];
-    o[1] = na[1] + nb[1] + nc[1] + nd[1];
-    o[2] = na[2] + nb[2] + nc[2] + nd[2];
-
-    normalize(o);
-
-    o[0] = (o[0] + 1.f) / 2.f;
-    o[1] = (o[1] + 1.f) / 2.f;
-    o[2] = (o[2] + 1.f) / 2.f;
+    o[0] = ((float) nn[0] + 1.f) / 2.f;
+    o[1] = ((float) nn[1] + 1.f) / 2.f;
+    o[2] = ((float) nn[2] + 1.f) / 2.f;
 }
 
 // Recursively traverse the tree at page x, reading input pages from SCM s and

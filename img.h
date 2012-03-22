@@ -21,31 +21,33 @@ struct img
     int    d;
     size_t n;
 
+    // Sample level parameters
+
     float norm0;
     float norm1;
+    float scaling_factor;
 
     // Projection parameters
 
-    float latmax;
-    float latmin;
-    float latp;
-    float lonmax;
-    float lonmin;
-    float lonp;
-    float l0;
-    float s0;
-    float res;
-    float scale;
-    float radius;
-    float scaling_factor;
-    int   x;
+    double latmax;
+    double latmin;
+    double latp;
+    double lonmax;
+    double lonmin;
+    double lonp;
+    double l0;
+    double s0;
+    double res;
+    double scale;
+    double radius;
+    int    x;
 
     // Blending parameters
 
-    float latc, lat0, lat1;
-    float lonc, lon0, lon1;
+    double latc, lat0, lat1;
+    double lonc, lon0, lon1;
 
-    void (*project)(img *, const float *, float, float, float *);
+    void (*project)(img *, const double *, double, double, double *);
 };
 
 //------------------------------------------------------------------------------
@@ -63,15 +65,15 @@ void img_set_defaults(img *);
 //------------------------------------------------------------------------------
 
 void *img_scanline(img *, int);
-int   img_sample  (img *, const float *, float *);
-int   img_locate  (img *, const float *);
+int   img_sample  (img *, const double *, float *);
+int   img_locate  (img *, const double *);
 
-void  img_equirectangular (img *, const float *, float, float, float *);
-void  img_orthographic    (img *, const float *, float, float, float *);
-void  img_stereographic   (img *, const float *, float, float, float *);
-void  img_cylindrical     (img *, const float *, float, float, float *);
-void  img_default         (img *, const float *, float, float, float *);
-void  img_scube           (img *, const float *, float, float, float *);
+void  img_equirectangular (img *, const double *, double, double, double *);
+void  img_orthographic    (img *, const double *, double, double, double *);
+void  img_stereographic   (img *, const double *, double, double, double *);
+void  img_cylindrical     (img *, const double *, double, double, double *);
+void  img_default         (img *, const double *, double, double, double *);
+void  img_scube           (img *, const double *, double, double, double *);
 
 //------------------------------------------------------------------------------
 

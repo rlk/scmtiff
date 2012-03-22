@@ -8,19 +8,19 @@
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 
-void  normalize(float *);
+void  normalize(double *);
 
-void  mid2(float *, const float *, const float *);
-void  mid4(float *, const float *, const float *,
-                    const float *, const float *);
+void  mid2(double *, const double *, const double *);
+void  mid4(double *, const double *, const double *,
+                    const double *, const double *);
 
 float lerp1(float, float, float);
 float lerp2(float, float, float, float, float, float);
-
-void  slerp1(float *, const float *, const float *, float);
-void  slerp2(float *, const float *, const float *,
-                      const float *, const float *, float, float);
-
+/*
+void  slerp1(double *, const double *, const double *, double);
+void  slerp2(double *, const double *, const double *,
+                      const double *, const double *, double, double);
+*/
 int extcmp(const char *, const char *);
 
 //------------------------------------------------------------------------------

@@ -21,7 +21,7 @@
 // two capture groups. If the string matches the pattern, copy the first capture
 // to the key string and the second to the val string.
 
-static int get_pair(const char *str, char *key, char *val, const char *pattern)
+static int get_pair(const char *s, char *k, char *v, const char *pattern)
 {
     char       error[STRMAX];
     regmatch_t match[3];
@@ -31,13 +31,13 @@ static int get_pair(const char *str, char *key, char *val, const char *pattern)
 
     if ((err = regcomp(&regex, pattern, REG_EXTENDED)) == 0)
     {
-        if ((err = regexec(&regex, str, 3, match, 0)) == 0)
+        if ((err = regexec(&regex, s, 3, match, 0)) == 0)
         {
-            memset(key, 0, STRMAX);
-            memset(val, 0, STRMAX);
+            memset(k, 0, STRMAX);
+            memset(v, 0, STRMAX);
 
-            strncpy(key, str + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
-            strncpy(val, str + match[2].rm_so, match[2].rm_eo - match[2].rm_so);
+            strncpy(k, s + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
+            strncpy(v, s + match[2].rm_so, match[2].rm_eo - match[2].rm_so);
 
             return 1;
         }
@@ -53,10 +53,10 @@ static int get_pair(const char *str, char *key, char *val, const char *pattern)
 // The first recognizes quoted strings and returns only the quoted contents in
 // the value. The second mops up everything else.
 
-static int get_element(const char *str, char *key, char *val)
+static int get_element(const char *s, char *k, char *v)
 {
-    return (get_pair(str, key, val, "^ *([A-Z^][A-Z_:]*) *= *\"([^\"]*)\"") ||
-            get_pair(str, key, val, "^ *([A-Z^][A-Z_:]*) *= *(.*)$"));
+    return (get_pair(s, k, v, "^ *([A-Z^][A-Z_:]*) *= *\"([^\"]*)\"") ||
+            get_pair(s, k, v, "^ *([A-Z^][A-Z_:]*) *= *(.*)$"));
 }
 
 // Read a line from the given PDS file. PDS is non-case-sensitive so convert
@@ -64,85 +64,90 @@ static int get_element(const char *str, char *key, char *val)
 // The string END signals the end of PDS label data. Stop there to avoid
 // parsing into concatenated raw data.
 
-static int get_line(char *str, size_t len, FILE *fp)
+static int get_line(char *s, int n, FILE *fp)
 {
-    if (fgets(str, len, fp))
+    if (fgets(s, n, fp))
     {
-        char *t = str;
+        char *t = s;
 
         for (; isprint(*t); ++t) *t = toupper(*t);
         for (; isspace(*t); ++t) *t = 0;
 
-        return strcmp(str, "END");
+        return strcmp(s, "END");
     }
     return 0;
 }
 
-static int get_int(const char *val)
+static int get_int(const char *v)
 {
-    return (int) strtol(val, NULL, 0);
+    return (int) strtol(v, NULL, 0);
 }
 
-static float get_real(const char *val)
+static float get_float(const char *v)
 {
-    return (float) strtod(val, NULL);
+    return (float) strtod(v, NULL);
 }
 
-static float get_angle(const char *str)
+static double get_double(const char *v)
 {
-    char val[STRMAX];
-    char dim[STRMAX];
+    return strtod(v, NULL);
+}
 
-    if (get_pair(str, val, dim, "(-?[\\.0-9]+) <([^>]+)>"))
+static double get_angle(const char *s)
+{
+    char v[STRMAX];
+    char d[STRMAX];
+
+    if (get_pair(s, v, d, "(-?[\\.0-9]+) <([^>]+)>"))
     {
-        if (strcmp(dim, "DEG"))
-            return get_real(val);
+        if (strcmp(d, "DEG"))
+            return get_double(v);
         else
-            return get_real(val) * M_PI / 180.0;
+            return get_double(v) * M_PI / 180.0;
     }
     return 0;
 }
 
-static void parse_element(img *p, const char *key, const char *val)
+static void parse_element(img *p, const char *k, const char *v)
 {
-    const float K = 1000.0f;
+    const double K = 1000.0;
 
     // Raster parameters
 
-    if      (!strcmp(key, "LINE_SAMPLES")) p->w = get_int(val);
-    else if (!strcmp(key, "LINES"))        p->h = get_int(val);
-    else if (!strcmp(key, "BANDS"))        p->c = get_int(val);
-    else if (!strcmp(key, "SAMPLE_BITS"))  p->b = get_int(val);
-    else if (!strcmp(key, "SAMPLE_TYPE"))
+    if      (!strcmp(k, "LINE_SAMPLES")) p->w = get_int(v);
+    else if (!strcmp(k, "LINES"))        p->h = get_int(v);
+    else if (!strcmp(k, "BANDS"))        p->c = get_int(v);
+    else if (!strcmp(k, "SAMPLE_BITS"))  p->b = get_int(v);
+    else if (!strcmp(k, "SAMPLE_TYPE"))
     {
-        if      (!strcmp(val, "LSB_INTEGER")) p->g = 1;
-        else if (!strcmp(val, "MSB_INTEGER")) p->g = 1;
+        if      (!strcmp(v, "LSB_INTEGER")) p->g = 1;
+        else if (!strcmp(v, "MSB_INTEGER")) p->g = 1;
     }
 
     // Projection parameters
 
-    else if (!strcmp(key,     "MAXIMUM_LATITUDE"))   p->latmax = get_angle(val);
-    else if (!strcmp(key,     "MINIMUM_LATITUDE"))   p->latmin = get_angle(val);
-    else if (!strcmp(key,      "CENTER_LATITUDE"))   p->latp   = get_angle(val);
-    else if (!strcmp(key, "EASTERNMOST_LONGITUDE"))  p->lonmax = get_angle(val);
-    else if (!strcmp(key, "WESTERNMOST_LONGITUDE"))  p->lonmin = get_angle(val);
-    else if (!strcmp(key,      "CENTER_LONGITUDE"))  p->lonp   = get_angle(val);
-    else if (!strcmp(key,         "MAP_SCALE"))      p->scale  = get_real (val);
-    else if (!strcmp(key,         "MAP_RESOLUTION")) p->res    = get_real (val);
-    else if (!strcmp(key,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_real (val);
-    else if (!strcmp(key, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_real (val);
-    else if (!strcmp(key,      "A_AXIS_RADIUS")) p->radius = K * get_real (val);
-    else if (!strcmp(key, "SCALING_FACTOR")) p->scaling_factor = get_real (val);
+    else if (!strcmp(k,     "MAXIMUM_LATITUDE"))   p->latmax = get_angle (v);
+    else if (!strcmp(k,     "MINIMUM_LATITUDE"))   p->latmin = get_angle (v);
+    else if (!strcmp(k,      "CENTER_LATITUDE"))   p->latp   = get_angle (v);
+    else if (!strcmp(k, "EASTERNMOST_LONGITUDE"))  p->lonmax = get_angle (v);
+    else if (!strcmp(k, "WESTERNMOST_LONGITUDE"))  p->lonmin = get_angle (v);
+    else if (!strcmp(k,      "CENTER_LONGITUDE"))  p->lonp   = get_angle (v);
+    else if (!strcmp(k,         "MAP_SCALE"))      p->scale  = get_double(v);
+    else if (!strcmp(k,         "MAP_RESOLUTION")) p->res    = get_double(v);
+    else if (!strcmp(k,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_double(v);
+    else if (!strcmp(k, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_double(v);
+    else if (!strcmp(k,      "A_AXIS_RADIUS")) p->radius = K * get_double(v);
+    else if (!strcmp(k, "SCALING_FACTOR")) p->scaling_factor = get_float (v);
 
-    else if (!strcmp(key, "MAP_PROJECTION_TYPE"))
+    else if (!strcmp(k, "MAP_PROJECTION_TYPE"))
     {
-        if      (!strcmp(val, "EQUIRECTANGULAR"))
+        if      (!strcmp(v, "EQUIRECTANGULAR"))
             p->project = img_equirectangular;
-        else if (!strcmp(val, "ORTHOGRAPHIC"))
+        else if (!strcmp(v, "ORTHOGRAPHIC"))
             p->project = img_orthographic;
-        else if (!strcmp(val, "POLAR STEREOGRAPHIC"))
+        else if (!strcmp(v, "POLAR STEREOGRAPHIC"))
             p->project = img_stereographic;
-        else if (!strcmp(val, "SIMPLE CYLINDRICAL"))
+        else if (!strcmp(v, "SIMPLE CYLINDRICAL"))
             p->project = img_cylindrical;
     }
 }
@@ -161,7 +166,7 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 
     p->b = 8;
     p->c = 1;
-    p->scaling_factor = 1.0;
+    p->scaling_factor = 1.0f;
 
     // Read the PDS label and interpret all PDS data elements.
 

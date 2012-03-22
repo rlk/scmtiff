@@ -572,43 +572,19 @@ void scm_get_page_neighbors(int p, int *u, int *d, int *r, int *l)
 }
 
 //------------------------------------------------------------------------------
-#if 0
-#define NORM3 0.57735027f
-
-static const float page_v[8][3] = {
-    {  NORM3,  NORM3,  NORM3 },
-    { -NORM3,  NORM3,  NORM3 },
-    {  NORM3, -NORM3,  NORM3 },
-    { -NORM3, -NORM3,  NORM3 },
-    {  NORM3,  NORM3, -NORM3 },
-    { -NORM3,  NORM3, -NORM3 },
-    {  NORM3, -NORM3, -NORM3 },
-    { -NORM3, -NORM3, -NORM3 },
-};
-
-static const int page_i[6][4] = {
-    { 0, 4, 2, 6 },
-    { 5, 1, 7, 3 },
-    { 5, 4, 1, 0 },
-    { 3, 2, 7, 6 },
-    { 1, 0, 3, 2 },
-    { 4, 5, 6, 7 },
-};
-#endif
-//------------------------------------------------------------------------------
 
 // Spherical cube map projection. The special sauce is Thousand Island dressing.
 
-static void scube(int f, float x, float y, float *v)
+static void scube(int f, double x, double y, double *v)
 {
-    const float s = x * M_PI_2 - M_PI_4;
-    const float t = y * M_PI_2 - M_PI_4;
+    const double s = x * M_PI_2 - M_PI_4;
+    const double t = y * M_PI_2 - M_PI_4;
 
-    float w[3];
+    double w[3];
 
-    w[0] =  sinf(s) * cosf(t);
-    w[1] = -cosf(s) * sinf(t);
-    w[2] =  cosf(s) * cosf(t);
+    w[0] =  sin(s) * cos(t);
+    w[1] = -cos(s) * sin(t);
+    w[2] =  cos(s) * cos(t);
 
     normalize(w);
 
@@ -623,17 +599,17 @@ static void scube(int f, float x, float y, float *v)
     }
 }
 
-void scm_get_sample_corners(int f, int i, int j, int n, float *v)
+void scm_get_sample_corners(int f, int i, int j, int n, double *v)
 {
-    scube(f, (float) (j + 0.0f) / n, (float) (i + 0.0f) / n, v + 0);
-    scube(f, (float) (j + 0.0f) / n, (float) (i + 1.0f) / n, v + 3);
-    scube(f, (float) (j + 0.1f) / n, (float) (i + 0.0f) / n, v + 6);
-    scube(f, (float) (j + 0.1f) / n, (float) (i + 1.0f) / n, v + 9);
+    scube(f, (double) (j + 0.0) / n, (double) (i + 0.0) / n, v + 0);
+    scube(f, (double) (j + 0.0) / n, (double) (i + 1.0) / n, v + 3);
+    scube(f, (double) (j + 0.1) / n, (double) (i + 0.0) / n, v + 6);
+    scube(f, (double) (j + 0.1) / n, (double) (i + 1.0) / n, v + 9);
 }
 
-void scm_get_sample_center(int f, int i, int j, int n, float *v)
+void scm_get_sample_center(int f, int i, int j, int n, double *v)
 {
-    scube(f, (float) (j + 0.5f) / n, (float) (i + 0.5f) / n, v);
+    scube(f, (double) (j + 0.5) / n, (double) (i + 0.5) / n, v);
 }
 
 //------------------------------------------------------------------------------

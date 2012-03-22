@@ -300,9 +300,9 @@ int scm_read_preface(scm *s)
         {
         	// Image size and channel count.
 
-            s->n = s->D.image_width.offset - 2;
-            s->c = s->D.samples_per_pixel.offset;
-            s->r = s->D.rows_per_strip.offset;
+            s->n = (int) s->D.image_width.offset - 2;
+            s->c = (int) s->D.samples_per_pixel.offset;
+            s->r = (int) s->D.rows_per_strip.offset;
 
             // Image description string.
 

@@ -50,8 +50,8 @@ int  scm_get_page_order (int);
 
 void scm_get_page_neighbors(int, int *, int *, int *, int *);
 
-void scm_get_sample_corners(int, int, int, int, float *);
-void scm_get_sample_center (int, int, int, int, float *);
+void scm_get_sample_corners(int, int, int, int, double *);
+void scm_get_sample_center (int, int, int, int, double *);
 
 //------------------------------------------------------------------------------
 

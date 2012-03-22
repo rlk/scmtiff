@@ -9,6 +9,8 @@ INVARIANT: All channels have the same depth and format.
 
 INVARIANT: All pages have the same size, channel count, min value, and max value.
 
+INVARIANT: All calculations giving sample values are performed in single precision float. All calculations giving sample positions are performed in double precision float. The allows fine resolution while keeping buffer sizes low.
+
 NOT invariant: No page order is defined.
 
 

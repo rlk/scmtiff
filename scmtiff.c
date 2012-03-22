@@ -15,7 +15,7 @@ int border (int, char **, const char *);
 int mipmap (int, char **, const char *);
 int combine(int, char **, const char *, const char *);
 int convert(int, char **, const char *, const char *,
-            int, int, int, int, int, const float *, const float *, const float *);
+            int, int, int, int, int, const double *, const double *, const float *);
 
 //------------------------------------------------------------------------------
 
@@ -31,8 +31,8 @@ int main(int argc, char **argv)
     int         g    = 0;
     int         h    = 0;
     int         x    = -1;
-    float       L[3] = { 0.f, 0.f, 0.f };
-    float       P[3] = { 0.f, 0.f, 0.f };
+    double      L[3] = { 0.f, 0.f, 0.f };
+    double      P[3] = { 0.f, 0.f, 0.f };
     float       N[2] = { 0.f, 0.f };
     float       R[2] = { 0.f, 1.f };
 
@@ -45,21 +45,21 @@ int main(int argc, char **argv)
     while ((c = getopt(argc, argv, "b:d:g:hL:m:n:N:o:p:P:t:R:x:")) != -1)
         switch (c)
         {
-            case 'p': p = optarg;                                       break;
-            case 'm': m = optarg;                                       break;
-            case 'o': o = optarg;                                       break;
-            case 't': t = optarg;                                       break;
-            case 'n': sscanf(optarg, "%d", &n);                         break;
-            case 'd': sscanf(optarg, "%d", &d);                         break;
-            case 'b': sscanf(optarg, "%d", &b);                         break;
-            case 'g': sscanf(optarg, "%d", &g);                         break;
-            case 'x': sscanf(optarg, "%d", &x);                         break;
-            case 'L': sscanf(optarg, "%f,%f,%f", L + 0, L + 1, L + 2);  break;
-            case 'P': sscanf(optarg, "%f,%f,%f", P + 0, P + 1, P + 2);  break;
-            case 'N': sscanf(optarg, "%f,%f",    N + 0, N + 1);         break;
-            case 'R': sscanf(optarg, "%f,%f",    R + 0, R + 1);         break;
-            case 'h': h = 1;                                            break;
-            case '?': apperr("Bad option -%c", optopt);             break;
+            case 'p': p = optarg;                                         break;
+            case 'm': m = optarg;                                         break;
+            case 'o': o = optarg;                                         break;
+            case 't': t = optarg;                                         break;
+            case 'n': sscanf(optarg, "%d", &n);                           break;
+            case 'd': sscanf(optarg, "%d", &d);                           break;
+            case 'b': sscanf(optarg, "%d", &b);                           break;
+            case 'g': sscanf(optarg, "%d", &g);                           break;
+            case 'x': sscanf(optarg, "%d", &x);                           break;
+            case 'L': sscanf(optarg, "%lf,%lf,%lf", L + 0, L + 1, L + 2); break;
+            case 'P': sscanf(optarg, "%lf,%lf,%lf", P + 0, P + 1, P + 2); break;
+            case 'N': sscanf(optarg, "%f,%f",       N + 0, N + 1);        break;
+            case 'R': sscanf(optarg, "%f,%f",       R + 0, R + 1);        break;
+            case 'h': h = 1;                                              break;
+            case '?': apperr("Bad option -%c", optopt);                   break;
         }
 
     if (p == NULL || h)

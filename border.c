@@ -51,15 +51,15 @@ static void cpy(float *p, const float *q, int c)
 }
 
 static void avg3(float *p, const float *q,
-                            const float *r,
-                            const float *s, int c)
+                           const float *r,
+                           const float *s, int c)
 {
     switch (c)
     {
-        case 4: p[3] = (q[3] + r[3] + s[3]) / 3.0;
-        case 3: p[2] = (q[2] + r[2] + s[2]) / 3.0;
-        case 2: p[1] = (q[1] + r[1] + s[1]) / 3.0;
-        case 1: p[0] = (q[0] + r[0] + s[0]) / 3.0;
+        case 4: p[3] = (q[3] + r[3] + s[3]) / 3.f;
+        case 3: p[2] = (q[2] + r[2] + s[2]) / 3.f;
+        case 2: p[1] = (q[1] + r[1] + s[1]) / 3.f;
+        case 1: p[0] = (q[0] + r[0] + s[0]) / 3.f;
     }
 }
 

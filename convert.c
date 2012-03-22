@@ -45,7 +45,7 @@ char *load_txt(const char *name)
 // Given the four corner vectors of a sample, compute the five internal vectors
 // of a quincunx filtering of that sample.
 
-static void quincunx(float *q, const float *v)
+static void quincunx(double *q, const double *v)
 {
     mid4(q + 12, v +  0, v +  3, v +  6, v +  9);
     mid2(q +  9, q + 12, v +  9);
@@ -62,9 +62,9 @@ static void quincunx(float *q, const float *v)
 static int sample(img *p, int f, int i, int j, int n,
                                  int u, int v, int w, float *o)
 {
-    float c[12];
-    float q[15];
-    int   D = 0;
+    double q[15];
+    double c[12];
+    int    D = 0;
 
     scm_get_sample_corners(f, n * u + i, n * v + j, n * w, c);
     quincunx(q, c);
@@ -110,7 +110,7 @@ int overlap(img *p, int f, int u, int v, int w)
     for     (int i = 0; i <= n; ++i)
         for (int j = 0; j <= n; ++j)
         {
-            float c[3];
+            double c[3];
 
             scm_get_sample_center(f, n * u + i, n * v + j, n * w, c);
 
@@ -202,9 +202,9 @@ int convert(int argc, char **argv, const char *o,
                                            int b,
                                            int g,
                                            int x,
-                                  const float *L,
-                                  const float *P,
-                                  const float *N)
+                                 const double *L,
+                                 const double *P,
+                                 const float  *N)
 {
     img  *p = NULL;
     scm  *s = NULL;
