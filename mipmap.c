@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "scm.h"
@@ -40,37 +41,37 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
 
 static off_t sample(scm *s, scm *t)
 {
-    off_t  b = 0;
-    off_t *m;
-    int    d;
+    long long  b = 0;
+    long long *a;
+    int        d;
 
-    if ((d = scm_mapping(s, &m)) >= 0)
+    if ((d = scm_mapping(s, &a)) >= 0)
     {
-        const int M = scm_get_page_count(d - 1);
-        const int N = scm_get_n(s) + 2;
-        const int n = scm_get_n(s);
-        const int c = scm_get_c(s);
+        const long long m = scm_get_page_count(d - 1);
+        const int       o = scm_get_n(s) + 2;
+        const int       n = scm_get_n(s);
+        const int       c = scm_get_c(s);
 
         float *p;
         float *q;
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
-            for (int x = 0; x < M; ++x)
+            for (long long x = 0; x < m; ++x)
             {
-                int i = scm_get_page_child(x, 0);
-                int j = scm_get_page_child(x, 1);
-                int k = scm_get_page_child(x, 2);
-                int l = scm_get_page_child(x, 3);
+                long long i = scm_get_page_child(x, 0);
+                long long j = scm_get_page_child(x, 1);
+                long long k = scm_get_page_child(x, 2);
+                long long l = scm_get_page_child(x, 3);
 
-                if (m[x] == 0 && (m[i] || m[j] || m[k] || m[l]))
+                if (a[x] == 0 && (a[i] || a[j] || a[k] || a[l]))
                 {
-                    memset(p, 0, N * N * c * sizeof (float));
+                    memset(p, 0, o * o * c * sizeof (float));
 
-                    if (m[i] && scm_read_page(s, m[i], q)) box(p, 0, 0, c, n, q);
-                    if (m[j] && scm_read_page(s, m[j], q)) box(p, 0, 1, c, n, q);
-                    if (m[k] && scm_read_page(s, m[k], q)) box(p, 1, 0, c, n, q);
-                    if (m[l] && scm_read_page(s, m[l], q)) box(p, 1, 1, c, n, q);
+                    if (a[i] && scm_read_page(s, a[i], q)) box(p, 0, 0, c, n, q);
+                    if (a[j] && scm_read_page(s, a[j], q)) box(p, 0, 1, c, n, q);
+                    if (a[k] && scm_read_page(s, a[k], q)) box(p, 1, 0, c, n, q);
+                    if (a[l] && scm_read_page(s, a[l], q)) box(p, 1, 1, c, n, q);
 
                     b = scm_append(t, b, x, p);
                 }
@@ -84,16 +85,15 @@ static off_t sample(scm *s, scm *t)
 
 // Append the full contents of SCM s to the current contents of SCM t.
 
-static void append(scm *s, scm *t, off_t b)
+static void append(scm *s, scm *t, long long b)
 {
     float *p;
 
     if ((p = scm_alloc_buffer(s)))
     {
-        off_t o;
-        off_t n;
-
-        int x;
+        long long o;
+        long long n;
+        long long x;
 
         for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
             b = scm_repeat(t, b, s, o);
@@ -104,16 +104,16 @@ static void append(scm *s, scm *t, off_t b)
 // append the contents of SCM s to SCM t. Return failure to indicate that no
 // processing was performed, implying that mipmapping of SCM s is complete.
 
-static int process(scm *s, scm *t)
+static bool process(scm *s, scm *t)
 {
-    off_t b;
+    long long b;
 
     if ((b = sample(s, t)))
     {
         append(s, t, b);
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 //------------------------------------------------------------------------------

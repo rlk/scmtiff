@@ -18,10 +18,10 @@
 
 struct input
 {
-    scm   *s;
-    int    d;
-    int    n;
-    off_t *m;
+    scm       *s;
+    int        d;
+    long long  m;
+    long long *a;
 };
 
 // Attempt to read and map the SCM TIFF with the given name. If successful,
@@ -31,10 +31,9 @@ static int enlist(struct input *v, int c, const char *name)
 {
     static int N = 0;
     static int C = 0;
-
-    scm   *s;
-    int    d;
-    off_t *m;
+    scm       *s;
+    int        d;
+    long long *a;
 
     if ((s = scm_ifile(name)))
     {
@@ -44,12 +43,12 @@ static int enlist(struct input *v, int c, const char *name)
             N = scm_get_n(s);
             C = scm_get_c(s);
 
-            if ((d = scm_mapping(s, &m)) >= 0)
+            if ((d = scm_mapping(s, &a)) >= 0)
             {
-                v[c].n = scm_get_page_count(d);
+                v[c].m = scm_get_page_count(d);
                 v[c].s = s;
                 v[c].d = d;
-                v[c].m = m;
+                v[c].a = a;
 
                 return ++c;
             }
@@ -97,9 +96,9 @@ static void process(scm *s, struct input *v, int c, int m)
             // Count the number of SCMs contributing to page x.
 
             for (int i = 0; i < c; ++i)
-                if (x < v[i].n && v[i].m[x])
+                if (x < v[i].m && v[i].a[x])
                 {
-                    o = v[i].m[x];
+                    o = v[i].a[x];
                     t = v[i].s;
                     k = k + 1;
                 }
@@ -116,9 +115,9 @@ static void process(scm *s, struct input *v, int c, int m)
                 memset(p, 0, N * N * C * sizeof (float));
 
                 for (int i = 0; i < c; ++i)
-                    if (x < v[i].n && v[i].m[x])
+                    if (x < v[i].m && v[i].a[x])
 
-                        if (scm_read_page(v[i].s, v[i].m[x], q))
+                        if (scm_read_page(v[i].s, v[i].a[x], q))
                         {
                             if (m)
                                 for (int j = 0; j < N * N * C; ++j)

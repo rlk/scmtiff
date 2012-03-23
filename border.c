@@ -63,7 +63,7 @@ static void avg3(float *p, const float *q,
     }
 }
 
-static void copyu(float *p, int x, float *q, int y, int n, int c)
+static void copyu(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
         cpy(pixel(p, n, c, 0, j),
@@ -71,7 +71,7 @@ static void copyu(float *p, int x, float *q, int y, int n, int c)
                            translate_j[x][y](n - 2, j, n)), c);
 }
 
-static void copyd(float *p, int x, float *q, int y, int n, int c)
+static void copyd(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
         cpy(pixel(p, n, c, n - 1, j),
@@ -79,7 +79,7 @@ static void copyd(float *p, int x, float *q, int y, int n, int c)
                            translate_j[x][y](1, j, n)), c);
 }
 
-static void copyr(float *p, int x, float *q, int y, int n, int c)
+static void copyr(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
         cpy(pixel(p, n, c, i, 0),
@@ -87,7 +87,7 @@ static void copyr(float *p, int x, float *q, int y, int n, int c)
                            translate_j[x][y](i, n - 2, n)), c);
 }
 
-static void copyl(float *p, int x, float *q, int y, int n, int c)
+static void copyl(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
         cpy(pixel(p, n, c, i, n - 1),
@@ -97,55 +97,58 @@ static void copyl(float *p, int x, float *q, int y, int n, int c)
 
 static int process(scm *s, scm *t)
 {
-    const int n = scm_get_n(s) + 2;
+    const int o = scm_get_n(s) + 2;
     const int c = scm_get_c(s);
 
-    off_t  b = 0;
-    off_t *m;
-    float *p;
-    float *q;
-    int    d;
+    long long  b = 0;
+    long long *f;
+    float     *p;
+    float     *q;
+    int        d;
 
-    if ((d = scm_mapping(s, &m)) >= 0)
+    if ((d = scm_mapping(s, &f)) >= 0)
     {
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
-            for (int x = 0; x < scm_get_page_count(d); ++x)
+            for (long long x = 0; x < scm_get_page_count(d); ++x)
             {
-                if (m[x] && scm_read_page(s, m[x], p))
+                if (f[x] && scm_read_page(s, f[x], p))
                 {
                     // Copy the borders of all adjacent pages into this one.
 
-                    int U, D, R, L;
+                    long long U;
+                    long long D;
+                    long long R;
+                    long long L;
 
                     scm_get_page_neighbors(x, &U, &D, &R, &L);
 
-                    if (m[U] && scm_read_page(s, m[U], q))
+                    if (f[U] && scm_read_page(s, f[U], q))
                         copyu(p, scm_get_page_root(x),
-                              q, scm_get_page_root(U), n, c);
-                    if (m[D] && scm_read_page(s, m[D], q))
+                              q, scm_get_page_root(U), o, c);
+                    if (f[D] && scm_read_page(s, f[D], q))
                         copyd(p, scm_get_page_root(x),
-                              q, scm_get_page_root(D), n, c);
-                    if (m[R] && scm_read_page(s, m[R], q))
+                              q, scm_get_page_root(D), o, c);
+                    if (f[R] && scm_read_page(s, f[R], q))
                         copyr(p, scm_get_page_root(x),
-                              q, scm_get_page_root(R), n, c);
-                    if (m[L] && scm_read_page(s, m[L], q))
+                              q, scm_get_page_root(R), o, c);
+                    if (f[L] && scm_read_page(s, f[L], q))
                         copyl(p, scm_get_page_root(x),
-                              q, scm_get_page_root(L), n, c);
+                              q, scm_get_page_root(L), o, c);
 
                     // Patch up the corners with an average.
 
-                    const int y = n - 2;
-                    const int z = n - 1;
+                    const int y = o - 2;
+                    const int z = o - 1;
 
-                    avg3(pixel(p, n, c, 0, 0), pixel(p, n, c, 1, 0),
-                         pixel(p, n, c, 0, 1), pixel(p, n, c, 1, 1), c);
-                    avg3(pixel(p, n, c, z, 0), pixel(p, n, c, y, 0),
-                         pixel(p, n, c, z, 1), pixel(p, n, c, y, 1), c);
-                    avg3(pixel(p, n, c, 0, z), pixel(p, n, c, 1, z),
-                         pixel(p, n, c, 0, y), pixel(p, n, c, 1, y), c);
-                    avg3(pixel(p, n, c, z, z), pixel(p, n, c, y, z),
-                         pixel(p, n, c, z, y), pixel(p, n, c, y, y), c);
+                    avg3(pixel(p, o, c, 0, 0), pixel(p, o, c, 1, 0),
+                         pixel(p, o, c, 0, 1), pixel(p, o, c, 1, 1), c);
+                    avg3(pixel(p, o, c, z, 0), pixel(p, o, c, y, 0),
+                         pixel(p, o, c, z, 1), pixel(p, o, c, y, 1), c);
+                    avg3(pixel(p, o, c, 0, z), pixel(p, o, c, 1, z),
+                         pixel(p, o, c, 0, y), pixel(p, o, c, 1, y), c);
+                    avg3(pixel(p, o, c, z, z), pixel(p, o, c, y, z),
+                         pixel(p, o, c, z, y), pixel(p, o, c, y, y), c);
 
                     // Write the resulting page to the output.
 

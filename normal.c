@@ -37,8 +37,8 @@ static void facenorm(const double *a, const double *b, const double *c, double *
 // u and v give the page location in the w-by-w subdivision of root face f.
 
 static void sampnorm(const float *p, float *q,
-                     int f, int i, int j, int n,
-                     int c, int u, int v, int w, const float *r)
+                     int f, int i, int j, int n, int c,
+                     long u, long v, long w, const float *r)
 {
     const float dr = r[1] - r[0];
 
@@ -93,12 +93,12 @@ static void sampnorm(const float *p, float *q,
 // Recursively traverse the tree at page x, reading input pages from SCM s and
 // computing normal map output pages for SCM t.
 
-static off_t divide(scm *s, off_t *o, float *p,
-                    scm *t, off_t  b, float *q,
-                    int f, int x, int d,
-                    int u, int v, int w, const float *r)
+static off_t divide(scm *s, long long *o, float *p,
+                    scm *t, long long  b, float *q,
+                    int  f, int  d, long long x,
+                    long u, long v, long w, const float *r)
 {
-    off_t a = b;
+    long long a = b;
 
     if (d >= 0)
     {
@@ -121,18 +121,18 @@ static off_t divide(scm *s, off_t *o, float *p,
 
         // Generate normal maps for the children of page x.
 
-        int x0 = scm_get_page_child(x, 0);
-        int x1 = scm_get_page_child(x, 1);
-        int x2 = scm_get_page_child(x, 2);
-        int x3 = scm_get_page_child(x, 3);
+        long long x0 = scm_get_page_child(x, 0);
+        long long x1 = scm_get_page_child(x, 1);
+        long long x2 = scm_get_page_child(x, 2);
+        long long x3 = scm_get_page_child(x, 3);
 
-        int u0 = u * 2, u1 = u0 + 1;
-        int v0 = v * 2, v1 = v0 + 1;
+        long u0 = u * 2, u1 = u0 + 1;
+        long v0 = v * 2, v1 = v0 + 1;
 
-        if (x0) a = divide(s, o, p, t, a, q, f, x0, d - 1, u0, v0, 2 * w, r);
-        if (x1) a = divide(s, o, p, t, a, q, f, x1, d - 1, u0, v1, 2 * w, r);
-        if (x2) a = divide(s, o, p, t, a, q, f, x2, d - 1, u1, v0, 2 * w, r);
-        if (x3) a = divide(s, o, p, t, a, q, f, x3, d - 1, u1, v1, 2 * w, r);
+        if (x0) a = divide(s, o, p, t, a, q, f, d - 1, x0, u0, v0, 2 * w, r);
+        if (x1) a = divide(s, o, p, t, a, q, f, d - 1, x1, u0, v1, 2 * w, r);
+        if (x2) a = divide(s, o, p, t, a, q, f, d - 1, x2, u1, v0, 2 * w, r);
+        if (x3) a = divide(s, o, p, t, a, q, f, d - 1, x3, u1, v1, 2 * w, r);
     }
     return a;
 }
@@ -142,26 +142,26 @@ static off_t divide(scm *s, off_t *o, float *p,
 
 static void process(scm *s, scm *t, const float *r)
 {
-    int    d;
-    off_t *o;
-    float *p;
-    float *q;
+    int        d;
+    long long *o;
+    float     *p;
+    float     *q;
 
     if ((d = scm_mapping(s, &o)) >= 0)
     {
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
-            off_t b = 0;
+            long long b = 0;
 
             memset(q, 0, 3 * (scm_get_n(t) + 2) *
                              (scm_get_n(t) + 2) * sizeof (float));
 
-            if (o[0]) b = divide(s, o, p, t, b, q, 0, 0, d, 0, 0, 1, r);
-            if (o[1]) b = divide(s, o, p, t, b, q, 1, 1, d, 0, 0, 1, r);
-            if (o[2]) b = divide(s, o, p, t, b, q, 2, 2, d, 0, 0, 1, r);
-            if (o[3]) b = divide(s, o, p, t, b, q, 3, 3, d, 0, 0, 1, r);
-            if (o[4]) b = divide(s, o, p, t, b, q, 4, 4, d, 0, 0, 1, r);
-            if (o[5]) b = divide(s, o, p, t, b, q, 5, 5, d, 0, 0, 1, r);
+            if (o[0]) b = divide(s, o, p, t, b, q, 0, d, 0, 0, 0, 1, r);
+            if (o[1]) b = divide(s, o, p, t, b, q, 1, d, 1, 0, 0, 1, r);
+            if (o[2]) b = divide(s, o, p, t, b, q, 2, d, 2, 0, 0, 1, r);
+            if (o[3]) b = divide(s, o, p, t, b, q, 3, d, 3, 0, 0, 1, r);
+            if (o[4]) b = divide(s, o, p, t, b, q, 4, d, 4, 0, 0, 1, r);
+            if (o[5]) b = divide(s, o, p, t, b, q, 5, d, 5, 0, 0, 1, r);
 
             free(q);
             free(p);

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <float.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 #ifdef __APPLE__
@@ -28,15 +29,15 @@
 
 struct file
 {
-    scm   *s;               // SCM file
-    int    paged;           // Depth of this SCM
-    off_t *pageo;           // Offset mapping of this SCM
-    GLuint texture;         // On-screen texture cache
+    scm       *s;               // SCM file
+    int        paged;           // Depth of this SCM
+    long long *pageo;           // Offset mapping of this SCM
+    GLuint     texture;         // On-screen texture cache
 };
 
-struct file *filev;
-static int   filec;
-static int   pagei;
+struct file     *filev;
+static int       filec;
+static long long pagei;
 
 //------------------------------------------------------------------------------
 // Viewing and interaction state
@@ -72,12 +73,12 @@ static void data_null(int n, int c)
         for     (int j = 0; j < n; ++j)
             for (int k = 0; k < c; ++k, ++l)
                 buf[l] = ((((i - 1) >> 3) & 1) ==
-                           (((j - 1) >> 3) & 1)) ? 0.4f : 0.6f;
+                          (((j - 1) >> 3) & 1)) ? 0.4f : 0.6f;
 }
 
 // Load page x from all files. Upload the data to the on-screen texture cache.
 
-static int data_load(int x)
+static int data_load(long long x)
 {
     const GLenum e[] = { 0, GL_LUMINANCE,
                             GL_LUMINANCE_ALPHA,
@@ -90,9 +91,9 @@ static int data_load(int x)
 
     for (int i = 0; i < filec; ++i)
     {
-        const int m = scm_get_page_count(filev[i].paged);
-        const int n = scm_get_n(filev[i].s) + 2;
-        const int c = scm_get_c(filev[i].s);
+        const long long m = scm_get_page_count(filev[i].paged);
+        const int       n = scm_get_n(filev[i].s) + 2;
+        const int       c = scm_get_c(filev[i].s);
 
         const off_t o = filev[i].pageo[x];
 
@@ -122,7 +123,7 @@ static int data_depth()
 
 // Determine whether any of the loaded files has a page at index x.
 
-static int data_test(int x)
+static int data_test(long long x)
 {
     for (int i = 0; i < filec; ++i)
         if (filev[i].pageo[x])
@@ -248,7 +249,7 @@ static GLuint cmap_init(GLuint prog)
 // Set the current page. Load the appropriate data from each file and set the
 // window title accordingly.
 
-static void jump(int x)
+static void jump(long long x)
 {
     char str[256];
 
@@ -256,16 +257,16 @@ static void jump(int x)
 
     pagei = x;
 
-    sprintf(str, "%d\n", x);
+    sprintf(str, "%lld\n", x);
     glutSetWindowTitle(str);
     glutPostRedisplay();
 }
 
 
-static void page(int d, int s)
+static void page(long long d, bool s)
 {
-    int M = scm_get_page_count(data_depth());
-    int x = pagei + d;
+    long long M = scm_get_page_count(data_depth());
+    long long x = pagei + d;
 
     while (s && x >= 0 && x <= M && !data_test(x))
         x += d;

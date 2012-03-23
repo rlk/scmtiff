@@ -56,12 +56,12 @@ static void quincunx(double *q, const double *v)
 }
 
 // Compute the corner vectors of the pixel at row i column j of the n-by-n page
-// with corners c. Sample that pixel by projection into image p using a quincunx
-// filtering pattern. This do-it-all function forms the kernel of the OpenMP
-// parallelization.
+// found at row u column v of the w-by-w page array on face f. (yow!) Sample
+// that pixel by projection into image p using a quincunx filtering pattern.
+// This do-it-all function forms the kernel of the OpenMP parallelization.
 
-static int sample(img *p, int f, int i, int j, int n,
-                                 int u, int v, int w, float *o)
+static int sample(img *p, int  f, int  i, int  j, int n,
+                          long u, long v, long w, float *o)
 {
     double q[15];
     double c[12];
@@ -101,8 +101,9 @@ static int sample(img *p, int f, int i, int j, int n,
     return 0;
 }
 
-// Determine whether the image intersects the four corners of a page.
-// This function is inefficient and only works under limited circumstances.
+// Determine whether the image intersects with the page at row u column v of the
+// w-by-w page array on face f. This function is inefficient and only works
+// under limited circumstances.
 
 bool overlap(img *p, int f, long u, long v, long w)
 {
@@ -125,10 +126,10 @@ bool overlap(img *p, int f, long u, long v, long w)
 // Consider page x of SCM s. Determine whether it contains any of image p.
 // If so, sample it or recursively subdivide it as needed.
 
-off_t divide(scm *s, off_t b, int f, long long x, int d,
-                              long u, long v, long w, img *p, float *o)
+long long divide(scm *s, long long b, int  f, int  d,
+                         long long x, long u, long v, long w, img *p, float *o)
 {
-    off_t a = b;
+    long long a = b;
 
     if (overlap(p, f, u, v, w))
     {
@@ -159,10 +160,10 @@ off_t divide(scm *s, off_t b, int f, long long x, int d,
             long long x2 = scm_get_page_child(x, 2);
             long long x3 = scm_get_page_child(x, 3);
 
-            a = divide(s, a, f, x0, d - 1, u * 2,     v * 2,     w * 2, p, o);
-            a = divide(s, a, f, x1, d - 1, u * 2,     v * 2 + 1, w * 2, p, o);
-            a = divide(s, a, f, x2, d - 1, u * 2 + 1, v * 2,     w * 2, p, o);
-            a = divide(s, a, f, x3, d - 1, u * 2 + 1, v * 2 + 1, w * 2, p, o);
+            a = divide(s, a, f, d - 1, x0, u * 2,     v * 2,     w * 2, p, o);
+            a = divide(s, a, f, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, o);
+            a = divide(s, a, f, d - 1, x2, u * 2 + 1, v * 2,     w * 2, p, o);
+            a = divide(s, a, f, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, p, o);
         }
     }
     return a;
@@ -180,14 +181,14 @@ int process(scm *s, int d, img *p)
 
     if ((o = (float *) calloc(m * m * c, sizeof (float))))
     {
-        off_t b = 0;
+        long long b = 0;
 
-        b = divide(s, b, 0, 0, d, 0, 0, 1, p, o);
-        b = divide(s, b, 1, 1, d, 0, 0, 1, p, o);
-        b = divide(s, b, 2, 2, d, 0, 0, 1, p, o);
-        b = divide(s, b, 3, 3, d, 0, 0, 1, p, o);
-        b = divide(s, b, 4, 4, d, 0, 0, 1, p, o);
-        b = divide(s, b, 5, 5, d, 0, 0, 1, p, o);
+        b = divide(s, b, 0, d, 0, 0, 0, 1, p, o);
+        b = divide(s, b, 1, d, 1, 0, 0, 1, p, o);
+        b = divide(s, b, 2, d, 2, 0, 0, 1, p, o);
+        b = divide(s, b, 3, d, 3, 0, 0, 1, p, o);
+        b = divide(s, b, 4, d, 4, 0, 0, 1, p, o);
+        b = divide(s, b, 5, d, 5, 0, 0, 1, p, o);
 
         free(o);
     }
