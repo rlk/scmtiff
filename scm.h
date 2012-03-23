@@ -16,15 +16,19 @@ scm *scm_ofile(const char *, int, int, int, int, const char *);
 //------------------------------------------------------------------------------
 // SCM TIFF file read/write.
 
-off_t  scm_append(scm *, off_t, int, const float *);
-off_t  scm_repeat(scm *, off_t, scm *, off_t);
-off_t  scm_rewind(scm *);
-void   scm_relink(scm *);
+void      scm_relink(scm *);
+long long scm_rewind(scm *);
+long long scm_append(scm *, long long, long long, const float *);
+long long scm_repeat(scm *, long long,
+					 scm *, long long);
 
-int    scm_read_node(scm *, off_t, off_t *, off_t *);
-size_t scm_read_page(scm *, off_t, float *);
+long long scm_read_node(scm *, long long, long long *, long long *);
+size_t    scm_read_page(scm *, long long, float *);
 
-int    scm_mapping(scm *, off_t **);
+int scm_mapping(scm *, long long **);
+
+//------------------------------------------------------------------------------
+
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries
@@ -41,17 +45,18 @@ int scm_get_g(scm *);
 //------------------------------------------------------------------------------
 // SCM TIFF breadth-first page index relationships
 
-int  scm_get_page_root  (int);
-int  scm_get_page_depth (int);
-int  scm_get_page_count (int);
-int  scm_get_page_child (int, int);
-int  scm_get_page_parent(int);
-int  scm_get_page_order (int);
+long long scm_get_page_count (long long);
+long long scm_get_page_root  (long long);
+int       scm_get_page_order (long long);
+int       scm_get_page_depth (long long);
+long long scm_get_page_parent(long long);
+long long scm_get_page_child (long long, int);
 
-void scm_get_page_neighbors(int, int *, int *, int *, int *);
+void scm_get_page_neighbors(long long, long long *, long long *,
+									   long long *, long long *);
 
-void scm_get_sample_corners(int, int, int, int, double *);
-void scm_get_sample_center (int, int, int, int, double *);
+void scm_get_sample_corners(int, long, long, long, double *);
+void scm_get_sample_center (int, long, long, long, double *);
 
 //------------------------------------------------------------------------------
 

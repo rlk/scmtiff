@@ -18,7 +18,7 @@ TODO:
 
 	Convert all indices up from int?
 
-	Convert all vector calculations to double
+-	Convert all vector calculations to double
 		Leave the sample precision at single
 
 	Convert scm_mapping to a sparse representation
@@ -31,6 +31,10 @@ TODO:
 			border  - with a small coefficient of linearity.
 
 		Build an actual quadtree in a single allocation.
+
+		QSort and BSearch will do the job
+			Assume elements are already sorted.
+				Use the midpoint pivot to avoid the worst case.
 
 	There will HAVE to be some mechanism that limits very deep accesses
 		to shallow or sparse data sets.
@@ -45,6 +49,8 @@ TODO:
 			Write a super scanner that reads ONLY SubIFDs and indices.
 				Be advised that not all SCMs are linked.
 				The LibTIFF implementation probably wont be as efficient.
+
+	Relink should guarantee that pages 0-5 exist.
 
 -	Deal with repeat on combine and mipmap.
 

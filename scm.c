@@ -111,7 +111,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 // first page index. f points to a page of data to be written. Return the offset
 // of the new page.
 
-off_t scm_append(scm *s, off_t b, int x, const float *f)
+long long scm_append(scm *s, long long b, long long x, const float *f)
 {
     assert(s);
     assert(f);
@@ -172,7 +172,7 @@ off_t scm_append(scm *s, off_t b, int x, const float *f)
 // s or encoding t. If data types do not match, then a read from s and an append
 // to t are required.
 
-off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
+long long scm_repeat(scm *s, long long b, scm *t, long long o)
 {
     assert(s);
     assert(t);
@@ -242,7 +242,7 @@ off_t scm_repeat(scm *s, off_t b, scm *t, off_t o)
 
 // Move the SCM TIFF file pointer to the first IFD and return its offset.
 
-off_t scm_rewind(scm *s)
+long long scm_rewind(scm *s)
 {
     header h;
 
@@ -277,15 +277,15 @@ void scm_relink(scm *s)
 
     if ((d = scm_mapping(s, &m)))
     {
-    	int e = scm_get_page_count(d);
+    	long long e = scm_get_page_count(d);
 
-        for (int x = 0; x < e; ++x)
+        for (long long x = 0; x < e; ++x)
             if (m[x] && scm_read_ifd(s, &i, m[x]) == 1)
             {
-                int x0 = scm_get_page_child(x, 0);
-                int x1 = scm_get_page_child(x, 1);
-                int x2 = scm_get_page_child(x, 2);
-                int x3 = scm_get_page_child(x, 3);
+                long long x0 = scm_get_page_child(x, 0);
+                long long x1 = scm_get_page_child(x, 1);
+                long long x2 = scm_get_page_child(x, 2);
+                long long x3 = scm_get_page_child(x, 3);
 
                 i.sub[0] = (x0 < e) ? m[x0] : 0;
                 i.sub[1] = (x1 < e) ? m[x1] : 0;
@@ -301,33 +301,11 @@ void scm_relink(scm *s)
 
 //------------------------------------------------------------------------------
 
-// Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
-// data to be stored.
-
-size_t scm_read_page(scm *s, off_t o, float *p)
-{
-    ifd i;
-
-    assert(s);
-
-    if (scm_read_ifd(s, &i, o) == 1)
-    {
-        uint64_t oo = (size_t) i.strip_offsets.offset;
-        uint64_t lo = (size_t) i.strip_byte_counts.offset;
-        uint16_t sc = (size_t) i.strip_byte_counts.count;
-
-        return scm_read_data(s, p, oo, lo, sc);
-    }
-    else apperr("Failed to read SCM TIFF IFD");
-
-    return 0;
-}
-
 // Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
 // null, store the next IFD offset there. If v is not null, assume it can store
 // four offsets and copy the SubIFDs there.
 
-int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
+long long scm_read_node(scm *s, long long o, long long *n, long long *v)
 {
     ifd i;
 
@@ -346,11 +324,33 @@ int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
                 v[2] = (off_t) i.sub[2];
                 v[3] = (off_t) i.sub[3];
             }
-            return (int) i.page_index.offset;
+            return (long long) i.page_index.offset;
         }
         else apperr("Failed to read SCM TIFF IFD");
     }
     return -1;
+}
+
+// Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
+// data to be stored.
+
+size_t scm_read_page(scm *s, long long o, float *p)
+{
+    ifd i;
+
+    assert(s);
+
+    if (scm_read_ifd(s, &i, o) == 1)
+    {
+        uint64_t oo = (size_t) i.strip_offsets.offset;
+        uint64_t lo = (size_t) i.strip_byte_counts.offset;
+        uint16_t sc = (size_t) i.strip_byte_counts.count;
+
+        return scm_read_data(s, p, oo, lo, sc);
+    }
+    else apperr("Failed to read SCM TIFF IFD");
+
+    return 0;
 }
 
 // Determine the file offset and page index of each IFD in SCM s. Return these
@@ -358,13 +358,12 @@ int scm_read_node(scm *s, off_t o, off_t *n, off_t *v)
 // length of this array is sufficient to store a full tree, regardless of the
 // true sparseness of SCM s.
 
-int scm_mapping(scm *s, off_t **mv)
+int scm_mapping(scm *s, long long **mv)
 {
-    int l = 0;
-    int x = 0;
-
-    off_t o;
-    off_t n;
+    long long l = 0;
+    long long x = 0;
+    long long o;
+    long long n;
 
     assert(s);
 
@@ -376,8 +375,8 @@ int scm_mapping(scm *s, off_t **mv)
 
     // Determine the index and offset of each page and initialize a mapping.
 
-    int d = scm_get_page_depth(l);
-    int m = scm_get_page_count(d);
+    int       d = scm_get_page_depth(l);
+    long long m = scm_get_page_count(d);
 
     if ((*mv = (off_t *) calloc(m, sizeof (off_t))))
     {
@@ -388,6 +387,9 @@ int scm_mapping(scm *s, off_t **mv)
     }
     return -1;
 }
+
+//------------------------------------------------------------------------------
+
 
 //------------------------------------------------------------------------------
 
@@ -433,85 +435,87 @@ int scm_get_g(scm *s)
 
 //------------------------------------------------------------------------------
 
-int log2i(int n)
+long long log2i(long long n)
 {
-    int r = 0;
+    long long r = 0;
 
-    if (n >= (1 << 16)) { n >>= 16; r += 16; }
-    if (n >= (1 <<  8)) { n >>=  8; r +=  8; }
-    if (n >= (1 <<  4)) { n >>=  4; r +=  4; }
-    if (n >= (1 <<  2)) { n >>=  2; r +=  2; }
-    if (n >= (1 <<  1)) {           r +=  1; }
+    if (n >= (1LL << 32)) { n >>= 32; r += 32; }
+    if (n >= (1LL << 16)) { n >>= 16; r += 16; }
+    if (n >= (1LL <<  8)) { n >>=  8; r +=  8; }
+    if (n >= (1LL <<  4)) { n >>=  4; r +=  4; }
+    if (n >= (1LL <<  2)) { n >>=  2; r +=  2; }
+    if (n >= (1LL <<  1)) {           r +=  1; }
 
     return r;
 }
 
-// Traverse up the tree to find the root page of page i.
-
-int scm_get_page_root(int i)
-{
-    while (i > 5)
-        i = scm_get_page_parent(i);
-
-    return i;
-}
-
-// Calculate the recursion level at which page i appears.
-
-int scm_get_page_depth(int i)
-{
-    return (log2i(i + 2) - 1) / 2;
-}
-
 // Calculate the number of pages in an SCM of depth d.
 
-int scm_get_page_count(int d)
+long long scm_get_page_count(long long d)
 {
     return (1 << (2 * d + 3)) - 2;
 }
 
-// Calculate the breadth-first index of the ith child of page p.
+// Traverse up the tree to find the root page of page i.
 
-int scm_get_page_child(int p, int i)
+long long scm_get_page_root(long long i)
 {
-    return 6 + 4 * p + i;
-}
+    while (i > 5)
+        i = scm_get_page_parent(i); // TODO: Constant time implementation.
 
-// Calculate the breadth-first index of the parent of page i.
-
-int scm_get_page_parent(int i)
-{
-    return (i - 6) / 4;
+    return i;
 }
 
 // Calculate the order (child index) of page i.
 
-int scm_get_page_order(int i)
+int scm_get_page_order(long long i)
 {
-    return (i - 6) - ((i - 6) / 4) * 4;
+    return (int) ((i - 6) - ((i - 6) / 4) * 4);
+}
+
+// Calculate the recursion level at which page i appears.
+
+int scm_get_page_depth(long long i)
+{
+    return (int) ((log2i(i + 2) - 1) / 2);
+}
+
+// Calculate the breadth-first index of the parent of page i.
+
+long long scm_get_page_parent(long long i)
+{
+    return (i - 6) / 4;
+}
+
+// Calculate the breadth-first index of the kth child of page p.
+
+long long scm_get_page_child(long long p, int k)
+{
+    return 6 + 4 * p + k;
 }
 
 // Find the index of page (i, j) of (s, s) in the tree rooted at page p.
 
-int scm_locate_page(int p, int i, int j, int s)
+long long scm_locate_page(long long p, long i, long j, long s)
 {
     if (s > 1)
     {
-        int c = 0;
+        int k = 0;
 
         s >>= 1;
 
-        if (i >= s) c |= 2;
-        if (j >= s) c |= 1;
+        if (i >= s) k |= 2;
+        if (j >= s) k |= 1;
 
-        return scm_locate_page(scm_get_page_child(p, c), i % s, j % s, s);
+        return scm_locate_page(scm_get_page_child(p, k), i % s, j % s, s);
     }
     else return p;
 }
 
 // Find the indices of the four neighbors of page p.
 
-void scm_get_page_neighbors(int p, int *u, int *d, int *r, int *l)
+void scm_get_page_neighbors(long long p, long long *u, long long *d,
+                                         long long *r, long long *l)
 {
     struct turn
     {
@@ -540,10 +544,10 @@ void scm_get_page_neighbors(int p, int *u, int *d, int *r, int *l)
         { 0, 3, 1 }, { 0, 1, 0 }, { 1, 1, 0 },
     };
 
-    int o[6];
-    int i = 0;
-    int j = 0;
-    int s;
+    long o[6];
+    long i = 0;
+    long j = 0;
+    long s;
 
     for (s = 1; p > 5; s <<= 1, p = scm_get_page_parent(p))
     {
@@ -599,17 +603,17 @@ static void scube(int f, double x, double y, double *v)
     }
 }
 
-void scm_get_sample_corners(int f, int i, int j, int n, double *v)
+void scm_get_sample_corners(int f, long i, long j, long n, double *v)
 {
-    scube(f, (double) (j + 0.0) / n, (double) (i + 0.0) / n, v + 0);
-    scube(f, (double) (j + 0.0) / n, (double) (i + 1.0) / n, v + 3);
-    scube(f, (double) (j + 0.1) / n, (double) (i + 0.0) / n, v + 6);
-    scube(f, (double) (j + 0.1) / n, (double) (i + 1.0) / n, v + 9);
+    scube(f, (double) (j + 0) / n, (double) (i + 0) / n, v + 0);
+    scube(f, (double) (j + 0) / n, (double) (i + 1) / n, v + 3);
+    scube(f, (double) (j + 1) / n, (double) (i + 0) / n, v + 6);
+    scube(f, (double) (j + 1) / n, (double) (i + 1) / n, v + 9);
 }
 
-void scm_get_sample_center(int f, int i, int j, int n, double *v)
+void scm_get_sample_center(int f, long i, long j, long n, double *v)
 {
-    scube(f, (double) (j + 0.5) / n, (double) (i + 0.5) / n, v);
+    scube(f, (j + 0.5) / n, (i + 0.5) / n, v);
 }
 
 //------------------------------------------------------------------------------

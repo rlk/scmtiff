@@ -1,5 +1,6 @@
 // Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -103,7 +104,7 @@ static int sample(img *p, int f, int i, int j, int n,
 // Determine whether the image intersects the four corners of a page.
 // This function is inefficient and only works under limited circumstances.
 
-int overlap(img *p, int f, int u, int v, int w)
+bool overlap(img *p, int f, long u, long v, long w)
 {
     const int n = 128;
 
@@ -115,17 +116,17 @@ int overlap(img *p, int f, int u, int v, int w)
             scm_get_sample_center(f, n * u + i, n * v + j, n * w, c);
 
             if (img_locate(p, c))
-                return 1;
+                return true;
         }
 
-    return 0;
+    return false;
 }
 
 // Consider page x of SCM s. Determine whether it contains any of image p.
 // If so, sample it or recursively subdivide it as needed.
 
-off_t divide(scm *s, off_t b, int f, int x, int d,
-                              int u, int v, int w, img *p, float *o)
+off_t divide(scm *s, off_t b, int f, long long x, int d,
+                              long u, long v, long w, img *p, float *o)
 {
     off_t a = b;
 
@@ -153,10 +154,10 @@ off_t divide(scm *s, off_t b, int f, int x, int d,
         }
         else
         {
-            int x0 = scm_get_page_child(x, 0);
-            int x1 = scm_get_page_child(x, 1);
-            int x2 = scm_get_page_child(x, 2);
-            int x3 = scm_get_page_child(x, 3);
+            long long x0 = scm_get_page_child(x, 0);
+            long long x1 = scm_get_page_child(x, 1);
+            long long x2 = scm_get_page_child(x, 2);
+            long long x3 = scm_get_page_child(x, 3);
 
             a = divide(s, a, f, x0, d - 1, u * 2,     v * 2,     w * 2, p, o);
             a = divide(s, a, f, x1, d - 1, u * 2,     v * 2 + 1, w * 2, p, o);
