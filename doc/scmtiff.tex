@@ -4,10 +4,10 @@
 \usepackage{mathptmx}
 \usepackage{graphicx}
 \usepackage{amsmath}
-\usepackage{xfrac}
-\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 \usepackage{bigstrut}
 \usepackage{hyperref}
+\usepackage{xfrac}
+\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 
 \setverbatimfont{\normalfont\ttfamily\small}
 
@@ -77,8 +77,8 @@ This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\)
 Vectors within the remaining cube faces are simple $90^\circ$ rotations of the definition for $+Z$, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
 \begin{center}
 \begin{tabular}{rr|r|r|r|r|r}
-    &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\\\hline
-$x'=$&$\Pos{z}$&$\Neg{z}$&$\Pos{x}$&$\Pos{x}$&$\Pos{x}$&$\Neg{x}$\\
+    &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\B\\\hline
+$x'=$&$\Pos{z}$&$\Neg{z}$&$\Pos{x}$&$\Pos{x}$&$\Pos{x}$&$\Neg{x}$\T\\
 $y'=$&$\Pos{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$&$\Pos{y}$&$\Pos{y}$\\
 $z'=$&$\Neg{x}$&$\Pos{x}$&$\Neg{y}$&$\Pos{y}$&$\Pos{z}$&$\Neg{z}$\\
 \end{tabular}
@@ -141,7 +141,7 @@ $d$& $w_{\,512}$& $h_{\,512}$& $w_{\,720}$& $h_{\,720}$& $m$ \B\\\hline
 \end{tabular}
 \end{center}
 
-Each page is identified by an index giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
+Each page is identified by an index between $0$ and $m$ giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
 
 The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
 \[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
@@ -255,6 +255,9 @@ Panoview is configured and run like any other Thumb application. The following k
 \end{itemize}
 
 In addition, there is one option in the Thumb configuration file conf.xml that impacts the behavior and performance of the panorama renderer.
+
+% Probably want to rename everything from "sph" to "scm"
+% and PANOPATH to SPHPATH.
 
 \begin{verbatim}
 <option name="panoview_cache_size">128</option>
