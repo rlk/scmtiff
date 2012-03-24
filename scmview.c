@@ -94,8 +94,7 @@ static int data_load(long long x)
         const long long m = scm_get_page_count(filev[i].paged);
         const int       n = scm_get_n(filev[i].s) + 2;
         const int       c = scm_get_c(filev[i].s);
-
-        const off_t o = filev[i].pageo[x];
+        const long long o = filev[i].pageo[x];
 
         if (0 <= x && x < m && o)
             scm_read_page(filev[i].s, o, buf);

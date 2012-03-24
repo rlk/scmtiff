@@ -3,6 +3,7 @@
 #ifndef SCMTIFF_SCM_H
 #define SCMTIFF_SCM_H
 
+#include <stdbool.h>
 #include "scmdat.h"
 
 //------------------------------------------------------------------------------
@@ -23,12 +24,15 @@ long long scm_repeat(scm *, long long,
 					 scm *, long long);
 
 long long scm_read_node(scm *, long long, long long *, long long *);
-size_t    scm_read_page(scm *, long long, float *);
+bool      scm_read_page(scm *, long long, float *);
 
 int scm_mapping(scm *, long long **);
 
 //------------------------------------------------------------------------------
 
+long long scm_read_catalog(scm *, long long **);
+void      scm_sort_catalog(const long long *);
+long long scm_seek_catalog(const long long *, long long, long long);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries

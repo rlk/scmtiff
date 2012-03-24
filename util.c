@@ -3,6 +3,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "util.h"
+
 //------------------------------------------------------------------------------
 
 void normalize(double *v)

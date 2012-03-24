@@ -116,8 +116,8 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
     assert(s);
     assert(f);
 
-    ifd   D = s->D;
-    off_t o;
+    ifd D = s->D;
+    long long o;
 
     uint64_t oo;
     uint64_t lo;
@@ -131,13 +131,15 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
             {
                 if (scm_align(s) >= 0)
                 {
-                    uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
+                    uint64_t os = (uint64_t) o + (uint64_t) offsetof(ifd, sub);
+                    uint64_t rr = (uint64_t) s->r;
+                    uint64_t xx = (uint64_t) x;
 
                     set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                    set_field(&D.rows_per_strip,    0x0116,  3,  1, s->r);
+                    set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
                     set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
                     set_field(&D.sub_ifds,          0x014A, 18,  4, os);
-                    set_field(&D.page_index,        0xFFB1,  4,  1,  x);
+                    set_field(&D.page_index,        0xFFB1,  4,  1, xx);
 
                     if (scm_write_ifd(s, &D, o) == 1)
                     {
@@ -186,9 +188,9 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
 
     if (scm_read_ifd(t, &D, o) == 1)
     {
-        uint64_t oo = D.strip_offsets.offset;
-        uint64_t lo = D.strip_byte_counts.offset;
-        uint16_t sc = D.strip_byte_counts.count;
+        uint64_t oo = (uint64_t) D.strip_offsets.offset;
+        uint64_t lo = (uint64_t) D.strip_byte_counts.offset;
+        uint16_t sc = (uint16_t) D.strip_byte_counts.count;
 
         uint64_t O[sc];
         uint32_t L[sc];
@@ -203,10 +205,11 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
                     {
                         if (scm_align(s) >= 0)
                         {
-                            uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
+                            uint64_t os = (uint64_t) o + (uint64_t) offsetof(ifd, sub);
+                            uint64_t rr = (uint64_t) s->r;
 
                             set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                            set_field(&D.rows_per_strip,    0x0116,  3,  1, s->r);
+                            set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
                             set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
                             set_field(&D.sub_ifds,          0x014A, 18,  4, os);
 
@@ -250,9 +253,9 @@ long long scm_rewind(scm *s)
 
     if (scm_read_header(s, &h) == 1)
     {
-        if (fseeko(s->fp, (off_t) h.first_ifd, SEEK_SET) == 0)
+        if (fseeko(s->fp, (long long) h.first_ifd, SEEK_SET) == 0)
         {
-            return (off_t) h.first_ifd;
+            return (long long) h.first_ifd;
         }
         else syserr("Failed to seek SCM TIFF");
     }
@@ -269,33 +272,33 @@ long long scm_rewind(scm *s)
 
 void scm_relink(scm *s)
 {
-    off_t *m;
-    int    d;
-    ifd    i;
+    long long *a;
+    int d;
+    ifd i;
 
     assert(s);
 
-    if ((d = scm_mapping(s, &m)))
+    if ((d = scm_mapping(s, &a)))
     {
     	long long e = scm_get_page_count(d);
 
         for (long long x = 0; x < e; ++x)
-            if (m[x] && scm_read_ifd(s, &i, m[x]) == 1)
+            if (a[x] && scm_read_ifd(s, &i, a[x]) == 1)
             {
                 long long x0 = scm_get_page_child(x, 0);
                 long long x1 = scm_get_page_child(x, 1);
                 long long x2 = scm_get_page_child(x, 2);
                 long long x3 = scm_get_page_child(x, 3);
 
-                i.sub[0] = (x0 < e) ? m[x0] : 0;
-                i.sub[1] = (x1 < e) ? m[x1] : 0;
-                i.sub[2] = (x1 < e) ? m[x2] : 0;
-                i.sub[3] = (x1 < e) ? m[x3] : 0;
+                i.sub[0] = (x0 < e) ? (uint64_t) a[x0] : 0;
+                i.sub[1] = (x1 < e) ? (uint64_t) a[x1] : 0;
+                i.sub[2] = (x1 < e) ? (uint64_t) a[x2] : 0;
+                i.sub[3] = (x1 < e) ? (uint64_t) a[x3] : 0;
 
-                scm_write_ifd(s, &i, m[x]);
+                scm_write_ifd(s, &i, a[x]);
             }
 
-        free(m);
+        free(a);
     }
 }
 
@@ -316,13 +319,13 @@ long long scm_read_node(scm *s, long long o, long long *n, long long *v)
         if (scm_read_ifd(s, &i, o) == 1)
         {
             if (n)
-                n[0] = (off_t) i.next;
+                n[0] = (long long) i.next;
             if (v)
             {
-                v[0] = (off_t) i.sub[0];
-                v[1] = (off_t) i.sub[1];
-                v[2] = (off_t) i.sub[2];
-                v[3] = (off_t) i.sub[3];
+                v[0] = (long long) i.sub[0];
+                v[1] = (long long) i.sub[1];
+                v[2] = (long long) i.sub[2];
+                v[3] = (long long) i.sub[3];
             }
             return (long long) i.page_index.offset;
         }
@@ -334,7 +337,7 @@ long long scm_read_node(scm *s, long long o, long long *n, long long *v)
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
 // data to be stored.
 
-size_t scm_read_page(scm *s, long long o, float *p)
+bool scm_read_page(scm *s, long long o, float *p)
 {
     ifd i;
 
@@ -342,15 +345,15 @@ size_t scm_read_page(scm *s, long long o, float *p)
 
     if (scm_read_ifd(s, &i, o) == 1)
     {
-        uint64_t oo = (size_t) i.strip_offsets.offset;
-        uint64_t lo = (size_t) i.strip_byte_counts.offset;
-        uint16_t sc = (size_t) i.strip_byte_counts.count;
+        uint64_t oo = (uint64_t) i.strip_offsets.offset;
+        uint64_t lo = (uint64_t) i.strip_byte_counts.offset;
+        uint16_t sc = (uint16_t) i.strip_byte_counts.count;
 
-        return scm_read_data(s, p, oo, lo, sc);
+        return (scm_read_data(s, p, oo, lo, sc) > 0);
     }
     else apperr("Failed to read SCM TIFF IFD");
 
-    return 0;
+    return false;
 }
 
 // Determine the file offset and page index of each IFD in SCM s. Return these
@@ -358,7 +361,7 @@ size_t scm_read_page(scm *s, long long o, float *p)
 // length of this array is sufficient to store a full tree, regardless of the
 // true sparseness of SCM s.
 
-int scm_mapping(scm *s, long long **mv)
+int scm_mapping(scm *s, long long **a)
 {
     long long l = 0;
     long long x = 0;
@@ -378,10 +381,10 @@ int scm_mapping(scm *s, long long **mv)
     int       d = scm_get_page_depth(l);
     long long m = scm_get_page_count(d);
 
-    if ((*mv = (off_t *) calloc(m, sizeof (off_t))))
+    if ((*a = (long long *) calloc(m, sizeof (long long))))
     {
         for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
-            (*mv)[x] = o;
+            (*a)[x] = o;
 
         return d;
     }
@@ -390,6 +393,10 @@ int scm_mapping(scm *s, long long **mv)
 
 //------------------------------------------------------------------------------
 
+long long scm_read_catalog(scm *s, long long **p)
+{
+    return 0;
+}
 
 //------------------------------------------------------------------------------
 

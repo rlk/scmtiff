@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include "err.h"
+
 //------------------------------------------------------------------------------
 
 static const char *executable = NULL;

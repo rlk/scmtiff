@@ -39,7 +39,7 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
 // child present. Fill such pages using down-sampled child data and append them
 // to SCM t.
 
-static off_t sample(scm *s, scm *t)
+static long long sample(scm *s, scm *t)
 {
     long long  b = 0;
     long long *a;

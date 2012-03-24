@@ -7,6 +7,7 @@
 #include <zlib.h>
 
 #include "scmdat.h"
+#include "scmio.h"
 #include "util.h"
 #include "err.h"
 
@@ -16,15 +17,16 @@
 
 int scm_alloc(scm *s)
 {
-    size_t bs = (s->n + 2) * s->r * s->c * s->b / 8;
+    size_t bs = (size_t) s->r * (size_t) (s->n + 2)
+              * (size_t) s->c * (size_t)  s->b / 8;
     size_t zs = compressBound(bs);
 
-    int c = (s->n + 2 + s->r - 1) / s->r;
+    size_t c = (size_t) (s->n + 2 + s->r - 1) / (size_t) s->r;
 
     if ((s->binv = (uint8_t **) calloc(c, sizeof (uint8_t *))) &&
         (s->zipv = (uint8_t **) calloc(c, sizeof (uint8_t *))))
     {
-        for (int i = 0; i < c; i++)
+        for (size_t i = 0; i < c; i++)
         {
             s->binv[i] = (uint8_t *) malloc(bs);
             s->zipv[i] = (uint8_t *) malloc(zs);
@@ -59,9 +61,9 @@ void scm_free(scm *s)
 
 // Read from the SCM file at the given offset, to the given buffer.
 
-int scm_read(scm *s, void *ptr, size_t len, off_t off)
+int scm_read(scm *s, void *ptr, size_t len, long long o)
 {
-    if (fseeko(s->fp, off, SEEK_SET) == 0)
+    if (fseeko(s->fp, o, SEEK_SET) == 0)
     {
         if (fread(ptr, 1, len, s->fp) == len)
         {
@@ -77,9 +79,9 @@ int scm_read(scm *s, void *ptr, size_t len, off_t off)
 // Write the given buffer to the SCM file, returning the offset of the beginning
 // of the write.
 
-off_t scm_write(scm *s, const void *ptr, size_t len)
+long long scm_write(scm *s, const void *ptr, size_t len)
 {
-    off_t o;
+    long long o;
 
     if ((o = ftello(s->fp)) >= 0)
     {
@@ -97,10 +99,10 @@ off_t scm_write(scm *s, const void *ptr, size_t len)
 // Ensure that the current SCM TIFF position falls on a TIFF word boundary by
 // writing a single byte if the current file offset is odd.
 
-off_t scm_align(scm *s)
+long long scm_align(scm *s)
 {
     char  c = 0;
-    off_t o;
+    long long o;
 
     if ((o = ftello(s->fp)) >= 0)
     {
@@ -183,7 +185,7 @@ int scm_read_field(scm *s, field *f, void *p)
     }
     else
     {
-        if (fseeko(s->fp, f->offset, SEEK_SET) == 0)
+        if (fseeko(s->fp, (long long) f->offset, SEEK_SET) == 0)
         {
             if (fread(p, 1, n, s->fp) == n)
             {
@@ -206,7 +208,7 @@ int scm_read_field(scm *s, field *f, void *p)
 int scm_write_field(scm *s, field *f, const void *p)
 {
     size_t n = f->count * tifsizeof(f->type);
-    off_t  o;
+    long long o;
 
     if (n <= sizeof (f->offset))
     {
@@ -217,7 +219,7 @@ int scm_write_field(scm *s, field *f, const void *p)
     {
         if (f->offset)
         {
-            if (fseeko(s->fp, f->offset, SEEK_SET) == -1)
+            if (fseeko(s->fp, (long long) f->offset, SEEK_SET) == -1)
             {
                 if (fwrite(p, 1, n, s->fp) == n)
                 {
@@ -243,7 +245,7 @@ int scm_write_field(scm *s, field *f, const void *p)
 
 // Read an IFD at offset o of SCM TIFF s.
 
-int scm_read_ifd(scm *s, ifd *i, off_t o)
+int scm_read_ifd(scm *s, ifd *i, long long o)
 {
     assert(s);
     assert(i);
@@ -267,7 +269,7 @@ int scm_read_ifd(scm *s, ifd *i, off_t o)
 
 // Write an IFD at offset o of SCM TIFF s.
 
-int scm_write_ifd(scm *s, ifd *i, off_t o)
+int scm_write_ifd(scm *s, ifd *i, long long o)
 {
     assert(s);
     assert(i);
@@ -296,7 +298,7 @@ int scm_read_preface(scm *s)
 
     if (scm_read_header(s, &h) == 1)
     {
-        if (scm_read_ifd(s, &s->D, h.first_ifd) == 1)
+        if (scm_read_ifd(s, &s->D, (long long) h.first_ifd) == 1)
         {
         	// Image size and channel count.
 
@@ -336,32 +338,33 @@ int scm_write_preface(scm *s, const char *str)
 
     if (scm_write_header(s, &h) == 1)
     {
+        uint16_t l = (uint16_t) strlen(str) + 1;
+        uint64_t c = (uint64_t) s->c;
         uint64_t i = scm_pint(s);
         uint64_t p = scm_hdif(s);
-        uint16_t l = strlen(str) + 1;
 
-        uint16_t bv[s->c];
-        uint16_t fv[s->c];
+        uint16_t bv[c];
+        uint16_t fv[c];
 
         for (int k = 0; k < s->c; ++k)
         {
-            bv[k] = s->b;
+            bv[k] = (uint16_t) s->b;
             fv[k] = scm_form(s);
         }
 
-        set_field(&s->D.subfile_type,      0x00FE, 4, 1,    2);
-        set_field(&s->D.image_width,       0x0100, 3, 1,    s->n + 2);
-        set_field(&s->D.image_length,      0x0101, 3, 1,    s->n + 2);
-        set_field(&s->D.bits_per_sample,   0x0102, 3, s->c, 0);
-        set_field(&s->D.compression,       0x0103, 3, 1,    8);
-        set_field(&s->D.interpretation,    0x0106, 3, 1,    i);
-        set_field(&s->D.description,       0x010E, 2, l,    0);
-        set_field(&s->D.orientation,       0x0112, 3, 1,    2);
-        set_field(&s->D.samples_per_pixel, 0x0115, 3, 1,    s->c);
-        set_field(&s->D.rows_per_strip,    0x0116, 3, 1,    s->r);
-        set_field(&s->D.configuration,     0x011C, 3, 1,    1);
-        set_field(&s->D.predictor,         0x013D, 3, 1,    p);
-        set_field(&s->D.sample_format,     0x0153, 3, s->c, 0);
+        set_field(&s->D.subfile_type,      0x00FE, 4, 1, 2);
+        set_field(&s->D.image_width,       0x0100, 3, 1, (uint64_t) (s->n + 2));
+        set_field(&s->D.image_length,      0x0101, 3, 1, (uint64_t) (s->n + 2));
+        set_field(&s->D.bits_per_sample,   0x0102, 3, c, 0);
+        set_field(&s->D.compression,       0x0103, 3, 1, 8);
+        set_field(&s->D.interpretation,    0x0106, 3, 1, i);
+        set_field(&s->D.description,       0x010E, 2, l, 0);
+        set_field(&s->D.orientation,       0x0112, 3, 1, 2);
+        set_field(&s->D.samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+        set_field(&s->D.rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
+        set_field(&s->D.configuration,     0x011C, 3, 1, 1);
+        set_field(&s->D.predictor,         0x013D, 3, 1, p);
+        set_field(&s->D.sample_format,     0x0153, 3, c, 0);
 
         scm_write_field(s, &s->D.description,    str);
         scm_align(s);
@@ -392,7 +395,7 @@ static void tobin(scm *s, uint8_t *bin, const float *dat, int i)
     const int d = s->b * m / 8;
 
     for (int j = 0; j < s->r && i + j < n; ++j)
-        ftob(bin + j * d, dat + (i + j) * m, m, s->b, s->g);
+        ftob(bin + j * d, dat + (i + j) * m, (size_t) m, s->b, s->g);
 }
 
 static void frombin(scm *s, const uint8_t *bin, float *dat, int i)
@@ -402,7 +405,7 @@ static void frombin(scm *s, const uint8_t *bin, float *dat, int i)
     const int d = s->b * m / 8;
 
     for (int j = 0; j < s->r && i + j < n; ++j)
-        btof(bin + j * d, dat + (i + j) * m, m, s->b, s->g);
+        btof(bin + j * d, dat + (i + j) * m, (size_t) m, s->b, s->g);
 }
 
 // Apply or reverse the horizontal difference predector in rows i through i+r.
@@ -456,13 +459,13 @@ int scm_read_cache(scm *s, uint8_t **zv,
 {
     // Read the strip offset and length arrays.
 
-    if (scm_read(s, o, sc * sizeof (uint64_t), oo) == -1) return -1;
-    if (scm_read(s, l, sc * sizeof (uint32_t), lo) == -1) return -1;
+    if (scm_read(s, o, sc * sizeof (uint64_t), (long long) oo) == -1) return -1;
+    if (scm_read(s, l, sc * sizeof (uint32_t), (long long) lo) == -1) return -1;
 
     // Read each strip.
 
     for (int i = 0; i < sc; i++)
-        if (scm_read(s, zv[i], (size_t) l[i], (off_t) o[i]) == -1)
+        if (scm_read(s, zv[i], (size_t) l[i], (long long) o[i]) == -1)
             return -1;
 
     return 1;
@@ -478,12 +481,12 @@ int scm_write_cache(scm *s, uint8_t **zv,
                             uint64_t *lo,
                             uint16_t *sc, uint64_t *o, uint32_t *l)
 {
-    int   c = (int) (*sc);
-    off_t t;
+    size_t c = (size_t) (*sc);
+    long long t;
 
     // Write each strip to the file, noting all offsets.
 
-    for (int i = 0; i < c; i++)
+    for (size_t i = 0; i < c; i++)
         if ((t = scm_write(s, zv[i], (size_t) l[i])) > 0)
             o[i] = (uint64_t) t;
         else
@@ -566,7 +569,7 @@ int scm_write_data(scm *s, const float *p, uint64_t *oo,
 // Set IFD c to be the "next" of IFD p. If p is zero, set IFD c to be the first
 // IFD linked-to by the header.
 
-int scm_link_list(scm *s, off_t c, off_t p)
+int scm_link_list(scm *s, long long c, long long p)
 {
     header h;
     ifd    i;
@@ -575,7 +578,7 @@ int scm_link_list(scm *s, off_t c, off_t p)
     {
         if (scm_read_ifd(s, &i, p) == 1)
         {
-            i.next = c;
+            i.next = (uint64_t) c;
 
             if (scm_write_ifd(s, &i, p) == 1)
             {
@@ -584,14 +587,12 @@ int scm_link_list(scm *s, off_t c, off_t p)
             else apperr("Failed to write previous IFD");
         }
         else apperr("Failed to read previous IFD");
-
-        return -1;
-    }
+   }
     else
     {
         if (scm_read_header(s, &h) == 1)
         {
-            h.first_ifd = c;
+            h.first_ifd = (uint64_t) c;
 
             if (scm_write_header(s, &h) == 1)
             {
@@ -600,14 +601,13 @@ int scm_link_list(scm *s, off_t c, off_t p)
             else apperr("Failed to write header");
         }
         else apperr("Failed to write header");
-
-        return -1;
     }
+    return -1;
 }
 
 // Set IFD c to be the nth "child" of IFD p.
 
-int scm_link_tree(scm *s, off_t c, off_t p, int n)
+int scm_link_tree(scm *s, long long c, long long p, int n)
 {
     ifd i;
 
@@ -615,7 +615,7 @@ int scm_link_tree(scm *s, off_t c, off_t p, int n)
     {
         if (scm_read_ifd(s, &i, p) == 1)
         {
-            i.sub[n] = c;
+            i.sub[n] = (uint64_t) c;
 
             if (scm_write_ifd(s, &i, p) == 1)
             {

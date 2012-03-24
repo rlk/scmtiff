@@ -76,8 +76,8 @@ static void process(scm *s, struct input *v, int c, int m)
 
     if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
     {
-        off_t b = 0;
-        int   d = 0;
+        long long b = 0;
+        int       d = 0;
 
         // Determine the depth of the output.
 
@@ -89,9 +89,9 @@ static void process(scm *s, struct input *v, int c, int m)
 
         for (int x = 0; x < scm_get_page_count(d); ++x)
         {
-            off_t o = 0;
-            scm  *t = 0;
-            int   k = 0;
+            long long o = 0;
+            scm      *t = 0;
+            int       k = 0;
 
             // Count the number of SCMs contributing to page x.
 

@@ -93,10 +93,10 @@ static void sampnorm(const float *p, float *q,
 // Recursively traverse the tree at page x, reading input pages from SCM s and
 // computing normal map output pages for SCM t.
 
-static off_t divide(scm *s, long long *o, float *p,
-                    scm *t, long long  b, float *q,
-                    int  f, int  d, long long x,
-                    long u, long v, long w, const float *r)
+static long long divide(scm *s, long long *o, float *p,
+                        scm *t, long long  b, float *q,
+                        int  f, int  d, long long x,
+                        long u, long v, long w, const float *r)
 {
     long long a = b;
 
