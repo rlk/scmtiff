@@ -29,8 +29,8 @@ img *tif_load(const char *name)
 
         if ((p = img_alloc((int) W, (int) H, (int) C, (int) B, (S == 2))))
 
-            for (int i = 0; i < p->h; ++i)
-                TIFFReadScanline(T, img_scanline(p, i), i, 0);
+            for (uint32 i = 0; i < H; ++i)
+                TIFFReadScanline(T, img_scanline(p, (int) i), i, 0);
 
         TIFFClose(T);
     }

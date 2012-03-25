@@ -7,6 +7,7 @@
 #include "scm.h"
 #include "err.h"
 #include "util.h"
+#include "process.h"
 
 #define SUM(a, b) ((a) + (b))
 
@@ -19,9 +20,9 @@
 struct input
 {
     scm       *s;
-    int        d;
     long long  m;
     long long *a;
+    int        d;
 };
 
 // Attempt to read and map the SCM TIFF with the given name. If successful,
@@ -64,10 +65,11 @@ static int enlist(struct input *v, int c, const char *name)
 
 // Sum all SCMs given by the input array. Write the output to SCM s.
 
-static void process(scm *s, struct input *v, int c, int m)
+static void process(scm *s, struct input *v, int l, int m)
 {
-    const int N = scm_get_n(s) + 2;
-    const int C = scm_get_c(s);
+    const size_t S = (size_t) (scm_get_n(s) + 2)
+                   * (size_t) (scm_get_n(s) + 2)
+                   * (size_t) (scm_get_c(s));
 
     float *p;
     float *q;
@@ -81,7 +83,7 @@ static void process(scm *s, struct input *v, int c, int m)
 
         // Determine the depth of the output.
 
-        for (int i = 0; i < c; ++i)
+        for (int i = 0; i < l; ++i)
             if (d < v[i].d)
                 d = v[i].d;
 
@@ -95,7 +97,7 @@ static void process(scm *s, struct input *v, int c, int m)
 
             // Count the number of SCMs contributing to page x.
 
-            for (int i = 0; i < c; ++i)
+            for (int i = 0; i < l; ++i)
                 if (x < v[i].m && v[i].a[x])
                 {
                     o = v[i].a[x];
@@ -112,18 +114,18 @@ static void process(scm *s, struct input *v, int c, int m)
 
             else if (k > 1)
             {
-                memset(p, 0, N * N * C * sizeof (float));
+                memset(p, 0, S * sizeof (float));
 
-                for (int i = 0; i < c; ++i)
+                for (int i = 0; i < l; ++i)
                     if (x < v[i].m && v[i].a[x])
 
                         if (scm_read_page(v[i].s, v[i].a[x], q))
                         {
                             if (m)
-                                for (int j = 0; j < N * N * C; ++j)
+                                for (size_t j = 0; j < S; ++j)
                                     p[j] = MAX(p[j], q[j]);
                             else
-                                for (int j = 0; j < N * N * C; ++j)
+                                for (size_t j = 0; j < S; ++j)
                                     p[j] = SUM(p[j], q[j]);
                         }
 
@@ -152,7 +154,7 @@ int combine(int argc, char **argv, const char *o, const char *m)
         else if (strcmp(m, "max") == 0) M = 1;
     }
 
-    if ((v = (struct input *) calloc(argc, sizeof (struct input))))
+    if ((v = (struct input *) calloc((size_t) argc, sizeof (struct input))))
     {
         for (int i = 0; i < argc; ++i)
             l = enlist(v, l, argv[i]);

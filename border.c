@@ -6,6 +6,7 @@
 
 #include "scm.h"
 #include "util.h"
+#include "process.h"
 
 //------------------------------------------------------------------------------
 
@@ -101,18 +102,18 @@ static int process(scm *s, scm *t)
     const int c = scm_get_c(s);
 
     long long  b = 0;
-    long long *f;
+    long long *a;
     float     *p;
     float     *q;
     int        d;
 
-    if ((d = scm_mapping(s, &f)) >= 0)
+    if ((d = scm_mapping(s, &a)) >= 0)
     {
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             for (long long x = 0; x < scm_get_page_count(d); ++x)
             {
-                if (f[x] && scm_read_page(s, f[x], p))
+                if (a[x] && scm_read_page(s, a[x], p))
                 {
                     // Copy the borders of all adjacent pages into this one.
 
@@ -123,16 +124,16 @@ static int process(scm *s, scm *t)
 
                     scm_get_page_neighbors(x, &U, &D, &R, &L);
 
-                    if (f[U] && scm_read_page(s, f[U], q))
+                    if (a[U] && scm_read_page(s, a[U], q))
                         copyu(p, scm_get_page_root(x),
                               q, scm_get_page_root(U), o, c);
-                    if (f[D] && scm_read_page(s, f[D], q))
+                    if (a[D] && scm_read_page(s, a[D], q))
                         copyd(p, scm_get_page_root(x),
                               q, scm_get_page_root(D), o, c);
-                    if (f[R] && scm_read_page(s, f[R], q))
+                    if (a[R] && scm_read_page(s, a[R], q))
                         copyr(p, scm_get_page_root(x),
                               q, scm_get_page_root(R), o, c);
-                    if (f[L] && scm_read_page(s, f[L], q))
+                    if (a[L] && scm_read_page(s, a[L], q))
                         copyl(p, scm_get_page_root(x),
                               q, scm_get_page_root(L), o, c);
 

@@ -11,8 +11,9 @@
 
 img *jpg_load(const char *name)
 {
-    img  *p = NULL;
-    FILE *s = NULL;
+    img     *p = NULL;
+    FILE    *s = NULL;
+    JSAMPLE *b = NULL;
 
     if ((s = fopen(name, "rb")))
     {
@@ -32,7 +33,7 @@ img *jpg_load(const char *name)
         {
             while (cinfo.output_scanline < cinfo.output_height)
             {
-                JSAMPLE *b = (JSAMPLE *) img_scanline(p, cinfo.output_scanline);
+                b = (JSAMPLE *) img_scanline(p, (int) cinfo.output_scanline);
                 jpeg_read_scanlines(&cinfo, &b, 1);
             }
         }

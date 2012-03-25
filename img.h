@@ -29,6 +29,7 @@ struct img
 
     // Projection parameters
 
+    int    x;
     double latmax;
     double latmin;
     double latp;
@@ -40,7 +41,6 @@ struct img
     double res;
     double scale;
     double radius;
-    int    x;
 
     // Blending parameters
 

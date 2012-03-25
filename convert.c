@@ -10,10 +10,11 @@
 #include "scm.h"
 #include "img.h"
 #include "util.h"
+#include "process.h"
 
 //------------------------------------------------------------------------------
 
-char *load_txt(const char *name)
+static char *load_txt(const char *name)
 {
     // Load the named file into a newly-allocated buffer.
 
@@ -61,28 +62,28 @@ static void quincunx(double *q, const double *v)
 // This do-it-all function forms the kernel of the OpenMP parallelization.
 
 static int sample(img *p, int  f, int  i, int  j, int n,
-                          long u, long v, long w, float *o)
+                          long u, long v, long w, float *q)
 {
-    double q[15];
     double c[12];
+    double C[15];
     int    D = 0;
 
     scm_get_sample_corners(f, n * u + i, n * v + j, n * w, c);
-    quincunx(q, c);
+    quincunx(C, c);
 
     for (int l = 4; l >= 0; --l)
     {
         float t[4];
         int d;
 
-        if ((d = img_sample(p, q + l * 3, t)))
+        if ((d = img_sample(p, C + l * 3, t)))
         {
             switch (p->c)
             {
-                case 4: o[3] += t[3];
-                case 3: o[2] += t[2];
-                case 2: o[1] += t[1];
-                case 1: o[0] += t[0];
+                case 4: q[3] += t[3];
+                case 3: q[2] += t[2];
+                case 2: q[1] += t[1];
+                case 1: q[0] += t[0];
             }
             D += d;
         }
@@ -91,10 +92,10 @@ static int sample(img *p, int  f, int  i, int  j, int n,
     {
         switch (p->c)
         {
-            case 4: o[3] /= D;
-            case 3: o[2] /= D;
-            case 2: o[1] /= D;
-            case 1: o[0] /= D;
+            case 4: q[3] /= D;
+            case 3: q[2] /= D;
+            case 2: q[1] /= D;
+            case 1: q[0] /= D;
         }
         return 1;
     }
@@ -105,7 +106,7 @@ static int sample(img *p, int  f, int  i, int  j, int n,
 // w-by-w page array on face f. This function is inefficient and only works
 // under limited circumstances.
 
-bool overlap(img *p, int f, long u, long v, long w)
+static bool overlap(img *p, int f, long u, long v, long w)
 {
     const int n = 128;
 
@@ -126,8 +127,8 @@ bool overlap(img *p, int f, long u, long v, long w)
 // Consider page x of SCM s. Determine whether it contains any of image p.
 // If so, sample it or recursively subdivide it as needed.
 
-long long divide(scm *s, long long b, int  f, int  d,
-                         long long x, long u, long v, long w, img *p, float *o)
+static long long divide(scm *s, long long b, int  f, int  d, long long x,
+                                long u, long v, long w, img *p, float *q)
 {
     long long a = b;
 
@@ -135,23 +136,23 @@ long long divide(scm *s, long long b, int  f, int  d,
     {
         if (d == 0)
         {
-            const int m = scm_get_n(s) + 2;
-            const int n = scm_get_n(s);
+            const int o = scm_get_n(s) + 2;
             const int c = scm_get_c(s);
+            const int n = scm_get_n(s);
 
             int h = 0;
             int i;
             int j;
 
-            memset(o, 0, m * m * c * sizeof (float));
+            memset(q, 0, (size_t) (o * o * c) * sizeof (float));
 
             #pragma omp parallel for private(j) reduction(+:h)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
                     h += sample(p, f, i, j, n, u, v, w,
-                                o + c * (m * (i + 1) + (j + 1)));
+                                q + c * (o * (i + 1) + (j + 1)));
 
-            if (h) a = scm_append(s, a, x, o);
+            if (h) a = scm_append(s, a, x, q);
         }
         else
         {
@@ -160,10 +161,10 @@ long long divide(scm *s, long long b, int  f, int  d,
             long long x2 = scm_get_page_child(x, 2);
             long long x3 = scm_get_page_child(x, 3);
 
-            a = divide(s, a, f, d - 1, x0, u * 2,     v * 2,     w * 2, p, o);
-            a = divide(s, a, f, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, o);
-            a = divide(s, a, f, d - 1, x2, u * 2 + 1, v * 2,     w * 2, p, o);
-            a = divide(s, a, f, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, p, o);
+            a = divide(s, a, f, d - 1, x0, u * 2,     v * 2,     w * 2, p, q);
+            a = divide(s, a, f, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, q);
+            a = divide(s, a, f, d - 1, x2, u * 2 + 1, v * 2,     w * 2, p, q);
+            a = divide(s, a, f, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, p, q);
         }
     }
     return a;
@@ -172,25 +173,25 @@ long long divide(scm *s, long long b, int  f, int  d,
 // Convert image p to SCM s with depth d. Allocate working buffers and perform a
 // depth-first traversal of the page tree.
 
-int process(scm *s, int d, img *p)
+static int process(scm *s, int d, img *p)
 {
-    const int m = scm_get_n(s) + 2;
-    const int c = scm_get_c(s);
+    const size_t o = (size_t) scm_get_n(s) + 2;
+    const size_t c = (size_t) scm_get_c(s);
 
-    float *o;
+    float *q;
 
-    if ((o = (float *) calloc(m * m * c, sizeof (float))))
+    if ((q = (float *) calloc(o * o * c, sizeof (float))))
     {
         long long b = 0;
 
-        b = divide(s, b, 0, d, 0, 0, 0, 1, p, o);
-        b = divide(s, b, 1, d, 1, 0, 0, 1, p, o);
-        b = divide(s, b, 2, d, 2, 0, 0, 1, p, o);
-        b = divide(s, b, 3, d, 3, 0, 0, 1, p, o);
-        b = divide(s, b, 4, d, 4, 0, 0, 1, p, o);
-        b = divide(s, b, 5, d, 5, 0, 0, 1, p, o);
+        b = divide(s, b, 0, d, 0, 0, 0, 1, p, q);
+        b = divide(s, b, 1, d, 1, 0, 0, 1, p, q);
+        b = divide(s, b, 2, d, 2, 0, 0, 1, p, q);
+        b = divide(s, b, 3, d, 3, 0, 0, 1, p, q);
+        b = divide(s, b, 4, d, 4, 0, 0, 1, p, q);
+        b = divide(s, b, 5, d, 5, 0, 0, 1, p, q);
 
-        free(o);
+        free(q);
     }
     return 0;
 }

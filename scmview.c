@@ -25,13 +25,11 @@
 //------------------------------------------------------------------------------
 // SCM TIFF file and page state
 
-#define MAX 4
-
 struct file
 {
     scm       *s;               // SCM file
-    int        paged;           // Depth of this SCM
     long long *pageo;           // Offset mapping of this SCM
+    int        paged;           // Depth of this SCM
     GLuint     texture;         // On-screen texture cache
 };
 
@@ -47,7 +45,8 @@ static GLfloat pos_y = -0.5f;
 static GLfloat scale =  1.0f;
 
 static int     drag_modifier;
-static int     drag_button;
+static int     drag_button = 0;
+static int     drag_state  = 0;
 static int     drag_x;
 static int     drag_y;
 static GLfloat drag_pos_x;
@@ -84,7 +83,7 @@ static int data_load(long long x)
                             GL_LUMINANCE_ALPHA,
                             GL_RGB,
                             GL_RGBA };
-    const GLenum f[] = { 0, GL_LUMINANCE32F_ARB,
+    const GLint  f[] = { 0, GL_LUMINANCE32F_ARB,
                             GL_LUMINANCE_ALPHA32F_ARB,
                             GL_RGB32F_ARB,
                             GL_RGBA32F_ARB };
@@ -143,7 +142,7 @@ static int data_init(int argc, char **argv)
     int C = 0;
     filec = 0;
 
-    if ((filev = (struct file *) calloc(argc, sizeof (struct file))))
+    if ((filev = (struct file *) calloc((size_t) argc, sizeof (struct file))))
 
         for (int argi = 1; argi < argc; ++argi)
             if ((filev[filec].s = scm_ifile(argv[argi])))
@@ -165,7 +164,9 @@ static int data_init(int argc, char **argv)
 
     if (filec && N && C)
     {
-        if ((buf = (GLfloat *) malloc(N * N * C * sizeof (GLfloat))))
+        if ((buf = (GLfloat *) malloc((size_t) N *
+                                      (size_t) N *
+                                      (size_t) C * sizeof (GLfloat))))
         {
             return 1;
         }
@@ -397,21 +398,24 @@ static void display(void)
 
 static void motion(int x, int y)
 {
-    if (drag_button == GLUT_LEFT_BUTTON)
+    if (drag_state)
     {
-        const int w = glutGet(GLUT_WINDOW_WIDTH) / filec;
-        const int h = glutGet(GLUT_WINDOW_HEIGHT);
+        if (drag_button == GLUT_LEFT_BUTTON)
+        {
+            const int w = glutGet(GLUT_WINDOW_WIDTH) / filec;
+            const int h = glutGet(GLUT_WINDOW_HEIGHT);
 
-        if (drag_modifier == GLUT_ACTIVE_ALT)
-        {
-            scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
+            if (drag_modifier == GLUT_ACTIVE_ALT)
+            {
+                scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
+            }
+            else
+            {
+                pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
+                pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
+            }
+            glutPostRedisplay();
         }
-        else
-        {
-            pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
-            pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
-        }
-        glutPostRedisplay();
     }
 }
 
@@ -421,6 +425,7 @@ static void mouse(int button, int state, int x, int y)
 {
     drag_modifier = glutGetModifiers();
     drag_button   = button;
+    drag_state    = state;
     drag_x        = x;
     drag_y        = y;
     drag_pos_x    = pos_x;

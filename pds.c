@@ -70,7 +70,7 @@ static int get_line(char *s, int n, FILE *fp)
     {
         char *t = s;
 
-        for (; isprint(*t); ++t) *t = toupper(*t);
+        for (; isprint(*t); ++t) *t = (char) toupper(*t);
         for (; isspace(*t); ++t) *t = 0;
 
         return strcmp(s, "END");
@@ -189,7 +189,7 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 
     void  *q;
     int    d;
-    size_t o = strcmp(img, lbl) ? 0 : rc * rs;
+    size_t o = strcmp(img, lbl) ? 0 : (size_t) (rc * rs);
     size_t n = (size_t) p->w * (size_t) p->h
              * (size_t) p->c * (size_t) p->b / 8;
 

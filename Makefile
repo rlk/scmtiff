@@ -6,12 +6,12 @@ EXES= scmtiff scmview
 #CC = gcc -std=c99 -Wall -m64 -g
 #CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = gcc -std=c99 -Wall -Werror -m64 -fopenmp -O3 -Wshorten-64-to-32
-CC = clang -m64 -Weverything
+CC = clang -m64 -Weverything -Wno-unused-parameter
 
 CP = cp
 RM = rm -f
 
-CFLAGS = -Wall
+CFLAGS =
 
 ifneq ($(wildcard /usr/local),)
 	CFLAGS += -I/usr/local/include

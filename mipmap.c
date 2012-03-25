@@ -8,6 +8,7 @@
 #include "scm.h"
 #include "err.h"
 #include "util.h"
+#include "process.h"
 
 //------------------------------------------------------------------------------
 
@@ -66,7 +67,7 @@ static long long sample(scm *s, scm *t)
 
                 if (a[x] == 0 && (a[i] || a[j] || a[k] || a[l]))
                 {
-                    memset(p, 0, o * o * c * sizeof (float));
+                    memset(p, 0, (size_t) (o * o * c) * sizeof (float));
 
                     if (a[i] && scm_read_page(s, a[i], q)) box(p, 0, 0, c, n, q);
                     if (a[j] && scm_read_page(s, a[j], q)) box(p, 0, 1, c, n, q);

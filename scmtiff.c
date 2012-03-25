@@ -6,16 +6,7 @@
 
 #include "scm.h"
 #include "err.h"
-
-//------------------------------------------------------------------------------
-
-int normal (int, char **, const char *, const float *);
-int relink (int, char **);
-int border (int, char **, const char *);
-int mipmap (int, char **, const char *);
-int combine(int, char **, const char *, const char *);
-int convert(int, char **, const char *, const char *,
-            int, int, int, int, int, const double *, const double *, const float *);
+#include "process.h"
 
 //------------------------------------------------------------------------------
 
@@ -62,6 +53,9 @@ int main(int argc, char **argv)
             case '?': apperr("Bad option -%c", optopt);                   break;
         }
 
+    argc -= optind;
+    argv += optind;
+
     if (p == NULL || h)
         apperr("\nUsage: %s [-p process] [-o output] [options] input [...]\n\n"
                 "\t%s -p convert [options]\n"
@@ -85,22 +79,22 @@ int main(int argc, char **argv)
                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
 
     else if (strcmp(p, "convert") == 0)
-        return convert(argc - optind, argv + optind, o, t, n, d, b, g, x, L, P, N);
+        return convert(argc, argv, o, t, n, d, b, g, x, L, P, N);
 
     else if (strcmp(p, "combine") == 0)
-        return combine(argc - optind, argv + optind, o, m);
+        return combine(argc, argv, o, m);
 
     else if (strcmp(p, "mipmap") == 0)
-        return mipmap (argc - optind, argv + optind, o);
+        return mipmap (argc, argv, o);
 
     else if (strcmp(p, "border") == 0)
-        return border (argc - optind, argv + optind, o);
+        return border (argc, argv, o);
 
     else if (strcmp(p, "relink") == 0)
-        return relink (argc - optind, argv + optind);
+        return relink (argc, argv);
 
     else if (strcmp(p, "normal") == 0)
-        return normal (argc - optind, argv + optind, o, R);
+        return normal (argc, argv, o, R);
 
     else apperr("Unknown process '%s'", p);
 

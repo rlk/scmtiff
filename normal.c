@@ -7,6 +7,7 @@
 #include "scm.h"
 #include "err.h"
 #include "util.h"
+#include "process.h"
 
 //------------------------------------------------------------------------------
 
@@ -143,30 +144,30 @@ static long long divide(scm *s, long long *o, float *p,
 static void process(scm *s, scm *t, const float *r)
 {
     int        d;
-    long long *o;
+    long long *a;
     float     *p;
     float     *q;
 
-    if ((d = scm_mapping(s, &o)) >= 0)
+    if ((d = scm_mapping(s, &a)) >= 0)
     {
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             long long b = 0;
 
-            memset(q, 0, 3 * (scm_get_n(t) + 2) *
-                             (scm_get_n(t) + 2) * sizeof (float));
+            memset(q, 0, 3 * (size_t) (scm_get_n(t) + 2) *
+                             (size_t) (scm_get_n(t) + 2) * sizeof (float));
 
-            if (o[0]) b = divide(s, o, p, t, b, q, 0, d, 0, 0, 0, 1, r);
-            if (o[1]) b = divide(s, o, p, t, b, q, 1, d, 1, 0, 0, 1, r);
-            if (o[2]) b = divide(s, o, p, t, b, q, 2, d, 2, 0, 0, 1, r);
-            if (o[3]) b = divide(s, o, p, t, b, q, 3, d, 3, 0, 0, 1, r);
-            if (o[4]) b = divide(s, o, p, t, b, q, 4, d, 4, 0, 0, 1, r);
-            if (o[5]) b = divide(s, o, p, t, b, q, 5, d, 5, 0, 0, 1, r);
+            if (a[0]) b = divide(s, a, p, t, b, q, 0, d, 0, 0, 0, 1, r);
+            if (a[1]) b = divide(s, a, p, t, b, q, 1, d, 1, 0, 0, 1, r);
+            if (a[2]) b = divide(s, a, p, t, b, q, 2, d, 2, 0, 0, 1, r);
+            if (a[3]) b = divide(s, a, p, t, b, q, 3, d, 3, 0, 0, 1, r);
+            if (a[4]) b = divide(s, a, p, t, b, q, 4, d, 4, 0, 0, 1, r);
+            if (a[5]) b = divide(s, a, p, t, b, q, 5, d, 5, 0, 0, 1, r);
 
             free(q);
             free(p);
         }
-        free(o);
+        free(a);
     }
 }
 

@@ -378,8 +378,8 @@ int scm_mapping(scm *s, long long **a)
 
     // Determine the index and offset of each page and initialize a mapping.
 
-    int       d = scm_get_page_depth(l);
-    long long m = scm_get_page_count(d);
+    int    d =          scm_get_page_depth(l);
+    size_t m = (size_t) scm_get_page_count(d);
 
     if ((*a = (long long *) calloc(m, sizeof (long long))))
     {
@@ -393,10 +393,44 @@ int scm_mapping(scm *s, long long **a)
 
 //------------------------------------------------------------------------------
 
-long long scm_read_catalog(scm *s, long long **p)
+long long scm_read_catalog(scm *s, long long **a)
 {
+    long long o;
+    long long n;
+    long long c;
+
+    ifd i;
+
+    // Scan the file to determine the number of pages.
+
+    for (c = 0, o = scm_rewind(s); scm_read_ifd(s, &i, o); o = n)
+    {
+        n = (long long) i.next;
+        c++;
+    }
+
+    // Allocate and populate an array giving page indices and offsets.
+
+    if ((a[0] = (long long *) malloc((size_t) (2 * c) * sizeof (long long))))
+    {
+        for (c = 0, o = scm_rewind(s); scm_read_ifd(s, &i, o); o = n)
+        {
+            n = (long long) i.next;
+            a[0][2 * c + 0] = n;
+            a[0][2 * c + 1] = o;
+            c++;
+        }
+        return c;
+    }
     return 0;
 }
+
+//------------------------------------------------------------------------------
+
+// long long scm_read_catalog(scm *s, long long **p)
+// {
+//     return 0;
+// }
 
 //------------------------------------------------------------------------------
 
@@ -405,7 +439,10 @@ long long scm_read_catalog(scm *s, long long **p)
 
 float *scm_alloc_buffer(scm *s)
 {
-    return (float *) malloc((s->n + 2) * (s->n + 2) * s->c * sizeof (float));
+    size_t o = (size_t) s->n + 2;
+    size_t c = (size_t) s->c;
+
+    return (float *) malloc(o * o * c * sizeof (float));
 }
 
 // Query the parameters of SCM s.
@@ -442,7 +479,7 @@ int scm_get_g(scm *s)
 
 //------------------------------------------------------------------------------
 
-long long log2i(long long n)
+static long long log2i(long long n)
 {
     long long r = 0;
 
@@ -503,7 +540,7 @@ long long scm_get_page_child(long long p, int k)
 
 // Find the index of page (i, j) of (s, s) in the tree rooted at page p.
 
-long long scm_locate_page(long long p, long i, long j, long s)
+static long long scm_locate_page(long long p, long i, long j, long s)
 {
     if (s > 1)
     {
@@ -526,9 +563,10 @@ void scm_get_page_neighbors(long long p, long long *u, long long *d,
 {
     struct turn
     {
-        unsigned int p : 3;
-        unsigned int r : 3;
-        unsigned int c : 3;
+        unsigned int p :  3;
+        unsigned int r :  3;
+        unsigned int c :  3;
+        unsigned int   : 23;
     };
 
     static const struct turn uu[6] = {

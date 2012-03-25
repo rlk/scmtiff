@@ -116,7 +116,7 @@ static int norms16(const img *p, int16_t d, float *f)
     return 1;
 }
 
-static float normf(const img *p, float d, float *f)
+static int normf(const img *p, float d, float *f)
 {
     unsigned int *w = (unsigned int *) (&d);
 
