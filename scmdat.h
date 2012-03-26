@@ -91,6 +91,9 @@ void set_field (field *, uint16_t, uint16_t, uint64_t, uint64_t);
 int is_header(header *);
 int is_ifd   (ifd *);
 
+long long ifd_next (ifd *);
+long long ifd_index(ifd *);
+
 //------------------------------------------------------------------------------
 
 size_t tifsizeof(uint16_t);

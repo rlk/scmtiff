@@ -393,44 +393,67 @@ int scm_mapping(scm *s, long long **a)
 
 //------------------------------------------------------------------------------
 
+// Compare two index-offset elements. This is the qsort / bsearch callback.
+
+static int _cmp(const void *p, const void *q)
+{
+    const long long *a = (const long long *) p;
+    const long long *b = (const long long *) q;
+
+    if      (a[0] < b[0]) return -1;
+    else if (a[0] > b[0]) return +1;
+    else                  return  0;
+}
+
+// Find the given index in the index-offset array and return the array location.
+// Limit the search to elements between f and l (not including l).
+
+long long scm_seek_catalog(long long *a, long long f, long long l, long long x)
+{
+    void *p;
+
+    if ((p = bsearch(&x, a+f, (size_t) (l-f), 2 * sizeof (long long), _cmp)))
+        return (long long *) p - a;
+
+    return -1;
+}
+
+// Sort the given index-offset array by index.
+
+void scm_sort_catalog(long long *a, long long l)
+{
+    qsort(a, (size_t) l, 2 * sizeof (long long), _cmp);
+}
+
+// Read the index and offset of all pages in SCM s to a newly-allocated array.
+
 long long scm_read_catalog(scm *s, long long **a)
 {
+    long long l = 0;
     long long o;
-    long long n;
-    long long c;
 
     ifd i;
 
     // Scan the file to determine the number of pages.
 
-    for (c = 0, o = scm_rewind(s); scm_read_ifd(s, &i, o); o = n)
-    {
-        n = (long long) i.next;
-        c++;
-    }
+    for (o = scm_rewind(s); scm_read_ifd(s, &i, o) > 0; o = ifd_next(&i))
+        l++;
 
-    // Allocate and populate an array giving page indices and offsets.
+    // Allocate and populate an array of page indices and offsets.
 
-    if ((a[0] = (long long *) malloc((size_t) (2 * c) * sizeof (long long))))
+    if ((a[0] = (long long *) malloc((size_t) (2 * l) * sizeof (long long))))
     {
-        for (c = 0, o = scm_rewind(s); scm_read_ifd(s, &i, o); o = n)
+        l = 0;
+        for (o = scm_rewind(s); scm_read_ifd(s, &i, o) > 0; o = ifd_next(&i))
         {
-            n = (long long) i.next;
-            a[0][2 * c + 0] = n;
-            a[0][2 * c + 1] = o;
-            c++;
+            a[0][2 * l + 0] = ifd_index(&i);
+            a[0][2 * l + 1] = o;
+            l++;
         }
-        return c;
+        return l;
     }
     return 0;
 }
-
-//------------------------------------------------------------------------------
-
-// long long scm_read_catalog(scm *s, long long **p)
-// {
-//     return 0;
-// }
 
 //------------------------------------------------------------------------------
 

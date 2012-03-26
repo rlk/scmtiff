@@ -67,6 +67,18 @@ int is_ifd(ifd *ip)
 
 //------------------------------------------------------------------------------
 
+long long ifd_next(ifd *ip)
+{
+    return (long long) ip->next;
+}
+
+long long ifd_index(ifd *ip)
+{
+    return (long long) ip->page_index.offset;
+}
+
+//------------------------------------------------------------------------------
+
 // Return the size in bytes of a datum of the given TIFF type;
 
 size_t tifsizeof(uint16_t t)

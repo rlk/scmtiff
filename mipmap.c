@@ -45,6 +45,14 @@ static long long sample(scm *s, scm *t)
     long long  b = 0;
     long long *a;
     int        d;
+    long long  l;
+
+    l = scm_read_catalog(s, &a);
+    scm_sort_catalog(a, l);
+
+    for (long long i = 0; i < l; ++i)
+        printf("%lld %lld\n", a[2 * i + 0], a[2 * i + 1]);
+
 
     if ((d = scm_mapping(s, &a)) >= 0)
     {
@@ -60,19 +68,19 @@ static long long sample(scm *s, scm *t)
         {
             for (long long x = 0; x < m; ++x)
             {
-                long long i = scm_get_page_child(x, 0);
-                long long j = scm_get_page_child(x, 1);
-                long long k = scm_get_page_child(x, 2);
-                long long l = scm_get_page_child(x, 3);
+                long long x0 = scm_get_page_child(x, 0);
+                long long x1 = scm_get_page_child(x, 1);
+                long long x2 = scm_get_page_child(x, 2);
+                long long x3 = scm_get_page_child(x, 3);
 
-                if (a[x] == 0 && (a[i] || a[j] || a[k] || a[l]))
+                if (a[x] == 0 && (a[x0] || a[x1] || a[x2] || a[x3]))
                 {
                     memset(p, 0, (size_t) (o * o * c) * sizeof (float));
 
-                    if (a[i] && scm_read_page(s, a[i], q)) box(p, 0, 0, c, n, q);
-                    if (a[j] && scm_read_page(s, a[j], q)) box(p, 0, 1, c, n, q);
-                    if (a[k] && scm_read_page(s, a[k], q)) box(p, 1, 0, c, n, q);
-                    if (a[l] && scm_read_page(s, a[l], q)) box(p, 1, 1, c, n, q);
+                    if (a[x0] && scm_read_page(s, a[x0], q)) box(p, 0, 0, c, n, q);
+                    if (a[x1] && scm_read_page(s, a[x1], q)) box(p, 0, 1, c, n, q);
+                    if (a[x2] && scm_read_page(s, a[x2], q)) box(p, 1, 0, c, n, q);
+                    if (a[x3] && scm_read_page(s, a[x3], q)) box(p, 1, 1, c, n, q);
 
                     b = scm_append(t, b, x, p);
                 }

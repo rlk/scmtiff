@@ -250,20 +250,22 @@ int scm_read_ifd(scm *s, ifd *i, long long o)
     assert(s);
     assert(i);
 
-    if (fseeko(s->fp, o, SEEK_SET) == 0)
+    if (o)
     {
-        if (fread(i, sizeof (ifd), 1, s->fp) == 1)
+        if (fseeko(s->fp, o, SEEK_SET) == 0)
         {
-            if (is_ifd(i))
+            if (fread(i, sizeof (ifd), 1, s->fp) == 1)
             {
-                return 1;
+                if (is_ifd(i))
+                {
+                    return 1;
+                }
+                else apperr("File is not an SCM TIFF");
             }
-            else apperr("File is not an SCM TIFF");
+            else syserr("Failed to read SCM IFD");
         }
-        else syserr("Failed to read SCM IFD");
+        else syserr("Failed to seek SCM");
     }
-    else syserr("Failed to seek SCM");
-
     return -1;
 }
 

@@ -31,8 +31,8 @@ int scm_mapping(scm *, long long **);
 //------------------------------------------------------------------------------
 
 long long scm_read_catalog(scm *, long long **);
-void      scm_sort_catalog(const long long *);
-long long scm_seek_catalog(const long long *, long long, long long);
+void      scm_sort_catalog(long long *, long long);
+long long scm_seek_catalog(long long *, long long, long long, long long);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries
