@@ -37,6 +37,7 @@ struct file
 struct file     *filev;
 static int       filec;
 static long long pagei;
+static long long pagem;
 
 //------------------------------------------------------------------------------
 // Viewing and interaction state
@@ -106,7 +107,7 @@ static int data_load(long long x)
 }
 
 // Determine whether any of the loaded files has a page at index x.
-#if 0
+
 static int data_test(long long x)
 {
     for (int i = 0; i < filec; ++i)
@@ -115,7 +116,6 @@ static int data_test(long long x)
 
     return 0;
 }
-#endif
 
 // Iterate the list of files given on the command line and initialize a data
 // file structure for each. Note the size and channel extreme, and allocate
@@ -128,6 +128,8 @@ static int data_init(int argc, char **argv)
     int N = 0;
     int C = 0;
     int i = 0;
+
+    pagem = 0;
 
     if ((filev = (struct file *) calloc((size_t) argc, sizeof (struct file))))
 
@@ -146,8 +148,12 @@ static int data_init(int argc, char **argv)
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
                 if ((filev[i].l = scm_read_catalog(filev[i].s, &filev[i].a)))
+                {
                     scm_sort_catalog(filev[i].a, filev[i].l);
+                    pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
 
+                    printf("%8lld %s\n", filev[i].l, argv[argi]);
+                }
                 i++;
             }
 
@@ -254,7 +260,12 @@ static void jump(long long x)
 
 static void page(long long d, bool s)
 {
-    jump(pagei + d);
+    long long x = pagei + d;
+
+    while (s && x >= 0 && x <= pagem && !data_test(x))
+        x += d;
+
+    jump(x);
 }
 
 //------------------------------------------------------------------------------

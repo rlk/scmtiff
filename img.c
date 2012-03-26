@@ -137,7 +137,7 @@ static int normf(const img *p, float d, float *f)
 
 static int getchan(const img *p, int i, int j, int k, float *f)
 {
-    const int s = p->c * (p->w * i + j);
+    const size_t s = (size_t) p->c * ((size_t) p->w * i + j);
 
     if (p->b == 8)
     {
