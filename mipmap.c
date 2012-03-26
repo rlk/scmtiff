@@ -42,45 +42,56 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
 
 static long long sample(scm *s, scm *t)
 {
-    long long  b = 0;
-    long long *a;
-    int        d;
-    long long  l;
+    long long b = 0;
+    long long l;
+    scm_pair *a;
 
-    l = scm_read_catalog(s, &a);
-    scm_sort_catalog(a, l);
-
-    for (long long i = 0; i < l; ++i)
-        printf("%lld %lld\n", a[2 * i + 0], a[2 * i + 1]);
-
-
-    if ((d = scm_mapping(s, &a)) >= 0)
+    if ((l = scm_read_catalog(s, &a)))
     {
-        const long long m = scm_get_page_count(d - 1);
-        const int       o = scm_get_n(s) + 2;
-        const int       n = scm_get_n(s);
-        const int       c = scm_get_c(s);
+        scm_sort_catalog(a, l);
 
         float *p;
         float *q;
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
-            for (long long x = 0; x < m; ++x)
+            for (long long x = 0; x < a[0].x; ++x)
             {
+                // Calculate the page indices for all children of x.
+
                 long long x0 = scm_get_page_child(x, 0);
                 long long x1 = scm_get_page_child(x, 1);
                 long long x2 = scm_get_page_child(x, 2);
                 long long x3 = scm_get_page_child(x, 3);
 
-                if (a[x] == 0 && (a[x0] || a[x1] || a[x2] || a[x3]))
+                // Seek the catalog location of each page index.
+
+                long long i0 = scm_seek_catalog(a,      0,  l, x0);
+                long long i1 = scm_seek_catalog(a, i0 + 1, l, x1);
+                long long i2 = scm_seek_catalog(a, i1 + 1, l, x2);
+                long long i3 = scm_seek_catalog(a, i2 + 1, l, x3);
+
+                // Look up the file offset for each located page.
+
+                long long o0 = (i0 < 0) ? 0 : a[i0].o;
+                long long o1 = (i1 < 0) ? 0 : a[i1].o;
+                long long o2 = (i2 < 0) ? 0 : a[i2].o;
+                long long o3 = (i3 < 0) ? 0 : a[i3].o;
+
+                // Contribute any found offsets to the output.
+
+                if (o0 || o1 || o2 || o3)
                 {
+                    const int o = scm_get_n(s) + 2;
+                    const int n = scm_get_n(s);
+                    const int c = scm_get_c(s);
+
                     memset(p, 0, (size_t) (o * o * c) * sizeof (float));
 
-                    if (a[x0] && scm_read_page(s, a[x0], q)) box(p, 0, 0, c, n, q);
-                    if (a[x1] && scm_read_page(s, a[x1], q)) box(p, 0, 1, c, n, q);
-                    if (a[x2] && scm_read_page(s, a[x2], q)) box(p, 1, 0, c, n, q);
-                    if (a[x3] && scm_read_page(s, a[x3], q)) box(p, 1, 1, c, n, q);
+                    if (o0 && scm_read_page(s, o0, q)) box(p, 0, 0, c, n, q);
+                    if (o1 && scm_read_page(s, o1, q)) box(p, 0, 1, c, n, q);
+                    if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, q);
+                    if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, q);
 
                     b = scm_append(t, b, x, p);
                 }
@@ -88,6 +99,7 @@ static long long sample(scm *s, scm *t)
             free(q);
             free(p);
         }
+        free(a);
     }
     return b;
 }

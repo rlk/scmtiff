@@ -30,9 +30,11 @@ int scm_mapping(scm *, long long **);
 
 //------------------------------------------------------------------------------
 
-long long scm_read_catalog(scm *, long long **);
-void      scm_sort_catalog(long long *, long long);
-long long scm_seek_catalog(long long *, long long, long long, long long);
+typedef struct { long long x; long long o; } scm_pair;
+
+long long scm_read_catalog(scm *, scm_pair **);
+void      scm_sort_catalog(scm_pair *, long long);
+long long scm_seek_catalog(scm_pair *, long long, long long, long long);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries

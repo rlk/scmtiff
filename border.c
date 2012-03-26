@@ -96,46 +96,65 @@ static void copyl(float *p, long long x, float *q, long long y, int n, int c)
                            translate_j[x][y](i, 1, n)), c);
 }
 
-static int process(scm *s, scm *t)
+static void process(scm *s, scm *t)
 {
     const int o = scm_get_n(s) + 2;
     const int c = scm_get_c(s);
 
-    long long  b = 0;
-    long long *a;
-    float     *p;
-    float     *q;
-    int        d;
+    long long b = 0;
+    long long l;
+    scm_pair *a;
+    float    *p;
+    float    *q;
 
-    if ((d = scm_mapping(s, &a)) >= 0)
+    if ((l = scm_read_catalog(s, &a)))
     {
+        scm_sort_catalog(a, l);
+
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
-            for (long long x = 0; x < scm_get_page_count(d); ++x)
+            for (long long i = 0; i < l; ++i)
             {
-                if (a[x] && scm_read_page(s, a[x], p))
+                if (scm_read_page(s, a[i].o, p))
                 {
+                    // Determine the page indices of all adjacent pages.
+
+                    long long x = a[i].x;
+                    long long xU;
+                    long long xD;
+                    long long xR;
+                    long long xL;
+
+                    scm_get_page_neighbors(x, &xU, &xD, &xR, &xL);
+
+                    // Seek the page catalog locations of these pages.
+
+                    long long iU = scm_seek_catalog(a, 0, l, xU);
+                    long long iD = scm_seek_catalog(a, 0, l, xD);
+                    long long iR = scm_seek_catalog(a, 0, l, xR);
+                    long long iL = scm_seek_catalog(a, 0, l, xL);
+
+                    // Note the file offsets of any located catalog entries.
+
+                    long long oU = (iU < 0) ? 0 : a[iU].o;
+                    long long oD = (iD < 0) ? 0 : a[iD].o;
+                    long long oR = (iR < 0) ? 0 : a[iR].o;
+                    long long oL = (iL < 0) ? 0 : a[iL].o;
+
                     // Copy the borders of all adjacent pages into this one.
 
-                    long long U;
-                    long long D;
-                    long long R;
-                    long long L;
-
-                    scm_get_page_neighbors(x, &U, &D, &R, &L);
-
-                    if (a[U] && scm_read_page(s, a[U], q))
+                    if (oU && scm_read_page(s, oU, q))
                         copyu(p, scm_get_page_root(x),
-                              q, scm_get_page_root(U), o, c);
-                    if (a[D] && scm_read_page(s, a[D], q))
+                              q, scm_get_page_root(xU), o, c);
+                    if (oD && scm_read_page(s, oD, q))
                         copyd(p, scm_get_page_root(x),
-                              q, scm_get_page_root(D), o, c);
-                    if (a[R] && scm_read_page(s, a[R], q))
+                              q, scm_get_page_root(xD), o, c);
+                    if (oR && scm_read_page(s, oR, q))
                         copyr(p, scm_get_page_root(x),
-                              q, scm_get_page_root(R), o, c);
-                    if (a[L] && scm_read_page(s, a[L], q))
+                              q, scm_get_page_root(xR), o, c);
+                    if (oL && scm_read_page(s, oL, q))
                         copyl(p, scm_get_page_root(x),
-                              q, scm_get_page_root(L), o, c);
+                              q, scm_get_page_root(xL), o, c);
 
                     // Patch up the corners with an average.
 
@@ -158,10 +177,9 @@ static int process(scm *s, scm *t)
             }
             free(q);
             free(p);
-            return EXIT_SUCCESS;
         }
+        free(a);
     }
-    return EXIT_FAILURE;
 }
 
 //------------------------------------------------------------------------------

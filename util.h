@@ -5,8 +5,8 @@
 
 //------------------------------------------------------------------------------
 
-#define MIN(A, B) (((A) < (B)) ? (A) : (B))
-#define MAX(A, B) (((A) > (B)) ? (A) : (B))
+#define min(A, B) (((A) < (B)) ? (A) : (B))
+#define max(A, B) (((A) > (B)) ? (A) : (B))
 
 void  normalize(double *);
 

@@ -9,7 +9,7 @@
 #include "util.h"
 #include "process.h"
 
-#define SUM(a, b) ((a) + (b))
+#define sub(a, b) ((a) + (b))
 
 //------------------------------------------------------------------------------
 
@@ -17,55 +17,54 @@
 // the SCM structures and their internal state, we should also cache the index
 // offset mappings and associated depths.
 
-struct input
+struct file
 {
-    scm       *s;
-    long long  m;
-    long long *a;
-    int        d;
+    scm      *s;
+    scm_pair *a;
+    long long l;
 };
 
 // Attempt to read and map the SCM TIFF with the given name. If successful,
 // append it to the given list. Return the number of elements in the list.
 
-static int enlist(struct input *v, int c, const char *name)
+static int addfile(struct file *F, int C, const char *name)
 {
-    static int N = 0;
-    static int C = 0;
-    scm       *s;
-    int        d;
-    long long *a;
+    static int n = 0;
+    static int c = 0;
+
+    scm      *s;
+    scm_pair *a;
+    long long l;
 
     if ((s = scm_ifile(name)))
     {
-        if ((N == 0            && C == 0) ||
-            (N == scm_get_n(s) && C == scm_get_c(s)))
+        if ((n == 0            && c == 0) ||
+            (n == scm_get_n(s) && c == scm_get_c(s)))
         {
-            N = scm_get_n(s);
-            C = scm_get_c(s);
+            n = scm_get_n(s);
+            c = scm_get_c(s);
 
-            if ((d = scm_mapping(s, &a)) >= 0)
+            if ((l = scm_read_catalog(s, &a)) >= 0)
             {
-                v[c].m = scm_get_page_count(d);
-                v[c].s = s;
-                v[c].d = d;
-                v[c].a = a;
-
-                return ++c;
+                scm_sort_catalog(a, l);
+                F[C].s = s;
+                F[C].a = a;
+                F[C].l = l;
+                return ++C;
             }
         }
         else apperr("SCM TIFF '%s' has size %d chan %d."
                             " Expected size %d chan %d.",
-                    name, scm_get_n(s), scm_get_c(s), N, C);
+                    name, scm_get_n(s), scm_get_c(s), n, c);
 
         scm_close(s);
     }
-    return c;
+    return C;
 }
 
 // Sum all SCMs given by the input array. Write the output to SCM s.
 
-static void process(scm *s, struct input *v, int l, int m)
+static void process(scm *s, struct file *F, int C, int M)
 {
     const size_t S = (size_t) (scm_get_n(s) + 2)
                    * (size_t) (scm_get_n(s) + 2)
@@ -79,36 +78,45 @@ static void process(scm *s, struct input *v, int l, int m)
     if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
     {
         long long b = 0;
-        int       d = 0;
+        long long m = 0;
+        long long i[C];
+        long long o[C];
 
-        // Determine the depth of the output.
+        // Determine the highest page index in the input.
 
-        for (int i = 0; i < l; ++i)
-            if (d < v[i].d)
-                d = v[i].d;
+        for (int f = 0; f < C; ++f)
+        {
+            if (m < F[f].a[F[f].l - 1].x)
+                m = F[f].a[F[f].l - 1].x;
+
+            i[f] = 0;
+            o[f] = 0;
+        }
 
         // Process each page of an SCM with the desired depth.
 
-        for (int x = 0; x < scm_get_page_count(d); ++x)
+        for (int x = 0; x <= m; ++x)
         {
-            long long o = 0;
-            scm      *t = 0;
-            int       k = 0;
+            int g = 0;
+            int k = 0;
 
-            // Count the number of SCMs contributing to page x.
+            // Count the SCMs contributing to page x.
 
-            for (int i = 0; i < l; ++i)
-                if (x < v[i].m && v[i].a[x])
+            for (int f = 0; f < C; ++f)
+
+                if ((i[f] = scm_seek_catalog(F[f].a, i[f] + 1, F[f].l, x)) >= 0)
                 {
-                    o = v[i].a[x];
-                    t = v[i].s;
-                    k = k + 1;
+                    o[f] = F[f].a[i[f]].o;
+                    g = f;
+                    k++;
                 }
+                else
+                    o[f] = 0;
 
             // If there is exactly one contributor, repeat its page.
 
             if (k == 1)
-                b = scm_repeat(s, b, t, o);
+                b = scm_repeat(s, b, F[g].s, o[g]);
 
             // If there is more than one, append their summed pages.
 
@@ -116,18 +124,16 @@ static void process(scm *s, struct input *v, int l, int m)
             {
                 memset(p, 0, S * sizeof (float));
 
-                for (int i = 0; i < l; ++i)
-                    if (x < v[i].m && v[i].a[x])
-
-                        if (scm_read_page(v[i].s, v[i].a[x], q))
-                        {
-                            if (m)
-                                for (size_t j = 0; j < S; ++j)
-                                    p[j] = MAX(p[j], q[j]);
-                            else
-                                for (size_t j = 0; j < S; ++j)
-                                    p[j] = SUM(p[j], q[j]);
-                        }
+                for (int f = 0; f < C; ++f)
+                    if (o[f] && scm_read_page(F[f].s, o[f], q))
+                    {
+                        if (M)
+                            for (size_t j = 0; j < S; ++j)
+                                p[j] = max(p[j], q[j]);
+                        else
+                            for (size_t j = 0; j < S; ++j)
+                                p[j] = sub(p[j], q[j]);
+                    }
 
                 b = scm_append(s, b, x, p);
             }
@@ -142,9 +148,9 @@ static void process(scm *s, struct input *v, int l, int m)
 
 int combine(int argc, char **argv, const char *o, const char *m)
 {
-    struct input *v = NULL;
-    int           l = 0;
-    int           M = 0;
+    struct file *F = NULL;
+    int          C = 0;
+    int          M = 0;
 
     const char *out = o ? o : "out.tif";
 
@@ -154,24 +160,24 @@ int combine(int argc, char **argv, const char *o, const char *m)
         else if (strcmp(m, "max") == 0) M = 1;
     }
 
-    if ((v = (struct input *) calloc((size_t) argc, sizeof (struct input))))
+    if ((F = (struct file *) calloc((size_t) argc, sizeof (struct file))))
     {
         for (int i = 0; i < argc; ++i)
-            l = enlist(v, l, argv[i]);
+            C = addfile(F, C, argv[i]);
 
-        if (l)
+        if (C)
         {
-            int   n = scm_get_n(v[0].s);
-            int   c = scm_get_c(v[0].s);
-            int   b = scm_get_b(v[0].s);
-            int   g = scm_get_g(v[0].s);
-            char *T = scm_get_description(v[0].s);
+            int   n = scm_get_n(F[0].s);
+            int   c = scm_get_c(F[0].s);
+            int   b = scm_get_b(F[0].s);
+            int   g = scm_get_g(F[0].s);
+            char *T = scm_get_description(F[0].s);
 
             scm *s;
 
             if ((s = scm_ofile(out, n, c, b, g, T)))
             {
-                process(s, v, l, M);
+                process(s, F, C, M);
                 scm_close(s);
             }
         }

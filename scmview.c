@@ -21,16 +21,17 @@
 
 #include "scm.h"
 #include "err.h"
+#include "util.h"
 
 //------------------------------------------------------------------------------
 // SCM TIFF file and page state
 
 struct file
 {
-    scm       *s;               // SCM file
-    long long *pageo;           // Offset mapping of this SCM
-    int        paged;           // Depth of this SCM
-    GLuint     texture;         // On-screen texture cache
+    scm      *s;           // SCM file
+    scm_pair *a;           // Index-offset array
+    long long l;           // Index-offset array length
+    GLuint    texture;     // On-screen texture cache
 };
 
 struct file     *filev;
@@ -44,9 +45,8 @@ static GLfloat pos_x = -0.5f;
 static GLfloat pos_y = -0.5f;
 static GLfloat scale =  1.0f;
 
-static int     drag_modifier;
-static int     drag_button = 0;
-static int     drag_state  = 0;
+static int     drag_modifier = 0;
+static int     drag_button   = 0;
 static int     drag_x;
 static int     drag_y;
 static GLfloat drag_pos_x;
@@ -90,45 +90,32 @@ static int data_load(long long x)
 
     for (int i = 0; i < filec; ++i)
     {
-        const long long m = scm_get_page_count(filev[i].paged);
-        const int       n = scm_get_n(filev[i].s) + 2;
+        const int       o = scm_get_n(filev[i].s) + 2;
         const int       c = scm_get_c(filev[i].s);
-        const long long o = filev[i].pageo[x];
+        const long long j = scm_seek_catalog(filev[i].a, 0, filev[i].l, x);
 
-        if (0 <= x && x < m && o)
-            scm_read_page(filev[i].s, o, buf);
+        if (j >= 0)
+            scm_read_page(filev[i].s, filev[i].a[j].o, buf);
         else
-            data_null(n, c);
+            data_null(o, c);
 
         glBindTexture(GL_TEXTURE_2D, filev[i].texture);
-        glTexImage2D (GL_TEXTURE_2D, 0, f[c], n, n, 0, e[c], GL_FLOAT, buf);
+        glTexImage2D (GL_TEXTURE_2D, 0, f[c], o, o, 0, e[c], GL_FLOAT, buf);
     }
     return 0;
 }
 
-// Determine the depth of the deepest loaded file.
-
-static int data_depth()
-{
-    int d = 0;
-
-    for (int i = 0; i < filec; ++i)
-        if (d < filev[i].paged)
-            d = filev[i].paged;
-
-    return d;
-}
-
 // Determine whether any of the loaded files has a page at index x.
-
+#if 0
 static int data_test(long long x)
 {
     for (int i = 0; i < filec; ++i)
-        if (filev[i].pageo[x])
+        if (scm_seek_catalog(filev[i].a, 0, filev[i].l, x) >= 0)
             return 1;
 
     return 0;
 }
+#endif
 
 // Iterate the list of files given on the command line and initialize a data
 // file structure for each. Note the size and channel extreme, and allocate
@@ -140,36 +127,38 @@ static int data_init(int argc, char **argv)
 
     int N = 0;
     int C = 0;
-    filec = 0;
+    int i = 0;
 
     if ((filev = (struct file *) calloc((size_t) argc, sizeof (struct file))))
 
         for (int argi = 1; argi < argc; ++argi)
-            if ((filev[filec].s = scm_ifile(argv[argi])))
+            if ((filev[i].s = scm_ifile(argv[argi])))
             {
-                const int n = scm_get_n  (filev[filec].s) + 2;
-                const int c = scm_get_c  (filev[filec].s);
-                const int d = scm_mapping(filev[filec].s, &filev[filec].pageo);
+                const int n = scm_get_n(filev[i].s) + 2;
+                const int c = scm_get_c(filev[i].s);
 
-                if (N < n) N = n;
-                if (C < c) C = c;
+                N = max(N, n);
+                C = max(C, c);
 
-                glGenTextures  (1, &filev[filec].texture);
-                glBindTexture  (T,  filev[filec].texture);
+                glGenTextures  (1, &filev[i].texture);
+                glBindTexture  (T,  filev[i].texture);
                 glTexParameteri(T, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-                filev[filec++].paged = d;
+                if ((filev[i].l = scm_read_catalog(filev[i].s, &filev[i].a)))
+                    scm_sort_catalog(filev[i].a, filev[i].l);
+
+                i++;
             }
 
-    if (filec && N && C)
+    filec = i;
+
+    if (i && N && C)
     {
         if ((buf = (GLfloat *) malloc((size_t) N *
                                       (size_t) N *
                                       (size_t) C * sizeof (GLfloat))))
-        {
             return 1;
-        }
     }
     return 0;
 }
@@ -265,13 +254,7 @@ static void jump(long long x)
 
 static void page(long long d, bool s)
 {
-    long long M = scm_get_page_count(data_depth());
-    long long x = pagei + d;
-
-    while (s && x >= 0 && x <= M && !data_test(x))
-        x += d;
-
-    jump(x);
+    jump(pagei + d);
 }
 
 //------------------------------------------------------------------------------
@@ -398,24 +381,21 @@ static void display(void)
 
 static void motion(int x, int y)
 {
-    if (drag_state)
+    if (drag_button == GLUT_LEFT_BUTTON)
     {
-        if (drag_button == GLUT_LEFT_BUTTON)
-        {
-            const int w = glutGet(GLUT_WINDOW_WIDTH) / filec;
-            const int h = glutGet(GLUT_WINDOW_HEIGHT);
+        const int w = glutGet(GLUT_WINDOW_WIDTH) / filec;
+        const int h = glutGet(GLUT_WINDOW_HEIGHT);
 
-            if (drag_modifier == GLUT_ACTIVE_ALT)
-            {
-                scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
-            }
-            else
-            {
-                pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
-                pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
-            }
-            glutPostRedisplay();
+        if (drag_modifier == GLUT_ACTIVE_ALT)
+        {
+            scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
         }
+        else
+        {
+            pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
+            pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
+        }
+        glutPostRedisplay();
     }
 }
 
@@ -425,7 +405,6 @@ static void mouse(int button, int state, int x, int y)
 {
     drag_modifier = glutGetModifiers();
     drag_button   = button;
-    drag_state    = state;
     drag_x        = x;
     drag_y        = y;
     drag_pos_x    = pos_x;

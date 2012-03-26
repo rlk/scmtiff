@@ -272,30 +272,35 @@ long long scm_rewind(scm *s)
 
 void scm_relink(scm *s)
 {
-    long long *a;
-    int d;
-    ifd i;
+    scm_pair *a;
+    long long l;
+    ifd d;
 
     assert(s);
 
-    if ((d = scm_mapping(s, &a)))
+    if ((l = scm_read_catalog(s, &a)))
     {
-    	long long e = scm_get_page_count(d);
+        scm_sort_catalog(a, l);
 
-        for (long long x = 0; x < e; ++x)
-            if (a[x] && scm_read_ifd(s, &i, a[x]) == 1)
+        for (long long i = 0; i < l; ++i)
+            if (scm_read_ifd(s, &d, a[i].o) == 1)
             {
-                long long x0 = scm_get_page_child(x, 0);
-                long long x1 = scm_get_page_child(x, 1);
-                long long x2 = scm_get_page_child(x, 2);
-                long long x3 = scm_get_page_child(x, 3);
+                long long x0 = scm_get_page_child(a[i].x, 0);
+                long long x1 = scm_get_page_child(a[i].x, 1);
+                long long x2 = scm_get_page_child(a[i].x, 2);
+                long long x3 = scm_get_page_child(a[i].x, 3);
 
-                i.sub[0] = (x0 < e) ? (uint64_t) a[x0] : 0;
-                i.sub[1] = (x1 < e) ? (uint64_t) a[x1] : 0;
-                i.sub[2] = (x1 < e) ? (uint64_t) a[x2] : 0;
-                i.sub[3] = (x1 < e) ? (uint64_t) a[x3] : 0;
+                long long i0 = scm_seek_catalog(a, i, l, x0);
+                long long i1 = scm_seek_catalog(a, i, l, x1);
+                long long i2 = scm_seek_catalog(a, i, l, x2);
+                long long i3 = scm_seek_catalog(a, i, l, x3);
 
-                scm_write_ifd(s, &i, a[x]);
+                d.sub[0] = (i0 < 0) ? 0 : (uint64_t) a[i0].o;
+                d.sub[1] = (i1 < 0) ? 0 : (uint64_t) a[i1].o;
+                d.sub[2] = (i2 < 0) ? 0 : (uint64_t) a[i2].o;
+                d.sub[3] = (i3 < 0) ? 0 : (uint64_t) a[i3].o;
+
+                scm_write_ifd(s, &d, a[i].o);
             }
 
         free(a);
@@ -360,7 +365,7 @@ bool scm_read_page(scm *s, long long o, float *p)
 // in a newly-allocated array of offsets, indexed by page index. The allocated
 // length of this array is sufficient to store a full tree, regardless of the
 // true sparseness of SCM s.
-
+#if 0
 int scm_mapping(scm *s, long long **a)
 {
     long long l = 0;
@@ -390,44 +395,49 @@ int scm_mapping(scm *s, long long **a)
     }
     return -1;
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 // Compare two index-offset elements. This is the qsort / bsearch callback.
 
 static int _cmp(const void *p, const void *q)
 {
-    const long long *a = (const long long *) p;
-    const long long *b = (const long long *) q;
+    const scm_pair *a = (const scm_pair *) p;
+    const scm_pair *b = (const scm_pair *) q;
 
-    if      (a[0] < b[0]) return -1;
-    else if (a[0] > b[0]) return +1;
-    else                  return  0;
+    if      (a[0].x < b[0].x) return -1;
+    else if (a[0].x > b[0].x) return +1;
+    else                      return  0;
 }
 
 // Find the given index in the index-offset array and return the array location.
 // Limit the search to elements between f and l (not including l).
 
-long long scm_seek_catalog(long long *a, long long f, long long l, long long x)
+long long scm_seek_catalog(scm_pair *a, long long f, long long l, long long x)
 {
+    // (glibc bsearch omits this O(1) bounds check and goes O(log n) instead.)
+
+    if (x < a[f    ].x) return -1;
+    if (x > a[l - 1].x) return -1;
+
     void *p;
 
-    if ((p = bsearch(&x, a+f, (size_t) (l-f), 2 * sizeof (long long), _cmp)))
-        return (long long *) p - a;
+    if ((p = bsearch(&x, a + f, (size_t) (l - f), sizeof (scm_pair), _cmp)))
+        return (scm_pair *) p - a;
 
     return -1;
 }
 
 // Sort the given index-offset array by index.
 
-void scm_sort_catalog(long long *a, long long l)
+void scm_sort_catalog(scm_pair *a, long long l)
 {
-    qsort(a, (size_t) l, 2 * sizeof (long long), _cmp);
+    qsort(a, (size_t) l, sizeof (scm_pair), _cmp);
 }
 
 // Read the index and offset of all pages in SCM s to a newly-allocated array.
 
-long long scm_read_catalog(scm *s, long long **a)
+long long scm_read_catalog(scm *s, scm_pair **a)
 {
     long long l = 0;
     long long o;
@@ -441,13 +451,13 @@ long long scm_read_catalog(scm *s, long long **a)
 
     // Allocate and populate an array of page indices and offsets.
 
-    if ((a[0] = (long long *) malloc((size_t) (2 * l) * sizeof (long long))))
+    if ((a[0] = (scm_pair *) malloc((size_t) l * sizeof (scm_pair))))
     {
         l = 0;
         for (o = scm_rewind(s); scm_read_ifd(s, &i, o) > 0; o = ifd_next(&i))
         {
-            a[0][2 * l + 0] = ifd_index(&i);
-            a[0][2 * l + 1] = o;
+            a[0][l].x = ifd_index(&i);
+            a[0][l].o = o;
             l++;
         }
         return l;

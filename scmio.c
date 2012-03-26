@@ -434,7 +434,7 @@ static void fromdif(scm *s, uint8_t *bin, int i)
 
 static void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
 {
-    uLong l = (uLong) ((s->n + 2) * MIN(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
     uLong z = compressBound(l);
 
     compress((Bytef *) zip, &z, (const Bytef *) bin, l);
@@ -443,7 +443,7 @@ static void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
 
 static void fromzip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t c)
 {
-    uLong l = (uLong) ((s->n + 2) * MIN(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
     uLong z = (uLong) c;
 
     uncompress((Bytef *) bin, &l, (const Bytef *) zip, z);

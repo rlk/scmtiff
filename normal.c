@@ -37,9 +37,8 @@ static void facenorm(const double *a, const double *b, const double *c, double *
 // i and j give the pixel location in the c-channel n-by-n input image.
 // u and v give the page location in the w-by-w subdivision of root face f.
 
-static void sampnorm(const float *p, float *q,
-                     int f, int i, int j, int n, int c,
-                     long u, long v, long w, const float *r)
+static void sampnorm(int f, int i, int j, int n, int c,
+                     long u, long v, long w, const float *r, const float *p, float *q)
 {
     const float dr = r[1] - r[0];
 
@@ -94,19 +93,27 @@ static void sampnorm(const float *p, float *q,
 // Recursively traverse the tree at page x, reading input pages from SCM s and
 // computing normal map output pages for SCM t.
 
-static long long divide(scm *s, long long *o, float *p,
-                        scm *t, long long  b, float *q,
-                        int  f, int  d, long long x,
-                        long u, long v, long w, const float *r)
+static long long divide(scm      *s, long long x,
+                        scm      *t, long long b,
+                        scm_pair *a, long long l,
+                        long u, long v, long w,
+                        const float *r, float *p, float *q)
 {
-    long long a = b;
+    long long i;
 
-    if (d >= 0)
+    if ((i = scm_seek_catalog(a, 0, l, x)) >= 0)
     {
+        long long x = a[i].x;
+        long long o = a[i].o;
+
+        a = a + i + 1;
+        l = l - i - 1;
+
         // Generate the normal map for page x.
 
-        if (scm_read_page(s, o[x], p))
+        if (scm_read_page(s, o, p))
         {
+            const int f = scm_get_page_root(x);
             const int n = scm_get_n(s);
             const int c = scm_get_c(s);
             int i;
@@ -115,9 +122,9 @@ static long long divide(scm *s, long long *o, float *p,
             #pragma omp parallel for private(j)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
-                    sampnorm(p, q, f, i, j, n, c, u, v, w, r);
+                    sampnorm(f, i, j, n, c, u, v, w, r, p, q);
 
-            a = scm_append(t, a, x, q);
+            b = scm_append(t, b, x, q);
         }
 
         // Generate normal maps for the children of page x.
@@ -130,12 +137,12 @@ static long long divide(scm *s, long long *o, float *p,
         long u0 = u * 2, u1 = u0 + 1;
         long v0 = v * 2, v1 = v0 + 1;
 
-        if (x0) a = divide(s, o, p, t, a, q, f, d - 1, x0, u0, v0, 2 * w, r);
-        if (x1) a = divide(s, o, p, t, a, q, f, d - 1, x1, u0, v1, 2 * w, r);
-        if (x2) a = divide(s, o, p, t, a, q, f, d - 1, x2, u1, v0, 2 * w, r);
-        if (x3) a = divide(s, o, p, t, a, q, f, d - 1, x3, u1, v1, 2 * w, r);
+        if (x0) b = divide(s, x0, t, b, a, l, u0, v0, 2 * w, r, p, q);
+        if (x1) b = divide(s, x1, t, b, a, l, u0, v1, 2 * w, r, p, q);
+        if (x2) b = divide(s, x2, t, b, a, l, u1, v0, 2 * w, r, p, q);
+        if (x3) b = divide(s, x3, t, b, a, l, u1, v1, 2 * w, r, p, q);
     }
-    return a;
+    return b;
 }
 
 // Query the offsets of all pages in SCM s. Allocate I/O scratch buffers and
@@ -143,13 +150,15 @@ static long long divide(scm *s, long long *o, float *p,
 
 static void process(scm *s, scm *t, const float *r)
 {
-    int        d;
-    long long *a;
-    float     *p;
-    float     *q;
+    long long l;
+    scm_pair *a;
+    float    *p;
+    float    *q;
 
-    if ((d = scm_mapping(s, &a)) >= 0)
+    if ((l = scm_read_catalog(s, &a)))
     {
+        scm_sort_catalog(a, l);
+
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             long long b = 0;
@@ -157,12 +166,12 @@ static void process(scm *s, scm *t, const float *r)
             memset(q, 0, 3 * (size_t) (scm_get_n(t) + 2) *
                              (size_t) (scm_get_n(t) + 2) * sizeof (float));
 
-            if (a[0]) b = divide(s, a, p, t, b, q, 0, d, 0, 0, 0, 1, r);
-            if (a[1]) b = divide(s, a, p, t, b, q, 1, d, 1, 0, 0, 1, r);
-            if (a[2]) b = divide(s, a, p, t, b, q, 2, d, 2, 0, 0, 1, r);
-            if (a[3]) b = divide(s, a, p, t, b, q, 3, d, 3, 0, 0, 1, r);
-            if (a[4]) b = divide(s, a, p, t, b, q, 4, d, 4, 0, 0, 1, r);
-            if (a[5]) b = divide(s, a, p, t, b, q, 5, d, 5, 0, 0, 1, r);
+            b = divide(s, 0, t, b, a, l, 0, 0, 1, r, p, q);
+            b = divide(s, 1, t, b, a, l, 0, 0, 1, r, p, q);
+            b = divide(s, 2, t, b, a, l, 0, 0, 1, r, p, q);
+            b = divide(s, 3, t, b, a, l, 0, 0, 1, r, p, q);
+            b = divide(s, 4, t, b, a, l, 0, 0, 1, r, p, q);
+            b = divide(s, 5, t, b, a, l, 0, 0, 1, r, p, q);
 
             free(q);
             free(p);

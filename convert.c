@@ -127,15 +127,16 @@ static bool overlap(img *p, int f, long u, long v, long w)
 // Consider page x of SCM s. Determine whether it contains any of image p.
 // If so, sample it or recursively subdivide it as needed.
 
-static long long divide(scm *s, long long b, int  f, int  d, long long x,
+static long long divide(scm *s, long long b, int  d, long long x,
                                 long u, long v, long w, img *p, float *q)
 {
     long long a = b;
 
-    if (overlap(p, f, u, v, w))
+    if (overlap(p, scm_get_page_root(x), u, v, w))
     {
         if (d == 0)
         {
+            const int f = scm_get_page_root(x);
             const int o = scm_get_n(s) + 2;
             const int c = scm_get_c(s);
             const int n = scm_get_n(s);
@@ -161,10 +162,10 @@ static long long divide(scm *s, long long b, int  f, int  d, long long x,
             long long x2 = scm_get_page_child(x, 2);
             long long x3 = scm_get_page_child(x, 3);
 
-            a = divide(s, a, f, d - 1, x0, u * 2,     v * 2,     w * 2, p, q);
-            a = divide(s, a, f, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, q);
-            a = divide(s, a, f, d - 1, x2, u * 2 + 1, v * 2,     w * 2, p, q);
-            a = divide(s, a, f, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, p, q);
+            a = divide(s, a, d - 1, x0, u * 2,     v * 2,     w * 2, p, q);
+            a = divide(s, a, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, q);
+            a = divide(s, a, d - 1, x2, u * 2 + 1, v * 2,     w * 2, p, q);
+            a = divide(s, a, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, p, q);
         }
     }
     return a;
@@ -184,12 +185,12 @@ static int process(scm *s, int d, img *p)
     {
         long long b = 0;
 
-        b = divide(s, b, 0, d, 0, 0, 0, 1, p, q);
-        b = divide(s, b, 1, d, 1, 0, 0, 1, p, q);
-        b = divide(s, b, 2, d, 2, 0, 0, 1, p, q);
-        b = divide(s, b, 3, d, 3, 0, 0, 1, p, q);
-        b = divide(s, b, 4, d, 4, 0, 0, 1, p, q);
-        b = divide(s, b, 5, d, 5, 0, 0, 1, p, q);
+        b = divide(s, b, d, 0, 0, 0, 1, p, q);
+        b = divide(s, b, d, 1, 0, 0, 1, p, q);
+        b = divide(s, b, d, 2, 0, 0, 1, p, q);
+        b = divide(s, b, d, 3, 0, 0, 1, p, q);
+        b = divide(s, b, d, 4, 0, 0, 1, p, q);
+        b = divide(s, b, d, 5, 0, 0, 1, p, q);
 
         free(q);
     }
