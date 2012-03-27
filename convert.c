@@ -9,6 +9,7 @@
 
 #include "scm.h"
 #include "img.h"
+#include "err.h"
 #include "util.h"
 #include "process.h"
 
@@ -32,13 +33,23 @@ static char *load_txt(const char *name)
                 {
                     if ((p = calloc(n + 1, 1)))
                     {
-                        fread(p, 1, n, fp);
+                        if (fread(p, 1, n, fp) == n)
+                        {
+                            // The top of the mountain.
+                        }
+                        else apperr("Failure to read %s", name);
                     }
+                    else apperr("Failure to allocate %s", name);
                 }
+                else apperr("Failed to seek %s", name);
             }
+            else apperr("Failed to tell %s", name);
         }
-        fclose(fp);
+        else apperr("Failed to seek %s", name);
     }
+    else apperr("Failed to open %s", name);
+
+    fclose(fp);
     return p;
 }
 
