@@ -262,8 +262,12 @@ static void page(long long d, bool s)
 {
     long long x = pagei + d;
 
-    while (s && x >= 0 && x <= pagem && !data_test(x))
-        x += d;
+    if (s && d > 0)
+        while (x < pagem && !data_test(x))
+            x += d;
+    if (s && d < 0)
+        while (x > 0     && !data_test(x))
+            x += d;
 
     jump(x);
 }
