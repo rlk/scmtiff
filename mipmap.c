@@ -36,18 +36,24 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
         }
 }
 
-// scan SCM s seeking any page that is not present, but which has at least one
-// child present. Fill such pages using down-sampled child data and append them
-// to SCM t.
+// Scan SCM s seeking any page that is not present, but which has at least one
+// child present. Fill such pages using down-sampled child data and append them.
+// Return the number of pages added, so we can stop when there are none.
 
-static long long sample(scm *s, scm *t)
+static long long sample(scm *s)
 {
-    long long b = 0;
+    long long t = 0;
     long long l;
     scm_pair *a;
 
     if ((l = scm_read_catalog(s, &a)))
     {
+        // Make a note of the offset of the last page in the file...
+
+        long long b = a[l - 1].o;
+
+        // ... before sorting the catalog for search.
+
         scm_sort_catalog(a, l);
 
         float *p;
@@ -66,7 +72,7 @@ static long long sample(scm *s, scm *t)
 
                 // Seek the catalog location of each page index.
 
-                long long i0 = scm_seek_catalog(a,      0,  l, x0);
+                long long i0 = scm_seek_catalog(a,      0, l, x0);
                 long long i1 = scm_seek_catalog(a, i0 + 1, l, x1);
                 long long i2 = scm_seek_catalog(a, i1 + 1, l, x2);
                 long long i3 = scm_seek_catalog(a, i2 + 1, l, x3);
@@ -93,7 +99,8 @@ static long long sample(scm *s, scm *t)
                     if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, q);
                     if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, q);
 
-                    b = scm_append(t, b, x, p);
+                    b = scm_append(s, b, x, p);
+                    t++;
                 }
             }
             free(q);
@@ -101,40 +108,7 @@ static long long sample(scm *s, scm *t)
         }
         free(a);
     }
-    return b;
-}
-
-// Append the full contents of SCM s to the current contents of SCM t.
-
-static void append(scm *s, scm *t, long long b)
-{
-    float *p;
-
-    if ((p = scm_alloc_buffer(s)))
-    {
-        long long o;
-        long long n;
-        long long x;
-
-        for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
-            b = scm_repeat(t, b, s, o);
-    }
-}
-
-// Mipmap SCM s to the fullest extent possible. To do so,  When finished,
-// append the contents of SCM s to SCM t. Return failure to indicate that no
-// processing was performed, implying that mipmapping of SCM s is complete.
-
-static bool process(scm *s, scm *t)
-{
-    long long b;
-
-    if ((b = sample(s, t)))
-    {
-        append(s, t, b);
-        return true;
-    }
-    return false;
+    return t;
 }
 
 //------------------------------------------------------------------------------
@@ -143,24 +117,13 @@ int mipmap(int argc, char **argv, const char *o)
 {
     if (argc > 0)
     {
-        const char *out = o ? o : "out.tif";
-
         scm *s = NULL;
-        scm *t = NULL;
 
         if ((s = scm_ifile(argv[0])))
         {
-            int   n = scm_get_n(s);
-            int   c = scm_get_c(s);
-            int   b = scm_get_b(s);
-            int   g = scm_get_g(s);
-            char *T = scm_get_description(s);
+            while (sample(s))
+                ;
 
-            if ((t = scm_ofile(out, n, c, b, g, T)))
-            {
-                process(s, t);
-                scm_close(t);
-            }
             scm_close(s);
         }
     }

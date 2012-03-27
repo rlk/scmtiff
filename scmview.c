@@ -152,7 +152,7 @@ static int data_init(int argc, char **argv)
                     scm_sort_catalog(filev[i].a, filev[i].l);
                     pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
 
-                    printf("%8lld %s\n", filev[i].l, argv[argi]);
+                    printf("%12lld %s\n", filev[i].l, argv[argi]);
                 }
                 i++;
             }

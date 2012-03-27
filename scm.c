@@ -123,46 +123,50 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
     uint64_t lo;
     uint16_t sc;
 
-    if ((o = ftello(s->fp)) >= 0)
+    if (fseeko(s->fp, 0, SEEK_END) == 0)
     {
-        if (scm_write_ifd(s, &D, o) == 1)
+        if ((o = ftello(s->fp)) >= 0)
         {
-            if ((scm_write_data(s, f, &oo, &lo, &sc)) > 0)
+            if (scm_write_ifd(s, &D, o) == 1)
             {
-                if (scm_align(s) >= 0)
+                if ((scm_write_data(s, f, &oo, &lo, &sc)) > 0)
                 {
-                    uint64_t os = (uint64_t) o + (uint64_t) offsetof(ifd, sub);
-                    uint64_t rr = (uint64_t) s->r;
-                    uint64_t xx = (uint64_t) x;
-
-                    set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                    set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
-                    set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-                    set_field(&D.sub_ifds,          0x014A, 18,  4, os);
-                    set_field(&D.page_index,        0xFFB1,  4,  1, xx);
-
-                    if (scm_write_ifd(s, &D, o) == 1)
+                    if (scm_align(s) >= 0)
                     {
-                        if (scm_link_list(s, o, b) >= 0)
+                        uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
+                        uint64_t rr = (uint64_t) s->r;
+                        uint64_t xx = (uint64_t) x;
+
+                        set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
+                        set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
+                        set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
+                        set_field(&D.sub_ifds,          0x014A, 18,  4, os);
+                        set_field(&D.page_index,        0xFFB1,  4,  1, xx);
+
+                        if (scm_write_ifd(s, &D, o) == 1)
                         {
-                            if (fseeko(s->fp, 0, SEEK_END) == 0)
+                            if (scm_link_list(s, o, b) >= 0)
                             {
-                                fflush(s->fp);
-                                return o;
+                                if (fseeko(s->fp, 0, SEEK_END) == 0)
+                                {
+                                    fflush(s->fp);
+                                    return o;
+                                }
+                                else syserr("Failed to seek SCM");
                             }
-                            else syserr("Failed to seek SCM");
+                            else apperr("Failed to link IFD list");
                         }
-                        else apperr("Failed to link IFD list");
+                        else apperr("Failed to re-write IFD");
                     }
-                    else apperr("Failed to re-write IFD");
+                    else syserr("Failed to align SCM");
                 }
-                else syserr("Failed to align SCM");
+                else apperr("Failed to write data");
             }
-            else apperr("Failed to write data");
+            else apperr("Failed to pre-write IFD");
         }
-        else apperr("Failed to pre-write IFD");
+        else syserr("Failed to tell SCM");
     }
-    else syserr("Failed to tell SCM");
+    else syserr("Failed to seek SCM");
 
     return 0;
 }
