@@ -26,6 +26,7 @@ ifeq ($(shell uname), Darwin)
 	LFLAGS += -lGLEW -framework OpenGL -framework GLUT
 else
 	LFLAGS += -lGLEW -lglut -lGL
+	CFLAGS += -D_FILE_OFFSET_BITS=64 -DM_PI=3.14159265358979323846
 endif
 
 %.o : %.c Makefile

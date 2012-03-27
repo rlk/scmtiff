@@ -77,7 +77,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 
     if ((s = (scm *) calloc(sizeof (scm), 1)))
     {
-        s->str = strdup(str);
+        s->str = strcpy((char *) malloc(strlen(str) + 1), str);
         s->n   = n;
         s->c   = c;
         s->b   = b;
@@ -664,8 +664,8 @@ void scm_get_page_neighbors(long long p, long long *u, long long *d,
 
 static void scube(int f, double x, double y, double *v)
 {
-    const double s = x * M_PI_2 - M_PI_4;
-    const double t = y * M_PI_2 - M_PI_4;
+    const double s = x * (M_PI / 2.0) - (M_PI / 4.0);
+    const double t = y * (M_PI / 2.0) - (M_PI / 4.0);
 
     double w[3];
 

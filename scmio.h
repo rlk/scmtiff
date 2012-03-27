@@ -3,6 +3,11 @@
 #ifndef SCMTIFF_SCMIO_H
 #define SCMTIFF_SCMIO_H
 
+#ifdef __linux__
+#define fseeko fseek
+#define ftello ftell
+#endif
+
 //------------------------------------------------------------------------------
 
 int       scm_alloc(scm *);

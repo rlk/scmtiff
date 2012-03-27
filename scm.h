@@ -26,8 +26,6 @@ long long scm_repeat(scm *, long long,
 long long scm_read_node(scm *, long long, long long *, long long *);
 bool      scm_read_page(scm *, long long, float *);
 
-int scm_mapping(scm *, long long **);
-
 //------------------------------------------------------------------------------
 
 typedef struct { long long x; long long o; } scm_pair;

@@ -315,13 +315,13 @@ void img_stereographic(img *p, const double *v, double lon, double lat, double *
 
     if (p->latp > 0)
     {
-        x =  2 * p->radius * tan(M_PI_4 - lat / 2) * sin(lon - p->lonp);
-        y = -2 * p->radius * tan(M_PI_4 - lat / 2) * cos(lon - p->lonp);
+        x =  2 * p->radius * tan((M_PI / 4.0) - lat / 2) * sin(lon - p->lonp);
+        y = -2 * p->radius * tan((M_PI / 4.0) - lat / 2) * cos(lon - p->lonp);
     }
     else
     {
-        x =  2 * p->radius * tan(M_PI_4 + lat / 2) * sin(lon - p->lonp);
-        y =  2 * p->radius * tan(M_PI_4 + lat / 2) * cos(lon - p->lonp);
+        x =  2 * p->radius * tan((M_PI / 4.0) + lat / 2) * sin(lon - p->lonp);
+        y =  2 * p->radius * tan((M_PI / 4.0) + lat / 2) * cos(lon - p->lonp);
     }
 
     t[0] = p->l0 - y / p->scale;
@@ -336,9 +336,8 @@ void img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 
 void img_default(img *p, const double *v, double lon, double lat, double *t)
 {
-    t[0] = (p->h - 1) * (M_PI_4 - 0.5 * lat) / M_PI_2;
-//  t[1] = (p->w    ) * (M_PI   - 0.5 * lon) / M_PI;
-    t[1] = (p->w    ) * (         0.5 * lon) / M_PI;
+    t[0] = (p->h - 1) * ((M_PI / 4.0) - 0.5 * lat) / (M_PI / 2.0);
+    t[1] = (p->w    ) * (               0.5 * lon) / (M_PI);
 }
 
 // Panoramas are spheres viewed from the inside while planets are spheres
