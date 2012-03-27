@@ -17,8 +17,12 @@
 
 static void box(float *p, int ki, int kj, int c, int n, float *q)
 {
-    for     (int qi = 0; qi < n; ++qi)
-        for (int qj = 0; qj < n; ++qj)
+    int qi;
+    int qj;
+
+    #pragma omp parallel for private(qj)
+    for     (qi = 0; qi < n; ++qi)
+        for (qj = 0; qj < n; ++qj)
         {
             const int pi = qi / 2 + ki * n / 2;
             const int pj = qj / 2 + kj * n / 2;
@@ -61,8 +65,19 @@ static long long sample(scm *s)
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
-            for (long long x = 0; x < a[0].x; ++x)
+            // For each page in the catalog...
+
+            for (long long i = 0; i < l; ++i)
             {
+                // ... examine the parent as a candidate for addition.
+
+                long long x = scm_get_page_parent(a[i].x);
+
+                // If it's already there, then we're done with this level.
+
+                if (scm_seek_catalog(a, 0, i, x) >= 0)
+                    break;
+
                 // Calculate the page indices for all children of x.
 
                 long long x0 = scm_get_page_child(x, 0);
@@ -121,7 +136,9 @@ int mipmap(int argc, char **argv, const char *o)
 
         if ((s = scm_ifile(argv[0])))
         {
-            while (sample(s))
+            long long c;
+
+            while ((c = sample(s)))
                 ;
 
             scm_close(s);

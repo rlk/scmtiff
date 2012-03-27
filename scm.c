@@ -116,12 +116,13 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
     assert(s);
     assert(f);
 
-    ifd D = s->D;
     long long o;
-
     uint64_t oo;
     uint64_t lo;
     uint16_t sc;
+
+    ifd D  = s->D;
+    D.next = 0;
 
     if (fseeko(s->fp, 0, SEEK_END) == 0)
     {

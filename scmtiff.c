@@ -10,8 +10,51 @@
 
 //------------------------------------------------------------------------------
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
+static void printhms(double dt)
+{
+    if (dt > 60.0)
+    {
+        if (dt > 3600.0)
+        {
+            int h = (int) dt / 3600;
+            dt -= h * 3600;
+            printf("%dh", h);
+        }
+
+        int m = (int) dt / 60;
+        dt -= m * 60;
+        printf("%dm", m);
+    }
+
+    printf("%2.3fs", dt);
+}
+
+static void printtime(double dt)
+{
+    struct rusage ru;
+
+    if (getrusage(RUSAGE_SELF, &ru) == 0)
+    {
+        printf("\treal: ");
+        printhms(dt);
+        printf("  user: ");
+        printhms(ru.ru_utime.tv_sec + ru.ru_utime.tv_usec / 1000000.0);
+        printf(" sys: ");
+        printhms(ru.ru_stime.tv_sec + ru.ru_stime.tv_usec / 1000000.0);
+        printf("\n");
+    }
+}
+
+//------------------------------------------------------------------------------
+
 int main(int argc, char **argv)
 {
+    struct timeval t0;
+    struct timeval t1;
+
     const char *p    = NULL;
     const char *m    = "sum";
     const char *o    = NULL;
@@ -21,6 +64,7 @@ int main(int argc, char **argv)
     int         b    = 0;
     int         g    = 0;
     int         h    = 0;
+    int         T    = 0;
     int         x    = -1;
     double      L[3] = { 0.f, 0.f, 0.f };
     double      P[3] = { 0.f, 0.f, 0.f };
@@ -28,12 +72,15 @@ int main(int argc, char **argv)
     float       R[2] = { 0.f, 1.f };
 
     int c;
+    int r = 0;
+
+    gettimeofday(&t0, NULL);
 
     setexe(argv[0]);
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "b:d:g:hL:m:n:N:o:p:P:t:R:x:")) != -1)
+    while ((c = getopt(argc, argv, "b:d:g:hL:m:n:N:o:p:P:Tt:R:x:")) != -1)
         switch (c)
         {
             case 'p': p = optarg;                                         break;
@@ -50,6 +97,7 @@ int main(int argc, char **argv)
             case 'N': sscanf(optarg, "%f,%f",       N + 0, N + 1);        break;
             case 'R': sscanf(optarg, "%f,%f",       R + 0, R + 1);        break;
             case 'h': h = 1;                                              break;
+            case 'T': T = 1;                                              break;
             case '?': apperr("Bad option -%c", optopt);                   break;
         }
 
@@ -79,24 +127,29 @@ int main(int argc, char **argv)
                 argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
 
     else if (strcmp(p, "convert") == 0)
-        return convert(argc, argv, o, t, n, d, b, g, x, L, P, N);
+        r = convert(argc, argv, o, t, n, d, b, g, x, L, P, N);
 
     else if (strcmp(p, "combine") == 0)
-        return combine(argc, argv, o, m);
+        r = combine(argc, argv, o, m);
 
     else if (strcmp(p, "mipmap") == 0)
-        return mipmap (argc, argv, o);
+        r = mipmap (argc, argv, o);
 
     else if (strcmp(p, "border") == 0)
-        return border (argc, argv, o);
+        r = border (argc, argv, o);
 
     else if (strcmp(p, "relink") == 0)
-        return relink (argc, argv);
+        r = relink (argc, argv);
 
     else if (strcmp(p, "normal") == 0)
-        return normal (argc, argv, o, R);
+        r = normal (argc, argv, o, R);
 
     else apperr("Unknown process '%s'", p);
 
-    return 0;
+    gettimeofday(&t1, NULL);
+
+    if (T) printtime((t1.tv_sec  - t0.tv_sec) +
+                     (t1.tv_usec - t0.tv_usec) / 1000000.0);
+
+    return r;
 }
