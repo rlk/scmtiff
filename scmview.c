@@ -147,13 +147,13 @@ static int data_init(int argc, char **argv)
                 glTexParameteri(T, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-                if ((filev[i].l = scm_read_catalog(filev[i].s, &filev[i].a)))
+                if ((filev[i].l = scm_scan_catalog(filev[i].s, &filev[i].a)))
                 {
-                    // printf("%12lld %s\n", filev[i].l, argv[argi]);
+                    printf("%12lld %s\n", filev[i].l, argv[argi]);
 
-                    // for (int j = 0; j < filev[i].l; ++j)
-                    //     printf("%8d %8lld %8lld\n", j, filev[i].a[j].x,
-                    //                                    filev[i].a[j].o);
+                    for (int j = 0; j < filev[i].l; ++j)
+                        printf("%8d %16llx %16llx\n", j, filev[i].a[j].x,
+                                                         filev[i].a[j].o);
 
                     scm_sort_catalog(filev[i].a, filev[i].l);
                     pagem = max(pagem, filev[i].a[filev[i].l - 1].x);

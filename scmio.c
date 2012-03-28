@@ -367,6 +367,7 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.configuration,     0x011C, 3, 1, 1);
         set_field(&s->D.predictor,         0x013D, 3, 1, p);
         set_field(&s->D.sample_format,     0x0153, 3, c, 0);
+        set_field(&s->D.page_catalog,      0xFFB1, 4, 0, 0);
 
         scm_write_field(s, &s->D.description,    str);
         scm_align(s);
@@ -375,7 +376,7 @@ int scm_write_preface(scm *s, const char *str)
         scm_write_field(s, &s->D.sample_format,   fv);
         scm_align(s);
 
-        s->D.count = 17;
+        s->D.count = SCM_FIELD_COUNT;
 
         return 1;
     }
@@ -608,7 +609,7 @@ int scm_link_list(scm *s, long long c, long long p)
 }
 
 // Set IFD c to be the nth "child" of IFD p.
-
+#if 0
 int scm_link_tree(scm *s, long long c, long long p, int n)
 {
     ifd i;
@@ -631,5 +632,5 @@ int scm_link_tree(scm *s, long long c, long long p, int n)
     }
     return 0;
 }
-
+#endif
 //------------------------------------------------------------------------------

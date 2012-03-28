@@ -144,7 +144,7 @@ Process output order
 		convert
 		normal
 	input-order
-		relink
+		catalog
 
 
 a b g h l o p q y z

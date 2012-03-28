@@ -17,7 +17,7 @@ scm *scm_ofile(const char *, int, int, int, int, const char *);
 //------------------------------------------------------------------------------
 // SCM TIFF file read/write.
 
-void      scm_relink(scm *);
+void      scm_catalog(scm *);
 long long scm_rewind(scm *);
 long long scm_append(scm *, long long, long long, const float *);
 long long scm_repeat(scm *, long long,
@@ -26,13 +26,16 @@ long long scm_repeat(scm *, long long,
 long long scm_read_node(scm *, long long, long long *, long long *);
 bool      scm_read_page(scm *, long long, float *);
 
+int scm_mapping(scm *, long long **);
+
 //------------------------------------------------------------------------------
 
 typedef struct { long long x; long long o; } scm_pair;
 
-long long scm_read_catalog(scm *, scm_pair **);
+long long scm_scan_catalog(scm *, scm_pair **);
 void      scm_sort_catalog(scm_pair *, long long);
 long long scm_seek_catalog(scm_pair *, long long, long long, long long);
+void      scm_make_catalog(scm *s);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries

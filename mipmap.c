@@ -50,7 +50,7 @@ static long long sample(scm *s)
     long long l;
     scm_pair *a;
 
-    if ((l = scm_read_catalog(s, &a)))
+    if ((l = scm_scan_catalog(s, &a)))
     {
         // Make a note of the offset of the last page in the file...
 

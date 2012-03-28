@@ -155,7 +155,7 @@ static void process(scm *s, scm *t, const float *r)
     float    *p;
     float    *q;
 
-    if ((l = scm_read_catalog(s, &a)))
+    if ((l = scm_scan_catalog(s, &a)))
     {
         scm_sort_catalog(a, l);
 

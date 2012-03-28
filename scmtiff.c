@@ -121,7 +121,7 @@ int main(int argc, char **argv)
                 "\t\t-m sum . . . . Combine by sum\n\n"
                 "\t%s -p mipmap\n\n"
                 "\t%s -p border\n\n"
-                "\t%s -p relink\n\n"
+                "\t%s -p catalog\n\n"
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
 
@@ -139,8 +139,8 @@ int main(int argc, char **argv)
     else if (strcmp(p, "border") == 0)
         r = border (argc, argv, o);
 
-    else if (strcmp(p, "relink") == 0)
-        r = relink (argc, argv);
+    else if (strcmp(p, "catalog") == 0)
+        r = catalog (argc, argv);
 
     else if (strcmp(p, "normal") == 0)
         r = normal (argc, argv, o, R);

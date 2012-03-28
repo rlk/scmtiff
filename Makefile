@@ -3,8 +3,8 @@ EXES= scmtiff scmview
 
 #-------------------------------------------------------------------------------
 
-CC = gcc -std=c99 -Wall -m64 -g
-#CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
+#CC = gcc -std=c99 -Wall -m64 -g
+CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = clang -m64 -Weverything -Wno-unused-parameter
 
 CP = cp
@@ -44,7 +44,7 @@ clean :
 
 #-------------------------------------------------------------------------------
 
-scmtiff     : err.o util.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o relink.o normal.o scmtiff.o
+scmtiff     : err.o util.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o catalog.o normal.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -ljpeg -ltiff -lpng -lz
 
 scmview : err.o util.o scmdat.o scmio.o scm.o img.o scmview.o

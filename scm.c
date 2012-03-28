@@ -134,15 +134,13 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
                 {
                     if (scm_align(s) >= 0)
                     {
-                        uint64_t os = (uint64_t) (o + offsetof(ifd, sub));
                         uint64_t rr = (uint64_t) s->r;
                         uint64_t xx = (uint64_t) x;
 
                         set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
                         set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
                         set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-                        set_field(&D.sub_ifds,          0x014A, 18,  4, os);
-                        set_field(&D.page_index,        0xFFB1,  4,  1, xx);
+                        set_field(&D.page_index,        0xFFB0,  4,  1, xx);
 
                         if (scm_write_ifd(s, &D, o) == 1)
                         {
@@ -210,13 +208,11 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
                     {
                         if (scm_align(s) >= 0)
                         {
-                            uint64_t os = (uint64_t) o + (uint64_t) offsetof(ifd, sub);
                             uint64_t rr = (uint64_t) s->r;
 
                             set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
                             set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
                             set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-                            set_field(&D.sub_ifds,          0x014A, 18,  4, os);
 
                             if (scm_write_ifd(s, &D, o) == 1)
                             {
@@ -274,8 +270,8 @@ long long scm_rewind(scm *s)
 // without the need for a cataloging and mapping pre-pass. We may safely
 // assume that this process does not change the length of the file or any
 // offsets within it.
-
-void scm_relink(scm *s)
+#if 0
+void scm_catalog(scm *s)
 {
     scm_pair *a;
     long long l;
@@ -283,7 +279,7 @@ void scm_relink(scm *s)
 
     assert(s);
 
-    if ((l = scm_read_catalog(s, &a)))
+    if ((l = scm_scan_catalog(s, &a)))
     {
         scm_sort_catalog(a, l);
 
@@ -311,7 +307,7 @@ void scm_relink(scm *s)
         free(a);
     }
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 // Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
@@ -330,13 +326,13 @@ long long scm_read_node(scm *s, long long o, long long *n, long long *v)
         {
             if (n)
                 n[0] = (long long) i.next;
-            if (v)
-            {
-                v[0] = (long long) i.sub[0];
-                v[1] = (long long) i.sub[1];
-                v[2] = (long long) i.sub[2];
-                v[3] = (long long) i.sub[3];
-            }
+            // if (v)
+            // {
+            //     v[0] = (long long) i.sub[0];
+            //     v[1] = (long long) i.sub[1];
+            //     v[2] = (long long) i.sub[2];
+            //     v[3] = (long long) i.sub[3];
+            // }
             return (long long) i.page_index.offset;
         }
         else apperr("Failed to read SCM TIFF IFD");
@@ -442,7 +438,7 @@ void scm_sort_catalog(scm_pair *a, long long l)
 
 // Read the index and offset of all pages in SCM s to a newly-allocated array.
 
-long long scm_read_catalog(scm *s, scm_pair **a)
+long long scm_scan_catalog(scm *s, scm_pair **a)
 {
     long long l = 0;
     long long o;
@@ -468,6 +464,46 @@ long long scm_read_catalog(scm *s, scm_pair **a)
         return l;
     }
     return 0;
+}
+
+// Rewrite all IFDs to refer to the page catalog at offset o with length l.
+
+void scm_link_catalog(scm *s, long long o, long long l)
+{
+    long long p;
+
+    ifd i;
+
+    for (p = scm_rewind(s); scm_read_ifd(s, &i, p) > 0; p = ifd_next(&i))
+    {
+        set_field(&i.page_catalog, 0xFFB1, 16, 2 * l, o);
+        scm_write_ifd(s, &i, p);
+    }
+}
+
+// Append a sorted catalog to the end of SCM s.
+
+void scm_make_catalog(scm *s)
+{
+    scm_pair *a;
+    long long l;
+    long long o;
+
+    if ((l = scm_scan_catalog(s, &a)))
+    {
+        scm_sort_catalog(a, l);
+
+        if (fseeko(s->fp, 0, SEEK_END) == 0)
+        {
+            if ((o = scm_write(s, a, (size_t) l * sizeof (scm_pair))) > 0)
+            {
+                scm_link_catalog(s, o, l);
+                free(a);
+            }
+            else syserr("Failed to write SCM catalog");
+        }
+        else syserr("Failed to seek SCM");
+    }
 }
 
 //------------------------------------------------------------------------------

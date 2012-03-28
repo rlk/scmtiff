@@ -44,7 +44,7 @@ int is_header(header *hp)
 
 int is_ifd(ifd *ip)
 {
-    return (ip->count == 17
+    return (ip->count == SCM_FIELD_COUNT
 
         &&  ip->subfile_type.tag      == 0x00FE
         &&  ip->image_width.tag       == 0x0100
@@ -60,9 +60,9 @@ int is_ifd(ifd *ip)
         &&  ip->strip_byte_counts.tag == 0x0117
         &&  ip->configuration.tag     == 0x011C
         &&  ip->predictor.tag         == 0x013D
-        &&  ip->sub_ifds.tag          == 0x014A
         &&  ip->sample_format.tag     == 0x0153
-        &&  ip->page_index.tag        == 0xFFB1);
+        &&  ip->page_index.tag        == 0xFFB0
+        &&  ip->page_catalog.tag      == 0xFFB1);
 }
 
 //------------------------------------------------------------------------------

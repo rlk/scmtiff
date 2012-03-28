@@ -52,13 +52,14 @@ struct ifd
     field strip_byte_counts;    // 0x0117 *
     field configuration;        // 0x011C
     field predictor;            // 0x013D
-    field sub_ifds;             // 0x014A *
     field sample_format;        // 0x0153
-    field page_index;           // 0xFFB1 *
+    field page_index;           // 0xFFB0 *
+    field page_catalog;         // 0xFFB1
 
     uint64_t next;
-    uint64_t sub[4];
 };                              // * Per-page variant fields
+
+#define SCM_FIELD_COUNT 17
 
 #pragma pack(pop)
 

@@ -10,7 +10,7 @@
 
 //------------------------------------------------------------------------------
 
-int relink(int argc, char **argv)
+int catalog(int argc, char **argv)
 {
     for (int i = 0; i < argc; i++)
     {
@@ -18,7 +18,7 @@ int relink(int argc, char **argv)
 
         if ((s = scm_ifile(argv[i])))
         {
-            scm_relink(s);
+            scm_make_catalog(s);
             scm_close(s);
         }
     }

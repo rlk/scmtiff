@@ -44,7 +44,7 @@ static int addfile(struct file *F, int C, const char *name)
             n = scm_get_n(s);
             c = scm_get_c(s);
 
-            if ((l = scm_read_catalog(s, &a)) >= 0)
+            if ((l = scm_scan_catalog(s, &a)) >= 0)
             {
                 scm_sort_catalog(a, l);
                 F[C].s = s;
