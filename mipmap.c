@@ -65,19 +65,8 @@ static long long sample(scm *s)
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
-            // For each page in the catalog...
-
-            for (long long i = 0; i < l; ++i)
+            for (long long x = 0; x < a[0].x; ++x)
             {
-                // ... examine the parent as a candidate for addition.
-
-                long long x = scm_get_page_parent(a[i].x);
-
-                // If it's already there, then we're done with this level.
-
-                if (scm_seek_catalog(a, 0, i, x) >= 0)
-                    break;
-
                 // Calculate the page indices for all children of x.
 
                 long long x0 = scm_get_page_child(x, 0);

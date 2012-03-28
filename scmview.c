@@ -149,10 +149,14 @@ static int data_init(int argc, char **argv)
 
                 if ((filev[i].l = scm_read_catalog(filev[i].s, &filev[i].a)))
                 {
+                    // printf("%12lld %s\n", filev[i].l, argv[argi]);
+
+                    // for (int j = 0; j < filev[i].l; ++j)
+                    //     printf("%8d %8lld %8lld\n", j, filev[i].a[j].x,
+                    //                                    filev[i].a[j].o);
+
                     scm_sort_catalog(filev[i].a, filev[i].l);
                     pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
-
-                    printf("%12lld %s\n", filev[i].l, argv[argi]);
                 }
                 i++;
             }
