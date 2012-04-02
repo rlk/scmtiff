@@ -1,4 +1,4 @@
-\documentclass[oneside,11pt]{memoir}
+\documentclass[oneside,10pt]{memoir}
 
 \usepackage{microtype}
 \usepackage{mathptmx}
@@ -33,6 +33,7 @@
 \newcommand{\bigtiff} {Big\textsc{tiff}}
 \newcommand{\libtiff} {lib\textsc{tiff}}
 \newcommand{\xml}     {\textsc{xml}}
+\newcommand{\img}     {\textsc{img}}
 \newcommand{\scmtiff} {\texttt{scmtiff}}
 \newcommand{\scmview} {\texttt{scmview}}
 \newcommand{\panopath}{\texttt{PANOPATH}}
@@ -272,6 +273,9 @@ The secondary utility \scmview\ enables inspection and side-by-side comparison o
 
 \section{SCMTIFF Examples}
 
+\subsection{A Basic Panorama}
+\label{sec:panorama}
+
 The most straightforward SCM TIFF process uses a simple image file giving an equirectangular spherical projection, such as that shown in Figure~\ref{fig:bluebonnet}. This image is $32768\times 16384$ with 3 channels of 8-bit unsigned samples. Its name reflects that it was captured at the Bluebonnet Swamp Nature Center, it was the first of several captures, and it gives the left channel of a stereoscopic pair.
 
 \begin{figure}
@@ -291,41 +295,119 @@ Copyright (c) 2011 Robert Kooima
 Table~\ref{tab:resolution} indicates that an image with this resolution is well-represented by an \scm\ with page size $n=512$ and depth $d=4$. When finished, this \scm\ will have $2046$ pages. The first step is to run the \texttt{convert} process to generate the leaves of this tree. The output file name is chosen to reflect the parameters of the \scm\ as well as the state of its processing. This convention is optional.
 
 \begin{verbatim}
-scmtiff -T -p convert -n 512 -d 4 -t desc.txt
+scmtiff -p convert -n 512 -d 4 -t desc.txt
         -o Bluebonnet-0-L-512-4-M.tif Bluebonnet-0-L.tif
 \end{verbatim}
 
-If the output is examined using \scmview, pages $510$ through $2045$ will be present with a resolution of $514\times 514$. Image detail will closely reflect that of the input. There will be mild projection distortion apparent is some pages, though the degree of distortion will be far less than that at the top and bottom of the equirectangular input. All pages will have a ring of black pixels around the outside.
+If the output is examined using \scmview, pages $510$ through $2045$ will be present with a resolution of $514\times 514$. Image detail will closely reflect that of the input. There will be mild projection distortion apparent in some pages, though the degree of distortion will be far less than that at the top and bottom of the equirectangular input. All pages will have a border of black pixels around the outside.
 
-The second stop is to run the \texttt{mipmap} process on this output to generate the intermediate, subsampled pages.
+The second step is to run the \texttt{mipmap} process on this output to generate the intermediate, subsampled pages.
 
 \begin{verbatim}
-scmtiff -T -p mipmap Bluebonnet-0-L-512-4-M.tif
+scmtiff -p mipmap Bluebonnet-0-L-512-4-M.tif
 \end{verbatim}
 
-Examination with \scmview\ will show that pages $0$ through $2045$ are now all present. Pages $0$ through $5$ will show wide views in each of the cardinal directions, and pages $2$ and $3$ will show nicely recovered polar views with all of the projection distortion in the input rectified.
+Examination with \scmview\ will show that pages $0$ through $2045$ are now all present. Pages $0$ through $5$ will show full views along each of the axes, and pages $2$ and $3$ will show nicely recovered polar views with all of the projection distortion in the input rectified.
 
-Third, the border pixels must be filled with adjacent page information. This process alters the compressed size of each page, and cannot be performed in-place. Thus, an output file name is required and a new \scm\ \tiff\ file is generated.
+The third step fills the border pixels with adjacent page information. This process alters the compressed size of each page, so it cannot be performed in-place. Thus, an output file name is required and a new \scm\ \tiff\ file is generated.
 
 \begin{verbatim}
-scmtiff -T -p border
+scmtiff -p border
         -o Bluebonnet-0-L-512-4.tif Bluebonnet-0-L-512-4-M.tif
 \end{verbatim}
 
-The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first six pages generate from Figure~\ref{fig:bluebonnet}.
+The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first six pages of output generated from the input in Figure~\ref{fig:bluebonnet}.
 
 \begin{figure}
   \centering
-  \subbottom[0]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet0.png}}
-  \subbottom[1]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet1.png}}
-  \subbottom[2]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet2.png}}
-  \subbottom[3]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet3.png}}
-  \subbottom[4]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet4.png}}
-  \subbottom[5]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet5.png}}
+  \subbottom[0]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet0.png}}
+  \subbottom[1]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet1.png}}
+  \subbottom[2]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet2.png}}\\
+  \subbottom[3]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet3.png}}
+  \subbottom[4]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet4.png}}
+  \subbottom[5]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet5.png}}
   \caption{The six root pages of the Bluebonnet \scm.}
   \label{fig:sixfaces}
 \end{figure}
 
+The remaining fourth step scans the file noting the location of each page and appends this information to the end of the file. With this catalog, a real-time interactive application, such as the one described in the next chapter, can instantly locate, load, and display any page.
+
+\begin{verbatim}
+scmtiff -p catalog Bluebonnet-0-L-512-4.tif
+\end{verbatim}
+
+\subsection{A Merged Planetary Dataset}
+\label{sec:planet}
+
+The following much more involved example merges multi-part data sets with differing  projections and sources to produce a globally-high-quality height map of the moon. In the next sections, this height map is used to produce a normal map for real-time illumination, and a scripted build process is used to orchestrate the full conversion process automatically.
+
+\subsection{A Normal Map}
+
+\subsection{Automation}
+
+For input images larger than a gigapixel or two, the \scm\ conversion process will take time. Because this is a multi-step process, it is convenient to automate it to the extent possible, to allow it to run in a batch-oriented mode. The most basic way to do so is to write a shell script that issues each of the above command lines in turn. This approach can be modularized using shell variables and loops, and works well in simple cases. However, a more sophisticated approach uses the \texttt{make} utility to define the relationships between the inputs and outputs of each step of the conversion and adaptively determine the necessary order of operations automatically. The primary advantages to the use of \texttt{make} in this context are that it correctly handles interrupted conversion processes without expending redundant effort, and it intelligently exploits opportunities for process-level parallelism.
+
+The following is an example \texttt{Makefile} that converts the equirectangular portion of the WAC GLD100 data set to a bordered, cataloged height map, and derives from this a bordered, cataloged normal map.
+
+\begin{verbatim}
+N    = 426
+D    = 6
+NAME = GLD-$(N)-$(D)
+
+TIFS =  WAC_GLD100_E300N0450_100M.tif \
+        WAC_GLD100_E300N1350_100M.tif \
+        WAC_GLD100_E300N2250_100M.tif \
+        WAC_GLD100_E300N3150_100M.tif \
+        WAC_GLD100_E300S0450_100M.tif \
+        WAC_GLD100_E300S1350_100M.tif \
+        WAC_GLD100_E300S2250_100M.tif \
+        WAC_GLD100_E300S3150_100M.tif
+
+all: $(NAME)-N.tif
+
+%.tif: %.IMG
+        scmtiff -p convert -n$(N) -d$(D) -t desc.txt -N-9160,10770 -o $@ $<
+
+$(NAME)-M.tif: $(TIFS)
+        scmtiff -p combine -o $@ $<
+        scmtiff -p mipmap $@
+
+$(NAME).tif: $(NAME)-M.tif
+        scmtiff -p border -o$@ $<
+        scmtiff -p catalog $@
+
+$(NAME)-O.tif: $(NAME).tif
+        scmtiff -p normal -R1728240,1748170 -o$@ $<
+
+$(NAME)-N.tif: $(NAME)-O.tif
+        scmtiff -p border -o $@ $<
+        scmtiff -p catalog $@
+\end{verbatim}
+
+The variables \texttt{N} and \texttt{D} set the page size and tree depth, which are
+carried throughout the process, making it easy to reprocess a single input at different resolutions. The variable \texttt{NAME} is defined in terms of these values, as per the \scm\ naming convention. Following this, the variable \texttt{TIFS} gives a list of constituent \scm\ \tiff\ files generated by the initial conversion.
+
+The \texttt{Makefile} lists the \tiff s instead of the \img s in order enable the magic that happens next, in the \texttt{convert} recipe. This is an abstract definition of the process of converting an \img\ to a \tiff, including its \scm\ parameters, description, and normalization. When \texttt{make} is informed by the \texttt{combine} recipe that these \tiff s are required, it knows how to convert them from \img s.
+
+The \texttt{combine} recipe produces a single output given the eight inputs, and automatically executes the \texttt{mipmap} process on it in-place. By convention, this combined, mipmapped output is identified by the suffix \texttt{M}.
+
+The \texttt{border} recipe re-encodes this \texttt{M} file with bordered pages, and catalogs it, giving the finished height map output \texttt{GLD-426-6.tif}.
+
+The \texttt{normal} recipe converts the finished height map to an intermediate normal map with the suffix \texttt{O}, which is bordered and cataloged giving a finished normal map \texttt{GLD-426-6-N.tif}.
+
+In all cases, the output is defined in terms of its input and is annotated with the process necessary to perform the conversion. The build is invoked with a single command:
+
+\begin{verbatim}
+make
+\end{verbatim}
+
+This command considers all recipes, compares each output with its required input, and determines the minimum number of steps necessary to produce the output. Being aware of all dependencies, it will optionally execute non-interfering processes in parallel. To allow up to four simultaneous \img conversions:
+
+\begin{verbatim}
+make -j4
+\end{verbatim}
+
+This \texttt{Makefile} example is simplified from the complete planetary dataset example of Section~\ref{sec:planet}. It glosses over issues of blending and combination operator. A full \texttt{Makefile} capable of performing this conversion is given in Appendix~\ref{cha:makefile}.
 
 %------------------------------------------------------------------------------
 
@@ -448,6 +530,84 @@ This is a list of issues to be aware of, should trouble arise.
 
 \item If performance is sluggish, be sure that panorama image files are not being accessed from a network share.
 \end{itemize}
+
+\appendix
+\chapter{Makefile}
+\label{cha:makefile}
+
+\begin{verbatim}
+N = 426
+D = 6
+
+NAME = LRO-DTM-$(N)-$(D)
+FORM = -n $(N) -d $(D)
+NORM = -N -9160,10770
+RADI = -R 1728240,1748170
+TEXT = -t desc.txt
+
+GLDE =  WAC_GLD100_E300N0450_100M.tif \
+        WAC_GLD100_E300N1350_100M.tif \
+        WAC_GLD100_E300N2250_100M.tif \
+        WAC_GLD100_E300N3150_100M.tif \
+        WAC_GLD100_E300S0450_100M.tif \
+        WAC_GLD100_E300S1350_100M.tif \
+        WAC_GLD100_E300S2250_100M.tif \
+        WAC_GLD100_E300S3150_100M.tif
+GLDP =  WAC_GLD100_P900N0000_100M.tif \
+        WAC_GLD100_P900S0000_100M.tif
+LOLA =  ldem_45n_100m.tif \
+        ldem_45s_100m.tif
+
+# Convert a raw normal map to a bordered and cataloged normal map.
+
+$(NAME)-N.tif: $(NAME)-O.tif
+        scmtiff -p border -o $@ $<
+        scmtiff -p catalog $@
+
+# Convert a height map into a raw normal map.
+
+$(NAME)-O.tif: $(NAME).tif
+        scmtiff -p normal $(RADI) -o $@ $<
+
+# Border and catalog.
+
+$(NAME).tif: $(NAME)-M.tif
+        scmtiff -p border -o $@ $<
+        scmtiff -p catalog $@
+
+# Combine GLD and LOLA. Mipmap.
+
+$(NAME)-M.tif: GLDA.tif $(LOLA)
+        scmtiff -p combine -o $@ $^
+        scmtiff -p mipmap $@
+
+# Combine the equirectangular and polar GLD.
+
+GLDA.tif: GLDE.tif $(GLDP)
+        scmtiff -p combine -m max -o $@ $^
+
+# Combine the equirectangular GLD.
+
+GLDE.tif: $(GLDE)
+        scmtiff -p combine -o$@ $^
+
+# Convert all PDS files to TIFF.
+
+WAC_GLD100_E%.tif: WAC_GLD100_E%.IMG
+        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ $<
+
+WAC_GLD100_P900N0000_100M.tif: WAC_GLD100_P900N0000_100M.IMG
+        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P  90,12,11 $<
+
+WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
+        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P -90,12,11 $<
+
+ldem_45n_100m.tif: ldem_45n_100m.lbl
+        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P  90,11,12 $<
+
+ldem_45s_100m.tif: ldem_45s_100m.lbl
+        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P -90,11,12 $<
+\end{verbatim}
 
 \printpagenotes
 \end{Spacing}
