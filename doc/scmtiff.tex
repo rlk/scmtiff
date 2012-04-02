@@ -341,6 +341,31 @@ scmtiff -p catalog Bluebonnet-0-L-512-4.tif
 
 The following much more involved example merges multi-part data sets with differing  projections and sources to produce a globally-high-quality height map of the moon. In the next sections, this height map is used to produce a normal map for real-time illumination, and a scripted build process is used to orchestrate the full conversion process automatically.
 
+\begin{figure}
+  \centering
+  \subbottom[GLD100 E300N0450]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N0450.jpg}}
+  \subbottom[GLD100 E300N1350]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N1350.jpg}}
+  \subbottom[GLD100 E300N2250]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N2250.jpg}}
+  \subbottom[GLD100 E300N3150]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N3150.jpg}}\\
+  \subbottom[GLD100 E300S0450]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S0450.jpg}}
+  \subbottom[GLD100 E300S1350]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S1350.jpg}}
+  \subbottom[GLD100 E300S2250]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S2250.jpg}}
+  \subbottom[GLD100 E300S3150]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S3150.jpg}}
+  \caption{The eight equirectangular PDS images of WAC GLD100.}
+  \label{fig:glde}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \subbottom[GLD100 P900N0000]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900N0000.jpg}}
+  \subbottom[LDEM 60N]{\includegraphics[width=0.24\textwidth]{fig/ldem_60n.jpg}}
+  \subbottom[GLD100 P900S0000]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900S0000.jpg}}
+  \subbottom[LDEM 60S]{\includegraphics[width=0.24\textwidth]{fig/ldem_60s.jpg}}
+  \caption{The two polar PDS images of WAC GLD100 and LDEM.}
+  \label{fig:glde}
+\end{figure}
+
+
 \subsection{A Normal Map}
 
 \subsection{Automation}
