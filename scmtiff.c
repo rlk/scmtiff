@@ -53,6 +53,8 @@ static void printtime(double dt)
 
 int main(int argc, char **argv)
 {
+    const char *exe = argv[0];
+
     struct timeval t0;
     struct timeval t1;
 
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
 
     gettimeofday(&t0, NULL);
 
-    setexe(argv[0]);
+    setexe(exe);
 
     opterr = 0;
 
@@ -125,7 +127,7 @@ int main(int argc, char **argv)
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
 
-                argv[0], argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
+                exe, exe, exe, exe, exe, exe, exe);
 
     else if (strcmp(p, "convert") == 0)
         r = convert(argc, argv, o, t, n, d, b, g, x, L, P, N);
