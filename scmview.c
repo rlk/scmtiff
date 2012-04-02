@@ -149,11 +149,11 @@ static int data_init(int argc, char **argv)
 
                 if ((filev[i].l = scm_scan_catalog(filev[i].s, &filev[i].a)))
                 {
-                    printf("%12lld %s\n", filev[i].l, argv[argi]);
+                    // printf("%12lld %s\n", filev[i].l, argv[argi]);
 
-                    for (int j = 0; j < filev[i].l; ++j)
-                        printf("%8d %16llx %16llx\n", j, filev[i].a[j].x,
-                                                         filev[i].a[j].o);
+                    // for (int j = 0; j < filev[i].l; ++j)
+                    //     printf("%8d %16llx %16llx\n", j, filev[i].a[j].x,
+                    //                                      filev[i].a[j].o);
 
                     scm_sort_catalog(filev[i].a, filev[i].l);
                     pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
@@ -361,7 +361,7 @@ static void display(void)
 
     glViewport(0, 0, w, h);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);

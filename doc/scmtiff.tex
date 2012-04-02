@@ -7,7 +7,8 @@
 \usepackage{bigstrut}
 \usepackage{hyperref}
 \usepackage{xfrac}
-\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
+%\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
+\usepackage{siunitx}
 
 \setverbatimfont{\normalfont\ttfamily\small}
 
@@ -33,6 +34,7 @@
 \newcommand{\libtiff} {lib\textsc{tiff}}
 \newcommand{\xml}     {\textsc{xml}}
 \newcommand{\scmtiff} {\texttt{scmtiff}}
+\newcommand{\scmview} {\texttt{scmview}}
 \newcommand{\panopath}{\texttt{PANOPATH}}
 \newcommand{\rgb}     {\textsc{rgb}}
 \newcommand{\mb}    {\,\textsc{mb}}
@@ -45,6 +47,9 @@
 \newcommand{\Neg}[1]{        {-}{#1}}
 
 \newcommand{\inangles}[1]{$\langle$#1$\rangle$}
+
+\newenvironment{optionlist}
+  {\setlength{\leftmargini}{1in}\begin{itemize}}{\end{itemize}}
 
 %-------------------------------------------------------------------------------
 
@@ -61,6 +66,8 @@
 % Example: WAC DTM / LOLA merge
 
 % Appendix: Panoview configuration
+
+%------------------------------------------------------------------------------
 
 \chapter{Spherical Cube Map}
 
@@ -129,21 +136,24 @@ Let $d$ be the number of recursive subdivisions applied to the cube. The total n
 Let $n$ be the size in pixels of each page of image data. The effective sphere map resolution of an \scm\ tree with page size $n$ and depth $d$ is
 \[w=n\,2^{d+2}\qquad h=n\,2^{d+1}.\]
 
-For reference, the following table shows the effective resolutions and page counts of \scm\ trees with depths down to $7$. Page size $n=512$ is often used for power-of-two source images, and $n=720$ works well for geographic and planetary gridded data.
+For reference, Table~\ref{tab:resolution} shows the effective resolutions and page counts of \scm\ trees with depths down to $7$. Page size $n=512$ is often used for power-of-two source images, and $n=720$ works well for geographic and planetary gridded data.
 
-\begin{center}
-\begin{tabular}{r|rr|rr|r}
-$d$& $w_{\,512}$& $h_{\,512}$& $w_{\,720}$& $h_{\,720}$& $m$ \B\\\hline
-\num{0}&  \num{2048}&  \num{1024}&  \num{2880}&  \num{1440}&     \num{6} \T\\
-\num{1}&  \num{4096}&  \num{2048}&  \num{5760}&  \num{2880}&    \num{30} \\
-\num{2}&  \num{8192}&  \num{4096}& \num{11520}&  \num{5760}&   \num{126} \\
-\num{3}& \num{16384}&  \num{8192}& \num{23040}& \num{11520}&   \num{510} \\
-\num{4}& \num{32768}& \num{16384}& \num{46080}& \num{23040}&  \num{2046} \\
-\num{5}& \num{65536}& \num{32768}& \num{92160}& \num{46080}&  \num{8190} \\
-\num{6}&\num{131072}& \num{65536}&\num{184320}& \num{92160}& \num{32766} \\
-\num{7}&\num{262144}&\num{262144}&\num{368640}&\num{184320}&\num{131070} \\
-\end{tabular}
-\end{center}
+\begin{table}
+  \centering
+  \label{tab:resolution}
+  \begin{tabular}{r|rr|rr|r}
+  $d$& $w_{\,512}$& $h_{\,512}$& $w_{\,720}$& $h_{\,720}$& $m$ \B\\\hline
+  \num{0}&  \num{2048}&  \num{1024}&  \num{2880}&  \num{1440}&     \num{6} \T\\
+  \num{1}&  \num{4096}&  \num{2048}&  \num{5760}&  \num{2880}&    \num{30} \\
+  \num{2}&  \num{8192}&  \num{4096}& \num{11520}&  \num{5760}&   \num{126} \\
+  \num{3}& \num{16384}&  \num{8192}& \num{23040}& \num{11520}&   \num{510} \\
+  \num{4}& \num{32768}& \num{16384}& \num{46080}& \num{23040}&  \num{2046} \\
+  \num{5}& \num{65536}& \num{32768}& \num{92160}& \num{46080}&  \num{8190} \\
+  \num{6}&\num{131072}& \num{65536}&\num{184320}& \num{92160}& \num{32766} \\
+  \num{7}&\num{262144}&\num{262144}&\num{368640}&\num{184320}&\num{131070} \\
+  \end{tabular}
+  \caption{Effective resolutions and page counts of \scm\ trees with various depths and page sizes.}
+\end{table}
 
 Each page is identified by an index between $0$ and $m$ giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
 
@@ -164,19 +174,25 @@ The \scm\ tree level $l$ at which page $p_i$ appears is
 
 When processing and rendering \scm\ data, it is often necessary for applications to determine the indices of spatially adjacent pages. This relationship does not emerge readily, and is somewhat more challenging to compute. An implementation, provided in the source, has complexity linear in the distance to the adjacent pages' first common ancestor.
 
+%------------------------------------------------------------------------------
+
 \chapter{\scm\ Pre-processing}
 
-\section{SCMTIFF}
+\section{SCMTIFF Usage}
 
-Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ data files by the \scmtiff\ utility. Given the variety of common source data preparations, this conversion involves multiple steps, and is often directed by a script or build system. \scmtiff\ is a multi-tool that implements all of the different processes needed when traversing the path from raw data to usable \scm. It takes two global options followed by a list of per-process options and a list of input files.
+Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ files by the \scmtiff\ utility. Given the variety of source data preparations, this conversion involves multiple steps, and is often directed by a script or build system. \scmtiff\ is a multi-tool that implements all of the different processes needed when traversing the path from raw data to usable \scm. It takes three global options followed by a list of per-process options and a list of input files.
 
 \bigskip\noindent\scmtiff\ \texttt{-p} \inangles{\textit{process}} [\texttt{-o} \inangles{\textit{output}}] [\textit{options}] \inangles{\textit{input}} [\ldots]
 
-\begin{itemize}
+\begin{optionlist}
 \item[\texttt{-p} \inangles{\textit{process}}] Selects the \scm\ process. Alternatives include \texttt{convert}, \texttt{combine}, \texttt{mipmap}, \texttt{border}, \texttt{catalog}, and \texttt{normal}. Each of these processes is described here, and examples of complete conversions are given below.
 
-\item[\texttt{-o} \inangles{\textit{output}}] Gives the name of the output file. If unspecified, the default is \texttt{out.tif}.
-\end{itemize}
+\item[\texttt{-o} \inangles{\textit{output}}] Gives the name of the output file. If left unspecified, the default is \texttt{out.tif}, unless otherwise noted.
+
+\item[\texttt{-T}] Requests that process timing be collected and printed to the terminal upon completion.
+\end{optionlist}
+
+An \scm\ \tiff\ file produced by the \scmtiff\ tool is a standard \bigtiff\ image, suitable for processing using any \bigtiff-compatible tool. Notably, this includes \libtiff\ version 4 or later, and its related utilities.\pagenote{It should be noted that a number of the \scm\ \tiff\ fields reference embedded data by offset. Whenever possible, this data is embedded exactly once, despite being referred-to by fields in all directories. Applications that copy \tiff\ data should be careful not to replicate this data, as one such field, the page catalog \texttt{0xFFB1}, can be several megabytes in size. Indeed, directory extractions and other heavy modifications to a \tiff\ file structure will invalidate the page catalog anyway.}
 
 \subsection{Convert}
 
@@ -184,54 +200,51 @@ Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ 
 
 \bigskip The \texttt{convert} process is the first and most basic, taking source data input and producing \scm\ \tiff\ output. Source data with a full-sphere equirectangular projection may be provided in \textsc{jpeg}, \textsc{png}, or \textsc{tiff} format, with up to four channels. Data with more complex projection may be provided in \textsc{pds} format, as attached-label \textsc{img} files or detached-label \textsc{lbl}~/~\textsc{img} pairs. Channels may have 8 or 16-bit signed or unsigned integer samples, or 32-bit floating point samples.
 
-If the output file name is not specified using the \texttt{-o} option to \scmtiff, the default name is generated by replacing the file extension of the input file name with \texttt{.tif}. This is important when multiple input files are given on a single command line.
+If the output file name is not specified using the \texttt{-o} option to \scmtiff, the default name is generated by replacing the file extension of the input file name with \texttt{.tif}. This is important when multiple input files are given on a single command line.\pagenote{Yes, this process is dumb enough to overwrite a source data file that already has the \texttt{.tif} extension.}
 
-\texttt{convert} has the most options of any process, as the parameters specified at the first step are carried through into the final data product. The pages of a converted \scm\ \tiff\ will appear in depth-first order.\pagenote{They're in depth-first order, yes, but only the leaves are represented. Thus, the true ordering is an inelegant space-filling curve.}
+\texttt{convert} has the most options of any process, as the parameters specified at the first step are carried through into the final data product.
 
-\begin{itemize}
+\begin{optionlist}
 \item[\texttt{-n} \inangles{$n$}] Gives a value for $n$, the \scm\ page size. Default is $512$.
 
 \item[\texttt{-d} \inangles{$d$}] Gives a value for $d$, the \scm\ tree depth. Default is $0$. See Section~\ref{paging} for definitions and examples of how the selection of $n$ and $d$ affect image resolution and file size.
 
-  \item[\texttt{-b} \inangles{$b$}] Overrides the number of bits per channel. By default, \scmtiff\ uses the bit depth specified by the input image file. If a change in bit depth is desired, this value $b$ is used instead. Values of $8$ and $16$ select integer samples and $32$ selects floating point samples.
+\item[\texttt{-b} \inangles{$b$}] Overrides the number of bits per channel. By default, \scmtiff\ uses the bit depth specified by the input image file. If a change in bit depth is desired, this value $b$ is used instead. Values of $8$ and $16$ select integer samples and $32$ selects floating point samples.
 
 \item[\texttt{-g} \inangles{$g$}] Overrides the signedness of integer data. By default, \scmtiff\ uses the type specified by the input file, but if a change is desired, $0$ specifies unsigned and $1$ signed. This option has no effect if floating point samples are selected.
 
 \item[\texttt{-t} \inangles{\textit{file}}] Specifies a text file containing an image description. The contents of this file are read and embedded in the generated \tiff\ file. Subsequent \scmtiff\ processes do retain this text and do not take a separate description option. Thus, any description of the final data product should be fully specified in the initial \texttt{convert} process.
 
-\item[\texttt{-N} \inangles{$n_0$}\texttt{,}\inangles{$n_1$}] Specifies a normalization range. Unsigned integer samples have a natural normalized range of $(0, 1)$, signed integer samples have the normalized range of $(-1,1)$, and floating point samples have the full range of a 32-bit float. This option remaps the data onto the range $(n_0,n_1)$. The choice of normalization depends largely on the character of the input and the type of the output. The default normalization retains the natural range of the data.
+\item[\texttt{-N} \inangles{$n_0$}\texttt{,}\inangles{$n_1$}] Specifies a normalization range. Unsigned integer samples have a natural normalized range of $(0, 1)$, signed integer samples have the normalized range of $(-1,1)$, and floating point samples have the full range of a 32-bit float. This option remaps each sample onto the range $(n_0,n_1)$. The choice of normalization depends largely on the character of the input and the type of the output. The default normalization retains the natural range of the data.
 
 \item[\texttt{-L} \inangles{$\lambda_c$}\texttt{,}\inangles{$\lambda_0$}\texttt{,}\inangles{$\lambda_1$}] Specifies a longitudinal mask. This causes data to appear over a given range of longitudes, fading out at the edges, thus allowing the blended combination of separate source data files. This option chooses a range of degrees centered at $\lambda_c$, extending to $\lambda_c\pm\lambda_1$, and fading with cubic drop-off to $\lambda_c\pm\lambda_0$.
 
 \item[\texttt{-P} \inangles{$\phi_c$}\texttt{,}\inangles{$\phi_0$}\texttt{,}\inangles{$\phi_1$}] Specifies a latitudinal mask. This option chooses a range of degrees centered at $\phi_c$, extending to $\phi_c\pm\phi_1$, and fading with cubic drop-off to $\phi_c\pm\phi_0$. Longitudinal and latitudinal masks may be applied simultaneously.
-
-\end{itemize}
+\end{optionlist}
 
 \subsection{Combine}
 
 \noindent\scmtiff\ \texttt{-p combine} [\texttt{-o} \inangles{\textit{output}}] [\textit{options}] \inangles{\textit{input}} [\ldots]
 
-\bigskip In cases where a data set is provided in a form spread across multiple data file, the \texttt{combine} process is the second step. It merges multiple converted \scm\ \tiff\ files into a single \scm\ \tiff\ file. It takes just one optional argument.
+\bigskip The \texttt{combine} process is the second step in cases where a data set is provided in a form spread across multiple data file. It merges multiple converted \scm\ \tiff\ input files into a single \scm\ \tiff\ output file. It takes just one optional argument.
 
-\begin{itemize}
-\item[\texttt{-m} \inangles{\textit{mode}}] Specifies the operation mode used to combine samples. The \texttt{max} mode selects the largest sample from each of the named files. The \texttt{sum} mode is the default and sums all named files. The \texttt{max} mode is often used when merging data sets of differing projection, while the \texttt{sum} mode is used when combining data sets that have had a longitudinal or latitudinal mask applied in the \texttt{convert} process.
-\end{itemize}
+\begin{optionlist}
+\item[\texttt{-m} \inangles{\textit{mode}}] Specifies the operator mode used to combine samples. The \texttt{max} mode selects the largest sample from each of the named files. The \texttt{sum} mode is the default and sums all named files. The \texttt{max} mode is often used when merging data sets of differing projection, while the \texttt{sum} mode is used when combining data sets that have had a longitudinal or latitudinal mask applied in the \texttt{convert} process.
+\end{optionlist}
 
 \subsection{Mipmap}
 
 \noindent\scmtiff\ \texttt{-p mipmap} \inangles{\textit{input}}
 
-\bigskip The \texttt{mipmap} process generates the intermediate nodes of an \scm\ tree. In general, the \texttt{convert} process generates tree leaves, the \texttt{combine} process merges trees, and the \texttt{mapmap} process subsamples this output, enabling real-time display of the data at arbitrary resolution. It is important to \texttt{combine} before \texttt{mipmap}ping, as boundary artifacts may remain apparent in the intermediate pages of combined mipmaps.
+\bigskip The \texttt{mipmap} process generates the intermediate nodes of an \scm\ tree. In general, the \texttt{convert} process generates tree leaves, the \texttt{combine} process merges trees, and the \texttt{mapmap} process subsamples the result, enabling real-time display of the data at arbitrary resolution. It is important to \texttt{combine} before \texttt{mipmap}ping, as boundary artifacts may remain apparent in the intermediate pages of combined mipmaps.
 
-The \texttt{mipmap} process takes no parameters. In the interest of efficiency, mipmapping occurs \textit{in place}, and subsampled pages are appended to the existing file, and the output file name option is ignored. The \texttt{mipmap} process generates as many subsampled pages as possible, and in the common case, an input with depth $d$ will have $d-1$ levels appended to it.
-
-The pages of a mipmapped \scm\ \tiff\ appear in order of decreasing level, and the order within each level corresponds with the resulting of the conversion or the combining, whichever happend most recently.\pagenote{A newly-converted, mipmapped \scm\ \tiff\ will have a depth-first order within each level. A newly-combined, mipmapped \scm\ \tiff\ will have breadth-first order within each level. Either way, this ordering is essentially useless from any algorithmic standpoint, and the \tiff\ won't meet the \scm\ prefix criterion because it's in reverse order. The expectation is that all mipmapped \scm\ \tiff s will be immediately bordered, which will straighten everything right out.}
+The \texttt{mipmap} process takes no parameters. In the interest of efficiency, mipmapping occurs \textit{in place}. The output file name option is ignored and subsampled pages are appended to the existing file. The \texttt{mipmap} process generates as many subsampled levels as possible, and in the common case, an input with depth $d$ will have $d-1$ levels appended to it.
 
 \subsection{Border}
 
 \noindent\scmtiff\ \texttt{-p border} [\texttt{-o} \inangles{\textit{output}}] \inangles{\textit{input}}
 
-\bigskip The \texttt{border} process fills the pixels of the outermost rows and columns of each page with the pixels from the adjacent rows or columns of the four neighboring pages. This provides each page with the context needed by the graphics hardware to perform linear magnification filtering across page boundaries, effectively allowing many small images to appear as a single very large image.\pagenote{The replicated borders provide only a single pixel of context. This enables linear magnification filtering, but does \emph{not} enable anisotropic filtering.\footnote{Which sucks.}} If this step is not performed, artifacts will appear in the output. In practice, the \texttt{border} process is expensive, as it must decompress and recompress every page of the \scm. The pages of a bordered \scm\ \tiff\ appear in breadth-first order.
+\bigskip In truth, an \scm\ with page size $n$ is stored in a \tiff\ file with image width and height $n+2$. The \texttt{border} process fills these extra pixels in the outermost rows and columns of each page with pixels from the adjacent rows or columns of the four neighboring pages. This provides each page with the context needed by the graphics hardware to perform linear magnification filtering across page boundaries, effectively allowing many small images to appear as a single very large image.\pagenote{The replicated borders provide only a single pixel of context. This enables linear magnification filtering, but does \emph{not} enable anisotropic filtering.} If this step is not performed, artifacts will appear in the output. In practice, the \texttt{border} process is expensive, as it must decompress and recompress every page of the \scm.
 
 \subsection{Catalog}
 
@@ -239,25 +252,82 @@ The pages of a mipmapped \scm\ \tiff\ appear in order of decreasing level, and t
 
 \bigskip The \texttt{catalog} process generates a sorted array of index-offset pairs that allow an \scm\ rendering application to immediately determine exactly where each page appears in the \scm\ \tiff\ file. Such applications are usually aware of how points on the sphere map onto indices, and thus the page catalog generated by the \texttt{catalog} process allows applications to straightforwardly locate the unique \scm\ \tiff\ data that maps onto any point on the sphere at any resolution. In the absence of this catalog, an \scm\ application must scan the file for indices, noting offsets as it goes. This heavily I/O-bound process often incurs significant delays and impedes real-time, interactive display.
 
-Like mipmapping, the \texttt{catalog} process takes no parameters and occurs \emph{in place}. The output file name option is ignored.
+Like mipmapping, the \texttt{catalog} process takes no parameters and occurs \emph{in place}. The output file name option is ignored and the catalog data is appended to the input file.
 
 \subsection{Normal}
 
 \noindent\scmtiff\ \texttt{-p normal} [\texttt{-o} \inangles{\textit{output}}] [\textit{options}] \inangles{\textit{input}}
 
-\bigskip The \texttt{normal} process computes a normal map given a height map. The input may have any number of channels and any format, but only the first channel is used, and the normalization of that channel is modified by the range of radii specified by the command line option. The output will always have 3 channels of 8-bit unsigned samples, scaled and biased to $(0,1)$ as is standard practice in normal mapping, though the normals are given in \emph{object} space rather than \emph{tangent} space.
+\bigskip The \texttt{normal} process computes a normal map for a given height map. The input may have any number of channels and any format, but only the first channel is used, and the normalization of that channel is modified by the range of radii specified by the command line option. The output will always have 3 channels of 8-bit unsigned samples, scaled and biased to $(0,1)$ as is standard practice in normal mapping, though the normals are given in \emph{object} space rather than \emph{tangent} space.
 
-The page order of the output will match the page order of the input, and mipmaps will be preserved.\pagenote{Indeed, one should \emph{always} normalize mipmaps instead of mipmapping normals. A mipmapped normal is not guaranteed to have unit length, nor will it necessarily correctly represent the normal averaged over the sample's footprint, as would a normal generated directly from height map samples averaged over their own footprint.} However, the output will \emph{not} be bordered or cataloged.
+Regardless of whether the input height map was bordered or cataloged, the output normal map will be neither bordered nor cataloged. In contrast, a mipmapped input height map \emph{will} produce a mipmapped normal map output, and indeed one should \emph{always} normalize mipmaps instead of mipmapping normals, as a mipmapped normal is not guaranteed to have unit length.
 
-\begin{itemize}
+\begin{optionlist}
 \item[\texttt{-R} \inangles{$r_0$}\texttt{,}\inangles{$r_1$}] Specifies the true range of radii represented by the normalized height map input. This allows the true magnitude of the \emph{change} in height to be computed, which gives slope, which gives the normal vector.
-\end{itemize}
+\end{optionlist}
 
-\section{Output}
+\section{SCMVIEW Usage}
 
-An \scm\ \tiff\ file produced by the \scmtiff\ tool is a standard \bigtiff\ image, suitable for processing using any \bigtiff-compatible tool. Notably, this includes \libtiff\ version 4 or later, and its related utilities.
+The secondary utility \scmview\ enables inspection and side-by-side comparison of \scm\ \tiff\ output.
 
-It should be noted that a number of the \scm\ \tiff\ fields reference embedded data by offset. Whenever possible, this data is embedded exactly once, despite being referred to by fields in all directories. Applications that copy \tiff\ data should be careful not to replicate this data, as one such field, the page catalog \texttt{0xFFB1}, can be several megabytes in size. Indeed, directory extractions and other heavy modifications to a \tiff\ file structure will invalidate the page catalog anyway.
+\section{SCMTIFF Examples}
+
+The most straightforward SCM TIFF process uses a simple image file giving an equirectangular spherical projection, such as that shown in Figure~\ref{fig:bluebonnet}. This image is $32768\times 16384$ with 3 channels of 8-bit unsigned samples. Its name reflects that it was captured at the Bluebonnet Swamp Nature Center, it was the first of several captures, and it gives the left channel of a stereoscopic pair.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{fig/bluebonnet.png}
+  \caption{\texttt{Bluebonnet-0-L.tif}, an equirectangular full-sphere panorama}
+  \label{fig:bluebonnet}
+\end{figure}
+
+A brief description is added to an ASCII text file named \texttt{desc.txt}.
+
+\begin{verbatim}
+Bluebonnet Swamp Nature Center - 9 October 2011
+Copyright (c) 2011 Robert Kooima
+\end{verbatim}
+
+Table~\ref{tab:resolution} indicates that an image with this resolution is well-represented by an \scm\ with page size $n=512$ and depth $d=4$. When finished, this \scm\ will have $2046$ pages. The first step is to run the \texttt{convert} process to generate the leaves of this tree. The output file name is chosen to reflect the parameters of the \scm\ as well as the state of its processing. This convention is optional.
+
+\begin{verbatim}
+scmtiff -T -p convert -n 512 -d 4 -t desc.txt
+        -o Bluebonnet-0-L-512-4-M.tif Bluebonnet-0-L.tif
+\end{verbatim}
+
+If the output is examined using \scmview, pages $510$ through $2045$ will be present with a resolution of $514\times 514$. Image detail will closely reflect that of the input. There will be mild projection distortion apparent is some pages, though the degree of distortion will be far less than that at the top and bottom of the equirectangular input. All pages will have a ring of black pixels around the outside.
+
+The second stop is to run the \texttt{mipmap} process on this output to generate the intermediate, subsampled pages.
+
+\begin{verbatim}
+scmtiff -T -p mipmap Bluebonnet-0-L-512-4-M.tif
+\end{verbatim}
+
+Examination with \scmview\ will show that pages $0$ through $2045$ are now all present. Pages $0$ through $5$ will show wide views in each of the cardinal directions, and pages $2$ and $3$ will show nicely recovered polar views with all of the projection distortion in the input rectified.
+
+Third, the border pixels must be filled with adjacent page information. This process alters the compressed size of each page, and cannot be performed in-place. Thus, an output file name is required and a new \scm\ \tiff\ file is generated.
+
+\begin{verbatim}
+scmtiff -T -p border
+        -o Bluebonnet-0-L-512-4.tif Bluebonnet-0-L-512-4-M.tif
+\end{verbatim}
+
+The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first six pages generate from Figure~\ref{fig:bluebonnet}.
+
+\begin{figure}
+  \centering
+  \subbottom[0]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet0.png}}
+  \subbottom[1]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet1.png}}
+  \subbottom[2]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet2.png}}
+  \subbottom[3]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet3.png}}
+  \subbottom[4]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet4.png}}
+  \subbottom[5]{\includegraphics[width=0.15\textwidth]{fig/bluebonnet5.png}}
+  \caption{The six root pages of the Bluebonnet \scm.}
+  \label{fig:sixfaces}
+\end{figure}
+
+
+%------------------------------------------------------------------------------
 
 \chapter{\scm\ Interactive Display}
 
