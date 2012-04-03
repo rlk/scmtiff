@@ -339,32 +339,37 @@ scmtiff -p catalog Bluebonnet-0-L-512-4.tif
 \subsection{A Merged Planetary Dataset}
 \label{sec:planet}
 
-The following much more involved example merges multi-part data sets with differing  projections and sources to produce a globally-high-quality height map of the moon. In the next sections, this height map is used to produce a normal map for real-time illumination, and a scripted build process is used to orchestrate the full conversion process automatically.
+The following example is much more involved, merging multiple data sets captured by the Lunar Reconnaissance Orbiter (LRO) to produce a globally-high-quality height map of the moon. In the next sections, this height map is used to produce a normal map for real-time illumination, and a scripted build process is used to orchestrate the full conversion process automatically. This represents real-world usage of \scmtiff.
 
 \begin{figure}
   \centering
-  \subbottom[GLD100 E300N0450]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N0450.jpg}}
-  \subbottom[GLD100 E300N1350]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N1350.jpg}}
-  \subbottom[GLD100 E300N2250]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N2250.jpg}}
-  \subbottom[GLD100 E300N3150]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N3150.jpg}}\\
-  \subbottom[GLD100 E300S0450]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S0450.jpg}}
-  \subbottom[GLD100 E300S1350]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S1350.jpg}}
-  \subbottom[GLD100 E300S2250]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S2250.jpg}}
-  \subbottom[GLD100 E300S3150]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S3150.jpg}}
-  \caption{The eight equirectangular PDS images of WAC GLD100.}
+  \subbottom[GLD E300N0450]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N0450.jpg}}
+  \subbottom[GLD E300N1350]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N1350.jpg}}
+  \subbottom[GLD E300N2250]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N2250.jpg}}
+  \subbottom[GLD E300N3150]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300N3150.jpg}}\\
+  \subbottom[GLD E300S0450]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S0450.jpg}}
+  \subbottom[GLD E300S1350]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S1350.jpg}}
+  \subbottom[GLD E300S2250]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S2250.jpg}}
+  \subbottom[GLD E300S3150]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_E300S3150.jpg}}
+  \caption{The eight equirectangular projections of GLD100.}
   \label{fig:glde}
 \end{figure}
 
 \begin{figure}
   \centering
-  \subbottom[GLD100 P900N0000]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900N0000.jpg}}
-  \subbottom[LDEM 60N]{\includegraphics[width=0.24\textwidth]{fig/ldem_60n.jpg}}
-  \subbottom[GLD100 P900S0000]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900S0000.jpg}}
-  \subbottom[LDEM 60S]{\includegraphics[width=0.24\textwidth]{fig/ldem_60s.jpg}}
-  \caption{The two polar PDS images of WAC GLD100 and LDEM.}
+  \subbottom[GLD P900N0000\label{fig:gldn}]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900N0000.jpg}}
+  \subbottom[GLD P900S0000\label{fig:glds}]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900S0000.jpg}}
+  \subbottom[LDEM 60N\label{fig:lolan}]{\includegraphics[width=0.24\textwidth]{fig/ldem_60n.jpg}}
+  \subbottom[LDEM 60S\label{fig:lolas}]{\includegraphics[width=0.24\textwidth]{fig/ldem_60s.jpg}}
+  \caption{The two polar projections of GLD100 and LDEM.}
   \label{fig:glde}
 \end{figure}
 
+This height map is based primarily on a 100 meter-per-pixel 16-bit digital terrain model (DTM) derived by stereo reconstruction of imagery captured by the Wide Angle Camera (WAC) of the Lunar Reconnaissance Orbiter Camera (LROC).\pagenote{\url{http://wms.lroc.asu.edu/lroc/global_product/100_mpp_DEM}} This data set, known as the Global Lunar 100 Meter DTM (GLD100), gives beautifully clean terrain data over most of the moon, omitting only the poles where illumination and stereo disparity are insufficient for reconstruction.
+
+In the interest of optimal image quality, GLD100 is provided in several parts, with two different projections. Latitudes below $60^\circ$ are given by eight equirectangular projections, shown in Figure~\ref{fig:glde}. Each of these is $27291\times 18195$ pixels in size, totalling $109164\times 36390$ pixels. Latitudes above $60^\circ$ are given by two stereographic polar projections, shown in Figures~\ref{fig:gldn} and~\ref{fig:glds}. Latitudes beyond $79^\circ$ are not represented.
+
+Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) captured by the Lunar Orbiter Laser Altimeter (LOLA).\pagenote{\url{http://pds-geosciences.wustl.edu/missions/lro/lola.htm}} Due to the polar orbit of LRO and the incredibly narrow field of view of LOLA, the coverage of LDEM is very sparse at low latitudes, but excellent near the poles. GLD and LDEM compliment one another in this regard, and we can use the latter to fill the gaps in the former. Figures~\ref{fig:lolan} and~\ref{fig:lolas} show polar projections of LDEM that align with those of GLD. In general, GLD is preferred to LDEM as the coverage and character of stereo reconstructed data is superior to laser altimetry data.
 
 \subsection{A Normal Map}
 
@@ -426,7 +431,7 @@ In all cases, the output is defined in terms of its input and is annotated with 
 make
 \end{verbatim}
 
-This command considers all recipes, compares each output with its required input, and determines the minimum number of steps necessary to produce the output. Being aware of all dependencies, it will optionally execute non-interfering processes in parallel. To allow up to four simultaneous \img conversions:
+This command considers all recipes, compares each output with its required input, and determines the minimum number of steps necessary to produce the output. Being aware of all dependencies, it will optionally execute non-interfering processes in parallel. To allow up to four simultaneous \img\ conversions:
 
 \begin{verbatim}
 make -j4
