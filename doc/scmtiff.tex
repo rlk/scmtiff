@@ -73,6 +73,7 @@
 \chapter{Spherical Cube Map}
 
 \section{Spherical sampling}
+\label{sec:sampling}
 
 The mapping of image data onto the sphere is intuitively similar to a standard \opengl\ cube map. Begin by considering an $n\times n$ raster image applied to the $+Z$ face of a cube. For a spherical cube map, the pixel at row~$r$ and column~$c$ gives a sample at a position $(\alpha, \beta)$ on the sphere, where
 \[\alpha=90^{\circ}\,\frac{c + \sfrac{1}{2}}{n} - 45^{\circ}\qquad\beta=90^{\circ}\,\frac{r + \sfrac{1}{2}}{n} - 45^{\circ}.\]
@@ -85,7 +86,7 @@ z& = \phantom{-}\cos\alpha\, \cos\beta.
 
 This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\), but when normalization is required, one will probably prefer the more familiar divisor \(\sqrt{x^2+y^2+z^2}\).
 
-Vectors within the remaining cube faces are simple $90^\circ$ rotations of the definition for $+Z$, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
+Vectors within the remaining cube faces are simple \ang{90} rotations of the definition for $+Z$, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
 \begin{center}
 \begin{tabular}{rr|r|r|r|r|r}
     &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\B\\\hline
@@ -110,10 +111,10 @@ As depicted by Figure~\ref{fig:cube}, linear cube map samples stretch in the cen
   \label{fig:uniformity}
 \end{figure}
 
-Similarly, the shortest edge of the linear cube map is only $47\%$ of the length of the longest, while the shortest edge of the spherical cube map is $70\%$ of the length of the longest.\pagenote{Compounding the surprise, the ratio of the length of the shortest edge to the length of the longest edge also tends toward $\sqrt{2}/2$.}  Notably, the vertical and horizontal edges along the center of the \scm\ page all have equal lengths, which means that an \scm\ data set has constant data density along the equator, as well as along the four $90^\circ$ meridians.
+Similarly, the shortest edge of the linear cube map is only $47\%$ of the length of the longest, while the shortest edge of the spherical cube map is $70\%$ of the length of the longest.\pagenote{Compounding the surprise, the ratio of the length of the shortest edge to the length of the longest edge also tends toward $\sqrt{2}/2$.}  Notably, the vertical and horizontal edges along the center of the \scm\ page all have equal lengths, which means that an \scm\ data set has constant data density along the equator, as well as along the four \ang{90} meridians.
 
 \section{Paging}
-\label{paging}
+\label{sec:paging}
 
 While the \scm\ mapping does a good job of uniformly representing data on the surface of the sphere, we're not content to simply map six large images onto the six faces of an inflated cube. Large images are slow to load, and the ultimate objective of the \scm\ data structure is to support real-time viewing with near-instantaneous data access. To render a multi-giga-pixel spherical data set in real-time, an application must calculate frame-by-frame the specific subset of the data visible to the user, as well as the minimum data resolution necessary to fill all pixels of the user's display. Toward that end, the \scm\ represents a large data set in the form of a number of small pages, at a range of resolutions.
 
@@ -339,7 +340,9 @@ scmtiff -p catalog Bluebonnet-0-L-512-4.tif
 \subsection{A Merged Planetary Dataset}
 \label{sec:planet}
 
-The following example is much more involved, merging multiple data sets captured by the Lunar Reconnaissance Orbiter (LRO) to produce a globally-high-quality height map of the moon. In the next sections, this height map is used to produce a normal map for real-time illumination, and a scripted build process is used to orchestrate the full conversion process automatically. This represents real-world usage of \scmtiff.
+The following example is much more involved, merging multiple data sets captured by the Lunar Reconnaissance Orbiter (LRO) to produce a globally-high-quality height map of the moon.Deriving this process requires a close familiarity with the source data, and a great deal of trial and error. However, this does represent real-world data handling and usage of \scmtiff.
+
+The LRO height map is based primarily on a 100 meter-per-pixel digital terrain model (DTM) derived by stereo reconstruction from imagery captured by the Wide Angle Camera (WAC) of the Lunar Reconnaissance Orbiter Camera (LROC).\pagenote{\url{http://wms.lroc.asu.edu/lroc/global_product/100_mpp_DEM}} This data set, known as the Global Lunar 100 Meter DTM (GLD100), gives beautifully clean terrain data over most of the moon, omitting only the poles where illumination and stereo disparity are insufficient for reconstruction.
 
 \begin{figure}
   \centering
@@ -355,6 +358,10 @@ The following example is much more involved, merging multiple data sets captured
   \label{fig:glde}
 \end{figure}
 
+In the interest of optimal image quality, GLD100 is provided in several parts, with two different projections. Latitudes below \ang{60} are given by eight equirectangular projections, shown in Figure~\ref{fig:glde}. Each of these is $\num{27291}\times\num{18195}$ pixels in size, totaling $\num{109164}\times\num{36390}$ pixels. Latitudes above \ang{60} are given by two stereographic polar projections, shown in Figures~\ref{fig:gldn} and~\ref{fig:glds}. Latitudes beyond \ang{79} are not represented.
+
+Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) captured by the Lunar Orbiter Laser Altimeter (LOLA).\pagenote{\url{http://pds-geosciences.wustl.edu/missions/lro/lola.htm}} Due to the polar orbit of LRO and the incredibly narrow field of view of LOLA, the coverage of LDEM is very sparse at low latitudes, but excellent near the poles. GLD and LDEM compliment one another in this regard, and we can use the latter to fill the gaps in the former. Figures~\ref{fig:lolan} and~\ref{fig:lolas} show polar projections of LDEM that align with those of GLD. In general, GLD is preferred to LDEM as the coverage and character of stereo reconstructed data is superior to laser altimetry data.
+
 \begin{figure}
   \centering
   \subbottom[GLD P900N0000\label{fig:gldn}]{\includegraphics[width=0.24\textwidth]{fig/WAC_GLD100_P900N0000.jpg}}
@@ -365,11 +372,59 @@ The following example is much more involved, merging multiple data sets captured
   \label{fig:glde}
 \end{figure}
 
-This height map is based primarily on a 100 meter-per-pixel 16-bit digital terrain model (DTM) derived by stereo reconstruction of imagery captured by the Wide Angle Camera (WAC) of the Lunar Reconnaissance Orbiter Camera (LROC).\pagenote{\url{http://wms.lroc.asu.edu/lroc/global_product/100_mpp_DEM}} This data set, known as the Global Lunar 100 Meter DTM (GLD100), gives beautifully clean terrain data over most of the moon, omitting only the poles where illumination and stereo disparity are insufficient for reconstruction.
+From Section~\ref{sec:paging}, $w=n\,2^{d+2}$. Plugging in $w=\num{109164}$, arbitrarily choosing $d=5$, and solving, we find $n=852$. Experience has shown that large pages incur increased I/O latency, and $852$ is a bit high. Choosing $d=6$, we find $n=426$, which is better. So the optimal \scm\ parameters are $n=426$ and $d=6$, which will give an effective resolution of $\num{109056}\times\num{54528}$. This is a couple pixels short, but very close to perfect. Rounding up would give an odd value for $n$, which will cause mipmapping artifacts.
 
-In the interest of optimal image quality, GLD100 is provided in several parts, with two different projections. Latitudes below $60^\circ$ are given by eight equirectangular projections, shown in Figure~\ref{fig:glde}. Each of these is $27291\times 18195$ pixels in size, totalling $109164\times 36390$ pixels. Latitudes above $60^\circ$ are given by two stereographic polar projections, shown in Figures~\ref{fig:gldn} and~\ref{fig:glds}. Latitudes beyond $79^\circ$ are not represented.
+An \scm\ data product is essentially a temporary cache, not a permanent archive, so we're free to renormalize the input. This allows us to benefit from any smoothing that occurs during resampling and reprojection while taking full advantage of the output bit depth. Both GLD and LDEM are signed 16-bit samples ranging from roughly \SI{-9160}{\meter} to \SI{10770}{\meter}, giving height values relative to the moon's average radius of \SI{1737400}{\meter}. These values give our normalization range.
 
-Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) captured by the Lunar Orbiter Laser Altimeter (LOLA).\pagenote{\url{http://pds-geosciences.wustl.edu/missions/lro/lola.htm}} Due to the polar orbit of LRO and the incredibly narrow field of view of LOLA, the coverage of LDEM is very sparse at low latitudes, but excellent near the poles. GLD and LDEM compliment one another in this regard, and we can use the latter to fill the gaps in the former. Figures~\ref{fig:lolan} and~\ref{fig:lolas} show polar projections of LDEM that align with those of GLD. In general, GLD is preferred to LDEM as the coverage and character of stereo reconstructed data is superior to laser altimetry data.
+Given these parameters, the conversion of the equirectangular inputs of Figure~\ref{fig:glde} is straightforward.
+
+\begin{verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 WAC_GLD100_*.IMG
+\end{verbatim}
+
+The eight output \scm s are combined using the \texttt{sum} operator, which best accommodates the behavior of edge pixels during resampling and reprojection. If an \scm\ sample falls only partially within the bounds of an \img\ then a coverage coefficient is applied. That is, if the \scm\ sample \emph{should} be $1.0$, but only $20\%$ of the sample falls within the \img, then the sample value will be $0.2$. This does \emph{not} cause edge artifacts because the adjacent \img s may be expected to cover the remainder of the sample, and their contributions will sum to $1.0$. Next we will see a case where this assumption fails, so to account for this we write the combination of all equirectangular GLD inputs to a temporary file named \texttt{DTM-E.tif}.
+
+\begin{verbatim}
+scmtiff -p combine -o DTM-E.tif WAC_GLD100_*.tif
+\end{verbatim}
+
+Unfortunately, the polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection. They overlap with the equirectangular inputs slightly, and the coverages sum to values larger than $1.0$. To accommodate this, the polar inputs are combined with the already merged equatorial inputs using the \texttt{max} operator. But before that can be done, we must look ahead to the contribution of LDEM. GLD and LDEM overlap \emph{heavily}, and have very different texture. In an effort to obscure the discontinuity that would otherwise be apparent at \ang{79}, we interpolate from one to the other between \ang{78} and \ang{79} degrees.
+
+This is accomplished using a latitudinal fade-out during the initial conversion to \scm. Here, the northern annulus of GLD data begins to fade out within \ang{11} of the north pole at \ang{90}, and has faded out completely within \ang{12} of \ang{90}.
+
+\begin{verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770
+        -P 90,12,11 WAC_GLD100_P900N0000.IMG
+\end{verbatim}
+
+The exact opposite is true for the northern cap of LDEM. It begins to fade in within \ang{11} of \ang{90} and has faded in completely within \ang{12} of \ang{90}.
+
+\begin{verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770
+        -P 90,11,12 ldem_45n_100m.lbl
+\end{verbatim}
+
+The situation at the south pole is the same.
+
+\begin{verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770
+        -P -90,12,11 WAC_GLD100_P900S0000.IMG
+scmtiff -p convert -n 426 -d 6 -N -9160,10770
+        -P -90,11,12 ldem_45s_100m.lbl
+\end{verbatim}
+
+Now when these \scm\ files are summed, no discontinuity will be apparent. We write this combination of all polar data to a tomporary file named \texttt{DTM-P.tif}.
+
+\begin{verbatim}
+scmtiff -p combine -o DTM-P.tif WAC_GLD100_P*.tif ldem_45*.tif
+\end{verbatim}
+
+It remains only to combine the equirectangular and polar data sets using the max operator. As suggested above, a slight overlap between the two exists. It is too this for interpolation, yet too thick to go unnoticed when summed.
+
+\begin{verbatim}
+scmtiff -p combine -m max -o DTM-M.tif DTM-E.tif DTM-P.tif
+\end{verbatim}
+
 
 \subsection{A Normal Map}
 
