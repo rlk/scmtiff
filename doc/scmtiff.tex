@@ -9,6 +9,8 @@
 \usepackage{xfrac}
 %\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 \usepackage{siunitx}
+\usepackage{fancyvrb}
+\usepackage[usenames]{color}
 
 \setverbatimfont{\normalfont\ttfamily\small}
 
@@ -51,6 +53,12 @@
 
 \newenvironment{optionlist}
   {\setlength{\leftmargini}{1in}\begin{itemize}}{\end{itemize}}
+
+\definecolor{lightgray}{gray}{0.85}
+
+\RecustomVerbatimEnvironment{Verbatim}{Verbatim}{numbers=left}
+
+%  {Verbatim}{Verbatim}{frame=leftline,framesep=1em}
 
 %-------------------------------------------------------------------------------
 
@@ -277,7 +285,7 @@ The secondary utility \scmview\ enables inspection and side-by-side comparison o
 \subsection{A Basic Panorama}
 \label{sec:panorama}
 
-The most straightforward SCM TIFF process uses a simple image file giving an equirectangular spherical projection, such as that shown in Figure~\ref{fig:bluebonnet}. This image is $32768\times 16384$ with 3 channels of 8-bit unsigned samples. Its name reflects that it was captured at the Bluebonnet Swamp Nature Center, it was the first of several captures, and it gives the left channel of a stereoscopic pair.
+The most straightforward \scm\ \tiff\ process uses a single image file giving an equirectangular spherical projection, such as that shown in Figure~\ref{fig:bluebonnet}. This image is $\num{32768}\times\num{16384}$ with 3 channels of 8-bit unsigned samples. The name \texttt{Bluebonnet-0-L.tif} reflects that it was captured at the Bluebonnet Swamp Nature Center, it was the first of several captures, and it gives the left channel of a stereoscopic pair.
 
 \begin{figure}
   \centering
@@ -288,34 +296,34 @@ The most straightforward SCM TIFF process uses a simple image file giving an equ
 
 A brief description is added to an ASCII text file named \texttt{desc.txt}.
 
-\begin{verbatim}
+\begin{Verbatim}
 Bluebonnet Swamp Nature Center - 9 October 2011
 Copyright (c) 2011 Robert Kooima
-\end{verbatim}
+\end{Verbatim}
 
-Table~\ref{tab:resolution} indicates that an image with this resolution is well-represented by an \scm\ with page size $n=512$ and depth $d=4$. When finished, this \scm\ will have $2046$ pages. The first step is to run the \texttt{convert} process to generate the leaves of this tree. The output file name is chosen to reflect the parameters of the \scm\ as well as the state of its processing. This convention is optional.
+Table~\ref{tab:resolution} indicates that an image with this resolution is well-represented by an \scm\ with page size $n=512$ and depth $d=4$. When finished, the \scm\ tree will have $2046$ pages. The first step is to run the \texttt{convert} process to generate the leaves of this tree. The output file name is chosen to reflect the parameters of the \scm\ as well as the state of its processing. This convention is optional.
 
-\begin{verbatim}
-scmtiff -p convert -n 512 -d 4 -t desc.txt
+\begin{Verbatim}
+scmtiff -p convert -n 512 -d 4 -t desc.txt \
         -o Bluebonnet-0-L-512-4-M.tif Bluebonnet-0-L.tif
-\end{verbatim}
+\end{Verbatim}
 
 If the output is examined using \scmview, pages $510$ through $2045$ will be present with a resolution of $514\times 514$. Image detail will closely reflect that of the input. There will be mild projection distortion apparent in some pages, though the degree of distortion will be far less than that at the top and bottom of the equirectangular input. All pages will have a border of black pixels around the outside.
 
 The second step is to run the \texttt{mipmap} process on this output to generate the intermediate, subsampled pages.
 
-\begin{verbatim}
+\begin{Verbatim}
 scmtiff -p mipmap Bluebonnet-0-L-512-4-M.tif
-\end{verbatim}
+\end{Verbatim}
 
 Examination with \scmview\ will show that pages $0$ through $2045$ are now all present. Pages $0$ through $5$ will show full views along each of the axes, and pages $2$ and $3$ will show nicely recovered polar views with all of the projection distortion in the input rectified.
 
-The third step fills the border pixels with adjacent page information. This process alters the compressed size of each page, so it cannot be performed in-place. Thus, an output file name is required and a new \scm\ \tiff\ file is generated.
+The third step fills the border pixels with adjacent page information. This process alters the compressed size of each page, so it cannot be performed in-place. An output file name is required and a new \scm\ \tiff\ file is generated.
 
-\begin{verbatim}
-scmtiff -p border
-        -o Bluebonnet-0-L-512-4.tif Bluebonnet-0-L-512-4-M.tif
-\end{verbatim}
+\begin{Verbatim}
+scmtiff -p border -o Bluebonnet-0-L-512-4.tif \
+                     Bluebonnet-0-L-512-4-M.tif
+\end{Verbatim}
 
 The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first six pages of output generated from the input in Figure~\ref{fig:bluebonnet}.
 
@@ -333,16 +341,16 @@ The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first s
 
 The remaining fourth step scans the file noting the location of each page and appends this information to the end of the file. With this catalog, a real-time interactive application, such as the one described in the next chapter, can instantly locate, load, and display any page.
 
-\begin{verbatim}
+\begin{Verbatim}
 scmtiff -p catalog Bluebonnet-0-L-512-4.tif
-\end{verbatim}
+\end{Verbatim}
 
 \subsection{A Merged Planetary Dataset}
 \label{sec:planet}
 
-The following example is much more involved, merging multiple data sets captured by the Lunar Reconnaissance Orbiter (LRO) to produce a globally-high-quality height map of the moon.Deriving this process requires a close familiarity with the source data, and a great deal of trial and error. However, this does represent real-world data handling and usage of \scmtiff.
+The following example is much more involved, merging multiple data sets captured by the Lunar Reconnaissance Orbiter (LRO) to produce a globally-high-quality height map of the moon. Deriving this process requires a close familiarity with the source data, and a great deal of trial and error. However, this does represent real-world data handling and usage of \scmtiff.
 
-The LRO height map is based primarily on a 100 meter-per-pixel digital terrain model (DTM) derived by stereo reconstruction from imagery captured by the Wide Angle Camera (WAC) of the Lunar Reconnaissance Orbiter Camera (LROC).\pagenote{\url{http://wms.lroc.asu.edu/lroc/global_product/100_mpp_DEM}} This data set, known as the Global Lunar 100 Meter DTM (GLD100), gives beautifully clean terrain data over most of the moon, omitting only the poles where illumination and stereo disparity are insufficient for reconstruction.
+The LRO height map is based primarily on a 100 meter-per-pixel digital terrain model (DTM) derived by stereo reconstruction from imagery captured by the Wide Angle Camera (WAC) of the Lunar Reconnaissance Orbiter Camera (LROC).\pagenote{\url{http://wms.lroc.asu.edu/lroc/global_product/100_mpp_DEM}} This data set, known as the Global Lunar 100 Meter DTM (GLD100), gives beautifully clean terrain data over most of the moon, omitting only the poles, where illumination and stereo disparity are insufficient for reconstruction.
 
 \begin{figure}
   \centering
@@ -358,7 +366,7 @@ The LRO height map is based primarily on a 100 meter-per-pixel digital terrain m
   \label{fig:glde}
 \end{figure}
 
-In the interest of optimal image quality, GLD100 is provided in several parts, with two different projections. Latitudes below \ang{60} are given by eight equirectangular projections, shown in Figure~\ref{fig:glde}. Each of these is $\num{27291}\times\num{18195}$ pixels in size, totaling $\num{109164}\times\num{36390}$ pixels. Latitudes above \ang{60} are given by two stereographic polar projections, shown in Figures~\ref{fig:gldn} and~\ref{fig:glds}. Latitudes beyond \ang{79} are not represented.
+In the interest of optimal image representation, GLD100 is provided in several parts, with two different projections. Latitudes below \ang{60} are given by eight equirectangular projections, shown in Figure~\ref{fig:glde}. Each of these is $\num{27291}\times\num{18195}$ pixels in size, totaling $\num{109164}\times\num{36390}$ pixels. Latitudes above \ang{60} are given by two stereographic polar projections, shown in Figures~\ref{fig:gldn} and~\ref{fig:glds}. Latitudes beyond \ang{79} are not represented.
 
 Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) captured by the Lunar Orbiter Laser Altimeter (LOLA).\pagenote{\url{http://pds-geosciences.wustl.edu/missions/lro/lola.htm}} Due to the polar orbit of LRO and the incredibly narrow field of view of LOLA, the coverage of LDEM is very sparse at low latitudes, but excellent near the poles. GLD and LDEM compliment one another in this regard, and we can use the latter to fill the gaps in the former. Figures~\ref{fig:lolan} and~\ref{fig:lolas} show polar projections of LDEM that align with those of GLD. In general, GLD is preferred to LDEM as the coverage and character of stereo reconstructed data is superior to laser altimetry data.
 
@@ -372,59 +380,58 @@ Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) 
   \label{fig:glde}
 \end{figure}
 
-From Section~\ref{sec:paging}, $w=n\,2^{d+2}$. Plugging in $w=\num{109164}$, arbitrarily choosing $d=5$, and solving, we find $n=852$. Experience has shown that large pages incur increased I/O latency, and $852$ is a bit high. Choosing $d=6$, we find $n=426$, which is better. So the optimal \scm\ parameters are $n=426$ and $d=6$, which will give an effective resolution of $\num{109056}\times\num{54528}$. This is a couple pixels short, but very close to perfect. Rounding up would give an odd value for $n$, which will cause mipmapping artifacts.
+From Section~\ref{sec:paging}, $w=n\,2^{d+2}$. Plugging in $w=\num{109164}$, arbitrarily choosing $d=5$, and solving, we find $n=852$. Experience has shown that large pages incur increased I/O latency, and $852$ is a bit high. Choosing $d=6$, we find $n=426$, which is better. \scm\ parameters $n=426$ and $d=6$ will give an effective resolution of $\num{109056}\times\num{54528}$ in $\num{32766}$ pages. This is a couple pixels short, but very close to perfect. Rounding up would give an odd value for $n$, which will cause mipmapping artifacts.
 
-An \scm\ data product is essentially a temporary cache, not a permanent archive, so we're free to renormalize the input. This allows us to benefit from any smoothing that occurs during resampling and reprojection while taking full advantage of the output bit depth. Both GLD and LDEM are signed 16-bit samples ranging from roughly \SI{-9160}{\meter} to \SI{10770}{\meter}, giving height values relative to the moon's average radius of \SI{1737400}{\meter}. These values give our normalization range.
+An \scm\ data product is essentially a temporary cache, not a permanent archive, so we're free to renormalize the input. This will let us benefit from any smoothing that occurs during resampling and reprojection while taking full advantage of the output bit depth. Both GLD and LDEM are signed 16-bit samples ranging from roughly \SI{-9160}{\meter} to \SI{10770}{\meter}, giving height values relative to the moon's average radius of \SI{1737400}{\meter}. These values give our normalization range.
 
 Given these parameters, the conversion of the equirectangular inputs of Figure~\ref{fig:glde} is straightforward.
 
-\begin{verbatim}
+\begin{Verbatim}
 scmtiff -p convert -n 426 -d 6 -N -9160,10770 WAC_GLD100_*.IMG
-\end{verbatim}
+\end{Verbatim}
 
-The eight output \scm s are combined using the \texttt{sum} operator, which best accommodates the behavior of edge pixels during resampling and reprojection. If an \scm\ sample falls only partially within the bounds of an \img\ then a coverage coefficient is applied. That is, if the \scm\ sample \emph{should} be $1.0$, but only $20\%$ of the sample falls within the \img, then the sample value will be $0.2$. This does \emph{not} cause edge artifacts because the adjacent \img s may be expected to cover the remainder of the sample, and their contributions will sum to $1.0$. Next we will see a case where this assumption fails, so to account for this we write the combination of all equirectangular GLD inputs to a temporary file named \texttt{DTM-E.tif}.
+The eight output \scm s are combined using the \texttt{sum} operator, which best accommodates the behavior of edge pixels during resampling and reprojection. If an \scm\ sample falls only partially within the bounds of an \img\ then a coverage coefficient is applied. That is, if the \scm\ sample \emph{should} be $1.0$, but only $20\%$ of the sample falls within the \img, then the sample value will be $0.2$. This does \emph{not} cause edge artifacts because the adjacent \img s may be expected to cover the remainder of the sample, and their contributions will sum to $1.0$. Next we will see a case where this assumption fails, so we must write the summed combination of all equirectangular GLD inputs to a temporary file. We'll call it \texttt{DTM-E.tif}.
 
-\begin{verbatim}
+\begin{Verbatim}
 scmtiff -p combine -o DTM-E.tif WAC_GLD100_*.tif
-\end{verbatim}
+\end{Verbatim}
 
-Unfortunately, the polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection. They overlap with the equirectangular inputs slightly, and the coverages sum to values larger than $1.0$. To accommodate this, the polar inputs are combined with the already merged equatorial inputs using the \texttt{max} operator. But before that can be done, we must look ahead to the contribution of LDEM. GLD and LDEM overlap \emph{heavily}, and have very different texture. In an effort to obscure the discontinuity that would otherwise be apparent at \ang{79}, we interpolate from one to the other between \ang{78} and \ang{79} degrees.
+Unfortunately, the polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection. They overlap with the equirectangular inputs slightly, and the coverages sum to values larger than $1.0$. To accommodate this, the polar inputs will be combined with the already-merged equatorial inputs using the \texttt{max} operator. But before that can be done, we must look ahead to the contribution of LDEM. GLD and LDEM overlap \emph{heavily}, and have very different texture. In an effort to obscure the discontinuity that would be apparent at \ang{79}, we interpolate from one to the other between \ang{78} and \ang{79} degrees.
 
-This is accomplished using a latitudinal fade-out during the initial conversion to \scm. Here, the northern annulus of GLD data begins to fade out within \ang{11} of the north pole at \ang{90}, and has faded out completely within \ang{12} of \ang{90}.
+This is accomplished using a latitudinal fade during the initial conversion to \scm. Here, the northern annulus of GLD data begins to fade out within \ang{11} of the north pole at \ang{90}, and fades out completely within \ang{12} of \ang{90}.
 
-\begin{verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770
+\begin{Verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
         -P 90,12,11 WAC_GLD100_P900N0000.IMG
-\end{verbatim}
+\end{Verbatim}
 
-The exact opposite is true for the northern cap of LDEM. It begins to fade in within \ang{11} of \ang{90} and has faded in completely within \ang{12} of \ang{90}.
+The exact opposite is true for the northern cap of LDEM. It begins to fade in within \ang{11} of \ang{90} and fades in completely within \ang{12} of \ang{90}.
 
-\begin{verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770
+\begin{Verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
         -P 90,11,12 ldem_45n_100m.lbl
-\end{verbatim}
+\end{Verbatim}
 
-The situation at the south pole is the same.
+The situation at the south pole is the same, but centered at \ang{-90}.
 
-\begin{verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770
+\begin{Verbatim}
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
         -P -90,12,11 WAC_GLD100_P900S0000.IMG
-scmtiff -p convert -n 426 -d 6 -N -9160,10770
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
         -P -90,11,12 ldem_45s_100m.lbl
-\end{verbatim}
+\end{Verbatim}
 
-Now when these \scm\ files are summed, no discontinuity will be apparent. We write this combination of all polar data to a tomporary file named \texttt{DTM-P.tif}.
+When these \scm\ files are summed, no discontinuity will be apparent. We write this combination of all polar data to a tomporary file named \texttt{DTM-P.tif}.
 
-\begin{verbatim}
+\begin{Verbatim}
 scmtiff -p combine -o DTM-P.tif WAC_GLD100_P*.tif ldem_45*.tif
-\end{verbatim}
+\end{Verbatim}
 
-It remains only to combine the equirectangular and polar data sets using the max operator. As suggested above, a slight overlap between the two exists. It is too this for interpolation, yet too thick to go unnoticed when summed.
+It remains only to combine the equirectangular and polar data sets using the max operator. As suggested above, a slight overlap between the two exists. It is too thin for interpolation, yet too thick to go unnoticed when summed.
 
-\begin{verbatim}
+\begin{Verbatim}
 scmtiff -p combine -m max -o DTM-M.tif DTM-E.tif DTM-P.tif
-\end{verbatim}
-
+\end{Verbatim}
 
 \subsection{A Normal Map}
 
@@ -434,7 +441,7 @@ For input images larger than a gigapixel or two, the \scm\ conversion process wi
 
 The following is an example \texttt{Makefile} that converts the equirectangular portion of the WAC GLD100 data set to a bordered, cataloged height map, and derives from this a bordered, cataloged normal map.
 
-\begin{verbatim}
+\begin{Verbatim}
 N    = 426
 D    = 6
 NAME = GLD-$(N)-$(D)
@@ -467,7 +474,7 @@ $(NAME)-O.tif: $(NAME).tif
 $(NAME)-N.tif: $(NAME)-O.tif
         scmtiff -p border -o $@ $<
         scmtiff -p catalog $@
-\end{verbatim}
+\end{Verbatim}
 
 The variables \texttt{N} and \texttt{D} set the page size and tree depth, which are
 carried throughout the process, making it easy to reprocess a single input at different resolutions. The variable \texttt{NAME} is defined in terms of these values, as per the \scm\ naming convention. Following this, the variable \texttt{TIFS} gives a list of constituent \scm\ \tiff\ files generated by the initial conversion.
@@ -482,15 +489,15 @@ The \texttt{normal} recipe converts the finished height map to an intermediate n
 
 In all cases, the output is defined in terms of its input and is annotated with the process necessary to perform the conversion. The build is invoked with a single command:
 
-\begin{verbatim}
+\begin{Verbatim}
 make
-\end{verbatim}
+\end{Verbatim}
 
 This command considers all recipes, compares each output with its required input, and determines the minimum number of steps necessary to produce the output. Being aware of all dependencies, it will optionally execute non-interfering processes in parallel. To allow up to four simultaneous \img\ conversions:
 
-\begin{verbatim}
+\begin{Verbatim}
 make -j4
-\end{verbatim}
+\end{Verbatim}
 
 This \texttt{Makefile} example is simplified from the complete planetary dataset example of Section~\ref{sec:planet}. It glosses over issues of blending and combination operator. A full \texttt{Makefile} capable of performing this conversion is given in Appendix~\ref{cha:makefile}.
 
@@ -504,9 +511,9 @@ The out-of-core panorama renderer is implemented as a small C++ library that may
 
 \panopath\ is a shell environment variable akin to the bash executable path. It lists directories where spherical cube map \tiff\ files may be found. If the application requests that the renderer load a file, but the renderer cannot find that file, then it will search this list of directories. Set this variable in the shell resource file, as need be, separated by colons. For example,
 
-\begin{verbatim}
+\begin{Verbatim}
 export PANOPATH=/share/pan:$HOME/data/pan:.
-\end{verbatim}
+\end{Verbatim}
 
 For cluster-driven display systems, try to replicate all panorama image files to local directories on all rendering nodes. This will perform better than data files stored on network shares.
 
@@ -522,7 +529,7 @@ Like any data file, Thumb must be able to find these panorama definitions. They 
 
 Here is an example of a basic stereo panorama definition, named Blue-Mounds-8.xml.
 
-\begin{verbatim}
+\begin{Verbatim}
 <?xml version="1.0"?>
   <panorama channels="2" depth="4" size="512"
       mesh="16" height="0" radius="6"
@@ -531,7 +538,7 @@ Here is an example of a basic stereo panorama definition, named Blue-Mounds-8.xm
   <image channel="0" file="Blue-Mounds-8-L-512-4.tif" />
   <image channel="1" file="Blue-Mounds-8-R-512-4.tif" />
   </panorama>
-\end{verbatim}
+\end{Verbatim}
 
 The file begins with an \xml\ header and contains a single root panorama element with several attributes and one image sub-element for each panorama image.
 
@@ -549,7 +556,7 @@ The vert and frag attributes give the vertex and fragment programs to be used by
 
 The following example, Taliesin-Path, is more complex. It defines several images for each channel. This will behave as a circular list of images, and the renderer will interpolate between them in order, following an internal “playback head.”
 
-\begin{verbatim}
+\begin{Verbatim}
 <?xml version="1.0"?>
   <panorama channels="2" depth="3" size="512"
       vert="glsl/sph-zoomer.vert"
@@ -571,7 +578,7 @@ The following example, Taliesin-Path, is more complex. It defines several images
   <image channel="0" file="Taliesin-Path-H-L-512-3.tif" />
   <image channel="1" file="Taliesin-Path-H-R-512-3.tif" />
   </panorama>
-\end{verbatim}
+\end{Verbatim}
 
 Note that the frag attribute of the panorama element specifies the blend fragment program. This program performs the interpolation. Non-interpolating panoramas should use the \texttt{sph-render.vert} program, as \texttt{sph-blend.vert} doubles the texture access load of the renderer.
 
@@ -594,9 +601,9 @@ In addition, there is one option in the Thumb configuration file conf.xml that i
 % Probably want to rename everything from "sph" to "scm"
 % and PANOPATH to SPHPATH.
 
-\begin{verbatim}
+\begin{Verbatim}
 <option name="panoview_cache_size">128</option>
-\end{verbatim}
+\end{Verbatim}
 
 This option selects the maximum number of pages that may be loaded at any given moment. A $512\times 512$ page of \rgb\ data consumes 1\mb\ of \vram\, and this cache size option should be set accordingly. A larger value gives better performance, but too large a value will result in catastrophically bad performance.
 
@@ -620,7 +627,7 @@ This is a list of issues to be aware of, should trouble arise.
 \chapter{Makefile}
 \label{cha:makefile}
 
-\begin{verbatim}
+\begin{Verbatim}
 N = 426
 D = 6
 
@@ -692,7 +699,7 @@ ldem_45n_100m.tif: ldem_45n_100m.lbl
 
 ldem_45s_100m.tif: ldem_45s_100m.lbl
         scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P -90,11,12 $<
-\end{verbatim}
+\end{Verbatim}
 
 \printpagenotes
 \end{Spacing}
