@@ -10,9 +10,8 @@
 %\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 \usepackage{siunitx}
 \usepackage{fancyvrb}
-\usepackage[usenames]{color}
 
-\setverbatimfont{\normalfont\ttfamily\small}
+%\setverbatimfont{\normalfont\ttfamily\small}
 
 \setsecnumdepth{subsubsection}
 \headstyles{bringhurst}
@@ -54,11 +53,7 @@
 \newenvironment{optionlist}
   {\setlength{\leftmargini}{1in}\begin{itemize}}{\end{itemize}}
 
-\definecolor{lightgray}{gray}{0.85}
-
-\RecustomVerbatimEnvironment{Verbatim}{Verbatim}{numbers=left}
-
-%  {Verbatim}{Verbatim}{frame=leftline,framesep=1em}
+\RecustomVerbatimEnvironment{Verbatim}{Verbatim}{numbers=left,fontsize=\small}
 
 %-------------------------------------------------------------------------------
 
@@ -329,12 +324,18 @@ The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first s
 
 \begin{figure}
   \centering
-  \subbottom[0]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet0.png}}
-  \subbottom[1]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet1.png}}
-  \subbottom[2]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet2.png}}\\
-  \subbottom[3]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet3.png}}
-  \subbottom[4]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet4.png}}
-  \subbottom[5]{\includegraphics[width=0.3\textwidth]{fig/bluebonnet5.png}}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/bluebonnet2.png}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}\\\vspace{1pt}
+  \includegraphics[width=0.24\textwidth]{fig/bluebonnet0.png}
+  \includegraphics[width=0.24\textwidth]{fig/bluebonnet5.png}
+  \includegraphics[width=0.24\textwidth]{fig/bluebonnet1.png}
+  \includegraphics[width=0.24\textwidth]{fig/bluebonnet4.png}\\\vspace{1pt}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/bluebonnet3.png}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
   \caption{The six root pages of the Bluebonnet \scm.}
   \label{fig:sixfaces}
 \end{figure}
@@ -427,13 +428,60 @@ When these \scm\ files are summed, no discontinuity will be apparent. We write t
 scmtiff -p combine -o DTM-P.tif WAC_GLD100_P*.tif ldem_45*.tif
 \end{Verbatim}
 
-It remains only to combine the equirectangular and polar data sets using the max operator. As suggested above, a slight overlap between the two exists. It is too thin for interpolation, yet too thick to go unnoticed when summed.
+To complete the merger of the inputs, it remains only to combine the equirectangular and polar data sets using the max operator. As suggested above, a slight overlap between the two exists. It is too thin for interpolation, yet too thick to go unnoticed when summed.
 
 \begin{Verbatim}
 scmtiff -p combine -m max -o DTM-M.tif DTM-E.tif DTM-P.tif
 \end{Verbatim}
 
+And with that, the leaves of the \scm\ are in place. We mipmap, border, and catalog just as before to arrive at a finished, usable data product.
+
+\begin{Verbatim}
+scmtiff -p mipmap DTM-M.tif
+scmtiff -p border -o DTM.tif DTM-M.tif
+scmtiff -p catalog DTM.tif
+\end{Verbatim}
+
+The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in particular, pages 2 and 3, both of which seamlessly combine interpolations of different data sets as well as mergers of distinct projections.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/dtmh2.png}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}\\\vspace{1pt}
+  \includegraphics[width=0.24\textwidth]{fig/dtmh1.png}
+  \includegraphics[width=0.24\textwidth]{fig/dtmh4.png}
+  \includegraphics[width=0.24\textwidth]{fig/dtmh0.png}
+  \includegraphics[width=0.24\textwidth]{fig/dtmh5.png}\\\vspace{1pt}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/dtmh3.png}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \caption{The six root pages of the lunar height map \scm.}
+  \label{fig:dtmh}
+\end{figure}
+
 \subsection{A Normal Map}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/dtmn2.png}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}\\\vspace{1pt}
+  \includegraphics[width=0.24\textwidth]{fig/dtmn1.png}
+  \includegraphics[width=0.24\textwidth]{fig/dtmn4.png}
+  \includegraphics[width=0.24\textwidth]{fig/dtmn0.png}
+  \includegraphics[width=0.24\textwidth]{fig/dtmn5.png}\\\vspace{1pt}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/dtmn3.png}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
+  \caption{The six root pages of the lunar normal map \scm.}
+  \label{fig:dtmn}
+\end{figure}
+
 
 \subsection{Automation}
 
@@ -628,16 +676,17 @@ This is a list of issues to be aware of, should trouble arise.
 \label{cha:makefile}
 
 \begin{Verbatim}
-N = 426
-D = 6
+N=256
+D=0
 
-NAME = LRO-DTM-$(N)-$(D)
+NAME = DTM-$(N)-$(D)
 FORM = -n $(N) -d $(D)
 NORM = -N -9160,10770
 RADI = -R 1728240,1748170
 TEXT = -t desc.txt
 
-GLDE =  WAC_GLD100_E300N0450_100M.tif \
+GLDE =\
+        WAC_GLD100_E300N0450_100M.tif \
         WAC_GLD100_E300N1350_100M.tif \
         WAC_GLD100_E300N2250_100M.tif \
         WAC_GLD100_E300N3150_100M.tif \
@@ -645,9 +694,11 @@ GLDE =  WAC_GLD100_E300N0450_100M.tif \
         WAC_GLD100_E300S1350_100M.tif \
         WAC_GLD100_E300S2250_100M.tif \
         WAC_GLD100_E300S3150_100M.tif
-GLDP =  WAC_GLD100_P900N0000_100M.tif \
+GLDP =\
+        WAC_GLD100_P900N0000_100M.tif \
         WAC_GLD100_P900S0000_100M.tif
-LOLA =  ldem_45n_100m.tif \
+LOLA =\
+        ldem_45n_100m.tif \
         ldem_45s_100m.tif
 
 # Convert a raw normal map to a bordered and cataloged normal map.
@@ -667,38 +718,41 @@ $(NAME).tif: $(NAME)-M.tif
         scmtiff -p border -o $@ $<
         scmtiff -p catalog $@
 
-# Combine GLD and LOLA. Mipmap.
+# Combine the two projections and mipmap the result.
 
-$(NAME)-M.tif: GLDA.tif $(LOLA)
-        scmtiff -p combine -o $@ $^
+$(NAME)-M.tif: $(NAME)-E.tif $(NAME)-P.tif
+        scmtiff -p combine -m max -o $@ $^
         scmtiff -p mipmap $@
 
-# Combine the equirectangular and polar GLD.
+# Sum the equirectangular projections.
 
-GLDA.tif: GLDE.tif $(GLDP)
-        scmtiff -p combine -m max -o $@ $^
+$(NAME)-E.tif: $(GLDE)
+        scmtiff -p combine -o $@ $^
 
-# Combine the equirectangular GLD.
+# Sum the polar projections.
 
-GLDE.tif: $(GLDE)
-        scmtiff -p combine -o$@ $^
+$(NAME)-P.tif: $(GLDP) $(LOLA)
+        scmtiff -p combine -o $@ $^
 
 # Convert all PDS files to TIFF.
 
 WAC_GLD100_E%.tif: WAC_GLD100_E%.IMG
-        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ $<
+        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ $<
 
 WAC_GLD100_P900N0000_100M.tif: WAC_GLD100_P900N0000_100M.IMG
-        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P  90,12,11 $<
+        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,12,11 $<
 
 WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
-        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P -90,12,11 $<
+        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,12,11 $<
 
 ldem_45n_100m.tif: ldem_45n_100m.lbl
-        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P  90,11,12 $<
+        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,11,12 $<
 
 ldem_45s_100m.tif: ldem_45s_100m.lbl
-        scmtiff -p convert $(FORM) $(TEXT) $(NORM) -o$@ -P -90,11,12 $<
+        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,11,12 $<
+
+clean:
+        rm -f $(NAME)-*.tif $(GLDE) $(GLDP) $(LOLA)
 \end{Verbatim}
 
 \printpagenotes
