@@ -263,8 +263,8 @@ int convert(int argc, char **argv, const char *o,
         {
             // Allow the channel format overrides.
 
-            if (b == 0) b = p->b;
-            if (g == 0) g = p->g;
+            if (b == -1) b = p->b;
+            if (g == -1) g = p->g;
 
             if (x >= 0)
             {

@@ -89,8 +89,8 @@ static void process(scm *s, struct file *F, int C, int M)
             if (m < F[f].a[F[f].l - 1].x)
                 m = F[f].a[F[f].l - 1].x;
 
-            i[f] = 0;
-            o[f] = 0;
+            i[f] = -1;
+            o[f] =  0;
         }
 
         // Process each page of an SCM with the desired depth.

@@ -275,6 +275,13 @@ Regardless of whether the input height map was bordered or cataloged, the output
 
 The secondary utility \scmview\ enables inspection and side-by-side comparison of \scm\ \tiff\ output.
 
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{fig/scmview.png}
+  \caption{The \scmview\ utility displaying a close-up of the conversion described in Sections~\ref{sec:planet} and ~\ref{sec:normal}.}
+  \label{fig:scmview}
+\end{figure}
+
 \section{SCMTIFF Examples}
 
 \subsection{A Basic Panorama}
@@ -442,7 +449,7 @@ scmtiff -p border -o DTM.tif DTM-M.tif
 scmtiff -p catalog DTM.tif
 \end{Verbatim}
 
-The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in particular, pages 2 and 3, both of which seamlessly combine interpolations of different data sets as well as mergers of distinct projections.
+The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in particular, the top and bottom pages, both of which seamlessly combine interpolations of different data sets as well as mergers of distinct projections.
 
 \begin{figure}
   \centering
@@ -463,6 +470,7 @@ The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in pa
 \end{figure}
 
 \subsection{A Normal Map}
+\label{sec:normal}
 
 \begin{figure}
   \centering
