@@ -282,9 +282,9 @@ The \scmview\ utility enables interactive inspection and side-by-side comparison
   \label{fig:scmview}
 \end{figure}
 
-The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line, and has no optional arguments.
+The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line.
 
-\bigskip\noindent\scmview\ \inangles{\textit{input}} [\ldots]
+\bigskip\noindent\scmview\ [\inangles{\textit{GLUT options}}] \inangles{\textit{input}} [\ldots]
 
 \bigskip Keyboard and mouse inputs are as follows.
 
@@ -302,6 +302,12 @@ The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line, an
 \item[F1] \ldots\ Normal view mode.
 \item[F2] \ldots\ False color view mode.
 \item[Escape] \ldots\ Exit.
+\end{optionlist}
+
+\scmview\ is a \textsc{GLUT} application, and as such it takes the usual set of \textsc{GLUT} command line arguments. The most useful of these is
+
+\begin{optionlist}
+\item[\texttt{-geometry} \inangles{$w$}\texttt{x}\inangles{$h$}] Display a window with size $(w, h)$.
 \end{optionlist}
 
 \section{SCMTIFF Examples}
