@@ -16,6 +16,10 @@ NOT invariant: No page order is defined.
 
 TODO:
 
+	Change scmview to
+		select the window size from the input
+		refuse to scan past the end of the data
+
 	Convert all indices up from int?
 
 -	Convert all vector calculations to double

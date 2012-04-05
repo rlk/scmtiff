@@ -7,11 +7,8 @@
 \usepackage{bigstrut}
 \usepackage{hyperref}
 \usepackage{xfrac}
-%\usepackage[group-minimum-digits=3,group-separator={,}]{siunitx}
 \usepackage{siunitx}
 \usepackage{fancyvrb}
-
-%\setverbatimfont{\normalfont\ttfamily\small}
 
 \setsecnumdepth{subsubsection}
 \headstyles{bringhurst}
@@ -273,7 +270,7 @@ Regardless of whether the input height map was bordered or cataloged, the output
 
 \section{SCMVIEW Usage}
 
-The \scmview\ utility enables interactive inspection and side-by-side comparison of individual pages of \scm\ \tiff\ files. Figure~\ref{fig:scmview} shows a screenshot of \scmview\ in action. There, four \scm\ files are displayed together, with their pan and zoom in sync. The user has focused upon Clavius, a region of interest on a lunar height map. The first frame shows a converted equirectangular projection of the map, the second shows a polar projection, and the third demonstrates their seamless merger. This output is taken from the usage example of Section~\ref{sec:planet}. The fourth frame shows a normal map derived from the merged height map, discussed in Section~\ref{sec:normal}.
+The \scmview\ utility enables interactive inspection and side-by-side comparison of individual pages of \scm\ \tiff\ files. Figure~\ref{fig:scmview} shows a screenshot of \scmview\ in action. There, four \scm\ files are displayed together, with their pan, zoom, and page number in sync. The user has focused upon Clavius, a region of interest on a lunar height map. The first frame shows a converted equirectangular projection of the map, the second shows a polar projection, and the third demonstrates their seamless merger. This output is taken from the usage example of Section~\ref{sec:planet}. The fourth frame shows a normal map derived from the merged height map, discussed in Section~\ref{sec:normal}.
 
 \begin{figure}
   \centering
@@ -304,7 +301,7 @@ The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line.
 \item[Escape] \ldots\ Exit.
 \end{optionlist}
 
-\scmview\ is a \textsc{GLUT} application, and as such it takes the usual set of \textsc{GLUT} command line arguments. The most useful of these is
+\scmview\ is a \textsc{GLUT} application, and as such it takes the usual set of \textsc{GLUT} command line options. The most useful of these is
 
 \begin{optionlist}
 \item[\texttt{-geometry} \inangles{$w$}\texttt{x}\inangles{$h$}] Display a window with size $(w, h)$.
@@ -432,7 +429,7 @@ The eight output \scm s will be combined using the \texttt{sum} operator. This b
 scmtiff -p combine -o DTM-E.tif WAC_GLD100_*.tif
 \end{Verbatim}
 
-The polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection. They overlap with the equirectangular inputs slightly, and the coverages sum to values larger than $1.0$. Careful scrutiny with \scmview, as in Figure~\ref{fig:scmview}, can reveal issues like this, but usually they only became apparent through trial and error. To resolve the issue, the polar inputs will be combined with the already-merged equatorial inputs using the \texttt{max} operator.
+The polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection so they are not pixel-aligned with the equirectangular inputs. They overlap slightly and the coverages sum to more than $1.0$. Careful scrutiny with \scmview, as in Figure~\ref{fig:scmview}, can reveal issues like this, but usually they only became apparent as flaws in the output. To resolve the issue, the polar inputs will be combined with the already-merged equatorial inputs using the \texttt{max} operator.
 
 But before that can be done, we must look ahead to the contribution of LDEM. As apparent in Figure~\ref{fig:gldp}, GLD and LDEM overlap \emph{heavily}. Due to the vastly different processes that captured them, they have very different character at full resolution. In an effort to obscure any discontinuity that might emerge at their border, we interpolate from one to the other between \ang{78} and \ang{79} degrees. This is accomplished using a latitudinal fade during the initial conversion from \img\ to \scm. Here, the northern annulus of GLD data begins to fade out within \ang{11} of the north pole at \ang{90}, and fades out completely within \ang{12} of \ang{90}.
 
