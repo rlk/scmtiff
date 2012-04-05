@@ -385,51 +385,51 @@ Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) 
   \subbottom[LDEM 60N\label{fig:lolan}]{\includegraphics[width=0.24\textwidth]{fig/ldem_60n.jpg}}
   \subbottom[LDEM 60S\label{fig:lolas}]{\includegraphics[width=0.24\textwidth]{fig/ldem_60s.jpg}}
   \caption{The two polar projections of GLD100 and LDEM.}
-  \label{fig:glde}
+  \label{fig:gldp}
 \end{figure}
 
 From Section~\ref{sec:paging}, $w=n\,2^{d+2}$. Plugging in $w=\num{109164}$, arbitrarily choosing $d=5$, and solving, we find $n=852$. Experience has shown that large pages incur increased I/O latency, and $852$ is a bit high. Choosing $d=6$, we find $n=426$, which is better. \scm\ parameters $n=426$ and $d=6$ will give an effective resolution of $\num{109056}\times\num{54528}$ in $\num{32766}$ pages. This is a couple pixels short, but very close to perfect. Rounding up would give an odd value for $n$, which will cause mipmapping artifacts.
 
-An \scm\ data product is essentially a temporary cache, not a permanent archive, so we're free to renormalize the input. This will let us benefit from any smoothing that occurs during resampling and reprojection while taking full advantage of the output bit depth. Both GLD and LDEM are signed 16-bit samples ranging from roughly \SI{-9160}{\meter} to \SI{10770}{\meter}, giving height values relative to the moon's average radius of \SI{1737400}{\meter}. These values give our normalization range.
+It's important to remember that an \scm\ data product is essentially a temporary cache for visualization. It's not a permanent archive, so source integrity need not be considered precious and we're free to renormalize. This will let us benefit from any smoothing that occurs during resampling and reprojection and take full advantage of the output bit depth. Both GLD and LDEM are signed 16-bit samples ranging from roughly \SI{-9160}{\meter} to \SI{10770}{\meter}, giving height values relative to the moon's average radius of \SI{1737400}{\meter}. These values give our normalization range. Of course, normalization maps the data onto $(0,1)$, so there's no longer any point in using a signed sample, so we'll override the \img\ data type and force unsigned output.
 
-Given these parameters, the conversion of the equirectangular inputs of Figure~\ref{fig:glde} is straightforward.
+Given these parameters, the conversion of the equirectangular inputs of Figure~\ref{fig:glde} is as follows.
 
 \begin{Verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770 WAC_GLD100_*.IMG
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 -g 0 WAC_GLD100_*.IMG
 \end{Verbatim}
 
-The eight output \scm s are combined using the \texttt{sum} operator, which best accommodates the behavior of edge pixels during resampling and reprojection. If an \scm\ sample falls only partially within the bounds of an \img\ then a coverage coefficient is applied. That is, if the \scm\ sample \emph{should} be $1.0$, but only $20\%$ of the sample falls within the \img, then the sample value will be $0.2$. This does \emph{not} cause edge artifacts because the adjacent \img s may be expected to cover the remainder of the sample, and their contributions will sum to $1.0$. Next we will see a case where this assumption fails, so we must write the summed combination of all equirectangular GLD inputs to a temporary file. We'll call it \texttt{DTM-E.tif}.
+The eight output \scm s will be combined using the \texttt{sum} operator. This best accommodates the behavior of edge pixels during resampling and reprojection, as an \scm\ sample falling only partially within the bounds of an \img\ has a coverage coefficient applied. To clarify this point, if the \scm\ sample \emph{should} be $1.0$, but only $20\%$ of the sample falls within the \img, then the sample value will be $0.2$. This does \emph{not} cause edge artifacts because the adjacent \img s may be expected to cover the remainder of the sample, and their contributions will sum to $1.0$. Next we will see a case where this assumption fails, so we must write the summed combination of all equirectangular GLD inputs to a temporary file. We'll call it \texttt{DTM-E.tif}.
 
 \begin{Verbatim}
 scmtiff -p combine -o DTM-E.tif WAC_GLD100_*.tif
 \end{Verbatim}
 
-Unfortunately, the polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection. They overlap with the equirectangular inputs slightly, and the coverages sum to values larger than $1.0$. To accommodate this, the polar inputs will be combined with the already-merged equatorial inputs using the \texttt{max} operator. But before that can be done, we must look ahead to the contribution of LDEM. GLD and LDEM overlap \emph{heavily}, and have very different texture. In an effort to obscure the discontinuity that would be apparent at \ang{79}, we interpolate from one to the other between \ang{78} and \ang{79} degrees.
+The polar GLD inputs of Figures~\ref{fig:gldn} and~\ref{fig:glds} have a different projection. They overlap with the equirectangular inputs slightly, and the coverages sum to values larger than $1.0$. Careful scrutiny with \scmview, as in Figure~\ref{fig:scmview}, can reveal issues like this, but usually they only became apparent through trial and error. To resolve the issue, the polar inputs will be combined with the already-merged equatorial inputs using the \texttt{max} operator.
 
-This is accomplished using a latitudinal fade during the initial conversion to \scm. Here, the northern annulus of GLD data begins to fade out within \ang{11} of the north pole at \ang{90}, and fades out completely within \ang{12} of \ang{90}.
+But before that can be done, we must look ahead to the contribution of LDEM. As apparent in Figure~\ref{fig:gldp}, GLD and LDEM overlap \emph{heavily}. Due to the vastly different processes that captured them, they have very different character at full resolution. In an effort to obscure any discontinuity that might emerge at their border, we interpolate from one to the other between \ang{78} and \ang{79} degrees. This is accomplished using a latitudinal fade during the initial conversion from \img\ to \scm. Here, the northern annulus of GLD data begins to fade out within \ang{11} of the north pole at \ang{90}, and fades out completely within \ang{12} of \ang{90}.
 
 \begin{Verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 -g 0 \
         -P 90,12,11 WAC_GLD100_P900N0000.IMG
 \end{Verbatim}
 
-The exact opposite is true for the northern cap of LDEM. It begins to fade in within \ang{11} of \ang{90} and fades in completely within \ang{12} of \ang{90}.
+The opposite is true for the northern cap of LDEM. It begins to fade in within \ang{11} of \ang{90} and fades in completely within \ang{12} of \ang{90}.
 
 \begin{Verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 -g 0 \
         -P 90,11,12 ldem_45n_100m.lbl
 \end{Verbatim}
 
-The situation at the south pole is the same, but centered at \ang{-90}.
+The situation at the south pole is the same, but centered upon \ang{-90}.
 
 \begin{Verbatim}
-scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 -g 0 \
         -P -90,12,11 WAC_GLD100_P900S0000.IMG
-scmtiff -p convert -n 426 -d 6 -N -9160,10770 \
+scmtiff -p convert -n 426 -d 6 -N -9160,10770 -g 0 \
         -P -90,11,12 ldem_45s_100m.lbl
 \end{Verbatim}
 
-When these \scm\ files are summed, no discontinuity will be apparent. We write this combination of all polar data to a tomporary file named \texttt{DTM-P.tif}.
+When these \scm\ files are summed, no discontinuity will be apparent. We write this combination of all polar data to a temporary file named \texttt{DTM-P.tif}.
 
 \begin{Verbatim}
 scmtiff -p combine -o DTM-P.tif WAC_GLD100_P*.tif ldem_45*.tif
@@ -472,6 +472,23 @@ The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in pa
 \subsection{A Normal Map}
 \label{sec:normal}
 
+The height map generated in the previous section enables a great many visualization tasks and modes, but the highest-quality real-time illumination of it requires the derivation of a normal map. A normal map gives a surface vector for each height map sample. To compute these vectors, both the radius of the sphere and the normalization of the height must be known.
+
+The moon has an average radius of \SI{1737400}{\meter}. \texttt{DTM.tif} was prepared using a normalization of $(\num{-9160},\num{10770})$. Thus, the interpretation of \texttt{DTM.tif} is that a value of $0$ maps onto the radius $r_0=\SI{1737400}{\meter}-\SI{9160}{\meter}=\SI{1728240}{\meter}$ and a value of $1$ (represented in the 16-bit unsigned \tiff\ by \texttt{0xFFFF}) maps onto $r_1=\SI{1737400}{\meter}+\SI{10770}{\meter}=\SI{1748170}{\meter}$. These are the values to provide to the \texttt{normal} process.
+
+\begin{Verbatim}
+scmtiff -p normal -o DTM-O.tif -R 1728240,1748170 DTM.tif
+\end{Verbatim}
+
+The output of the normal process is neither bordered nor cataloged, so it is written to a temporary file. By convention, an unfinished normal map has the suffix \texttt{O}. Bordering and cataloging produce the usable normal map, given the suffix \texttt{N}.
+
+\begin{Verbatim}
+scmtiff -p border -o DTM-N.tif DTM-O.tif
+scmtiff -p catalog DTM-N.tif
+\end{Verbatim}
+
+The six root faces of this \scm\ are shown in Figure~\ref{fig:dtmn}. In normal maps, positive $X$-facing surfaces appear red, positive $Y$ appears green, positive $Z$ appears blue.
+
 \begin{figure}
   \centering
   \includegraphics[width=0.24\textwidth]{fig/blank.pdf}
@@ -489,7 +506,6 @@ The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in pa
   \caption{The six root pages of the lunar normal map \scm.}
   \label{fig:dtmn}
 \end{figure}
-
 
 \subsection{Automation}
 
@@ -689,7 +705,7 @@ D=0
 
 NAME = DTM-$(N)-$(D)
 FORM = -n $(N) -d $(D)
-NORM = -N -9160,10770
+NORM = -N -9160,10770 -g 0
 RADI = -R 1728240,1748170
 TEXT = -t desc.txt
 
