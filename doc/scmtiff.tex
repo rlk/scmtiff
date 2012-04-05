@@ -273,7 +273,7 @@ Regardless of whether the input height map was bordered or cataloged, the output
 
 \section{SCMVIEW Usage}
 
-The secondary utility \scmview\ enables inspection and side-by-side comparison of \scm\ \tiff\ output.
+The \scmview\ utility enables interactive inspection and side-by-side comparison of individual pages of \scm\ \tiff\ files. Figure~\ref{fig:scmview} shows a screenshot of \scmview\ in action. There, four \scm\ files are displayed together, with their pan and zoom in sync. The user has focused upon Clavius, a region of interest on a lunar height map. The first frame shows a converted equirectangular projection of the map, the second shows a polar projection, and the third demonstrates their seamless merger. This output is taken from the usage example of Section~\ref{sec:planet}. The fourth frame shows a normal map derived from the merged height map, discussed in Section~\ref{sec:normal}.
 
 \begin{figure}
   \centering
@@ -281,6 +281,28 @@ The secondary utility \scmview\ enables inspection and side-by-side comparison o
   \caption{The \scmview\ utility displaying four of the outputs of the conversion described in Sections~\ref{sec:planet} and ~\ref{sec:normal}.}
   \label{fig:scmview}
 \end{figure}
+
+The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line, and has no optional arguments.
+
+\bigskip\noindent\scmview\ \inangles{\textit{input}} [\ldots]
+
+\bigskip Keyboard and mouse inputs are as follows.
+
+\begin{optionlist}
+\item[Left Mouse] \ldots\ Click and drag to pan.
+\item[Right Mouse] \ldots\ Click and drag to zoom.
+\item[Return] \ldots\ Reset the pan and zoom.
+\item[Page Up] \ldots\ Go to the next page.
+\item[Page Down] \ldots\ Go to the previous page.
+\item[Shift Page Up] \ldots\ Skip ahead 10 pages.
+\item[Shift Page Down] \ldots\ Skip back 10 pages.
+\item[Control Page Up] \ldots\ Scan for the next present page.
+\item[Control Page Down] \ldots\ Scan for the previous present page.
+\item[0--9] \ldots\ Skip to the first page of level 0--9.
+\item[F1] \ldots\ Normal view mode.
+\item[F2] \ldots\ False color view mode.
+\item[Escape] \ldots\ Exit.
+\end{optionlist}
 
 \section{SCMTIFF Examples}
 

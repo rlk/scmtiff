@@ -400,20 +400,20 @@ static void display(void)
 
 static void motion(int x, int y)
 {
+    const int w = glutGet(GLUT_WINDOW_WIDTH) / filec;
+    const int h = glutGet(GLUT_WINDOW_HEIGHT);
+
     if (drag_button == GLUT_LEFT_BUTTON)
     {
-        const int w = glutGet(GLUT_WINDOW_WIDTH) / filec;
-        const int h = glutGet(GLUT_WINDOW_HEIGHT);
+        pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
+        pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
 
-        if (drag_modifier == GLUT_ACTIVE_ALT)
-        {
-            scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
-        }
-        else
-        {
-            pos_x = drag_pos_x + (GLfloat) (x - drag_x) / (GLfloat) w;
-            pos_y = drag_pos_y - (GLfloat) (y - drag_y) / (GLfloat) h;
-        }
+        glutPostRedisplay();
+    }
+    if (drag_button == GLUT_RIGHT_BUTTON)
+    {
+        scale = drag_scale - (GLfloat) (y - drag_y) / (GLfloat) h;
+
         glutPostRedisplay();
     }
 }
