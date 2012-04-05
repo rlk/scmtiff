@@ -89,7 +89,7 @@ def write_cube_face(name, n):
 
     a = svggroup(svg)
     a.set("fill",   "none")
-    a.set("stroke", "red")
+    a.set("stroke", "magenta")
     draw_cube_face(a, n)
 
     svgwrite(svg, name)
@@ -99,7 +99,7 @@ def write_scube_face(name, n):
 
     b = svggroup(svg)
     b.set("fill",   "none")
-    b.set("stroke", "blue")
+    b.set("stroke", "cyan")
     draw_scube_face(b, n)
 
     svgwrite(svg, name)
@@ -109,12 +109,12 @@ def write_both_face(name, n):
 
     a   = svggroup(svg)
     a.set("fill",   "none")
-    a.set("stroke", "red")
+    a.set("stroke", "magenta")
     draw_cube_face(a, n)
 
     b   = svggroup(svg)
     b.set("fill",   "none")
-    b.set("stroke", "blue")
+    b.set("stroke", "cyan")
     draw_scube_face(b, n)
 
     svgwrite(svg, name)

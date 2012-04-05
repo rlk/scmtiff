@@ -8,15 +8,15 @@ from svg    import *
 # Transform and project a 3D vector into a viewport with width w and height h.
 
 s = 0.25
-w = 512
-h = 512
+w = 2048
+h = 2048
 M = mcompose([
         mtranslate((w/2, h/2, 0.0, 1.0)),
         mscale    ((w/2, h/2, 1.0, 1.0)),
         mperspective(-s, s, -s, s, 1.0, 10.0),
         mtranslate((0.0, 0.0, -5.0)),
-        mrotatex(radians(-10)),
-        mrotatey(radians( 25)),
+        # mrotatex(radians(-10)),
+        # mrotatey(radians( 25)),
     ])
 
 def view(v):
