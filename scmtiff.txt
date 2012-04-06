@@ -16,6 +16,10 @@ NOT invariant: No page order is defined.
 
 TODO:
 
+	Should model::tick call cache::update?
+
+	Can prep be merged into draw after the rewrite?
+
 	Change scmview to
 		select the window size from the input
 		refuse to scan past the end of the data

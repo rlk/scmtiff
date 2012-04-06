@@ -25,6 +25,7 @@
 
 %-------------------------------------------------------------------------------
 
+\newcommand{\twod}    {2D}
 \newcommand{\threed}  {3D}
 \newcommand{\opengl}  {\textsc{OpenGL}}
 \newcommand{\scm}     {\textsc{scm}}
@@ -615,24 +616,55 @@ The \scm\ renderer is implemented as a small C++ library that may be embedded wi
 \section{\api}
 \label{sec:api}
 
-The \api\ provides three primary classes: a \emph{cache} class that manages \scm\ data input, a \emph{model} class that renders the spherical geometry to which the cached imagery is applied, and a \emph{label} class that optionally annotates the sphere and its imagery. An application that renders \scm\ data will require at least one cache object and one model object.
+The \api\ provides three primary classes: a \emph{cache} class that manages \scm\ data and implements demand-paging with a least-recently-used ejection policy, a \emph{model} class that renders adaptive spherical geometry to which the cached imagery is applied, and a \emph{label} class that optionally annotates the sphere and its imagery. An application that renders \scm\ data will require at least one cache object and one model object.
 
 The document lists the \emph{application} \api\ for each class, and includes only those methods of use to rendering applications. These classes do have other public methods, though they are generally reserved for intercommunication.
 
 \bigskip\noindent\textit{class scm\_cache} has the following public methods.
 
-\begin{description}
-\item[scm\_cache::scm\_cache(int size)]\hfill\\
-The cache constructor takes an integer giving the maximum cache size in pages.
+\begin{itemize}
+  \item\textit{scm\_cache(int size)}
 
-\item[int scm\_cache::add\_file(const std::string\& scm)]\hfill\\
-Add the named \scm\ \tiff\ file to the cache. The return value will be an integer descriptor for that file.
+    Construct a new cache object with the given maximum cache size (in pages).
 
-\item[void scm\_cache::update(int time)]
+  \item \textit{int add\_file(const std::string\& scm)}
 
-\item[void scm\_cache::draw()]
+    Add the named \scm\ \tiff\ file to the cache an integer descriptor for that file. A cache supports an arbitrary number of simultaneous files, and an application will usually have exactly one cache object per \opengl\ context.
 
-\end{description}
+  \item\textit{void update(int time)}
+
+    Update the state of the cache using the given time value. To keep a cache and model in sync, and to properly manage page aging, this argument should given the value returned by \textit{sph\_model::tick}.
+
+  \item\textit{void draw()}
+
+    Draw the entire contents of the cache in thumbnail to a \twod\ on-screen rectangle.
+
+\end{itemize}
+
+\noindent\textit{class scm\_model} has the following public methods.
+
+\begin{itemize}
+  \item\textit{scm\_model(scm\_cache\& cache, const std::string\& vert,\\
+      \phantom{scm\_model(scm\_cache\& cache,} const std::string\& frag,\\
+      \phantom{scm\_model(scm\_cache\& cache,} int mesh, double r0, double r1)}
+
+      Construct a new adaptive spherical model that renders \scm\ data in \textit{cache} using the vertex and fragment shaders \textit{vert} and \textit{frag}. The tessellation density is given by \textit{mesh} and the maximum expected range of displaced radii are \textit{r0} and \textit{r1}.
+
+  \item\textit{int tick()}
+
+    Advance and return the current model time. This value is passed to \textit{scm\_cache::update} and helps manage page age and latent-data fade-in.
+
+  \item\textit{void prep(const double *P, const double *V, int w, int h)}
+
+    Pre-process the model for rendering to a $w\times h$ buffer. \textit{P} gives the current $4\times 4$ projection matrix and \textit{V} gives the $4\times 4$ model-view matrix. This function iterates over the \scm\ hierarchy and determines which pages are in view (given these transformations) and at what resolution they appear (given this buffer size).
+
+  \item\textit{void draw(const double *P, const double *V, const int *vv, int vc,\\
+      \phantom{void draw(const double *P, const double *V,} const int *fv, int fc,\\
+      \phantom{void draw(const double *P, const double *V,} const int *pv, int pc)}
+
+    Draw the model using projection matrix \textit{P} and model-view matrix \textit{V}. The arrays \textit{vv}, \textit{fv}, and \textit{pv} give file descriptors (as returned by \textit{scm\_cache::add\_file}) to be supplied to the vertex shader, the fragment shader, and the pre-loader, respectively. The values \textit{vc}, \textit{fc}, and \textit{pc} give the length of each of these arrays.
+
+\end{itemize}
 
 \section{\scm\ path}
 \label{sec:scmpath}
