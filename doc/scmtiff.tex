@@ -11,7 +11,7 @@
 \usepackage{fancyvrb}
 \usepackage{pdfpages}
 
-\setsecnumdepth{subsubsection}
+\settocdepth{subsection}
 \headstyles{bringhurst}
 \hypersetup{bookmarksopen,
             bookmarksnumbered,
@@ -33,12 +33,15 @@
 \newcommand{\libtiff} {lib\textsc{tiff}}
 \newcommand{\xml}     {\textsc{xml}}
 \newcommand{\img}     {\textsc{img}}
+\newcommand{\api}     {\textsc{api}}
 \newcommand{\scmtiff} {\texttt{scmtiff}}
 \newcommand{\scmview} {\texttt{scmview}}
 \newcommand{\scmpath}{\texttt{SCMPATH}}
 \newcommand{\rgb}     {\textsc{rgb}}
 \newcommand{\mb}    {\,\textsc{mb}}
 \newcommand{\vram}    {\textsc{vram}}
+\newcommand{\panoview}{\textsc{PanoView}}
+\newcommand{\orbiter} {\textsc{Orbiter}}
 
 \newcommand{\B}{\bigstrut[b]}
 \newcommand{\T}{\bigstrut[t]}
@@ -51,6 +54,8 @@
 \newenvironment{optionlist}
   {\setlength{\leftmargini}{1in}\begin{itemize}}{\end{itemize}}
 
+\renewcommand{\descriptionlabel}[1]{\qquad\textit{#1}}
+
 \RecustomVerbatimEnvironment{Verbatim}{Verbatim}{numbers=left,fontsize=\small}
 
 %-------------------------------------------------------------------------------
@@ -58,10 +63,6 @@
 \begin{document}
 \includepdf{fig/titlepage.pdf}
 
-
-% \title{Spherical Cube Map TIFF}
-% \author{Robert Kooima}
-% \maketitle
 
 \begin{Spacing}{1.1}
 
@@ -72,6 +73,8 @@
 % Example: WAC DTM / LOLA merge
 
 % Appendix: Panoview configuration
+
+\tableofcontents
 
 %------------------------------------------------------------------------------
 
@@ -537,7 +540,8 @@ The six root faces of this \scm\ are shown in Figure~\ref{fig:dtmn}. In normal m
   \label{fig:dtmn}
 \end{figure}
 
-\subsection{Automation}
+\section{Automation}
+\label{sec:automation}
 
 For input images larger than a gigapixel or two, the \scm\ conversion process will take time. Because this is a multi-step process, it is convenient to automate it and allow it to run in a batch-oriented mode. The most basic way to do so is to write a shell script that issues each of the above command lines in turn. This approach can be modularized using shell variables and loops, and works well in simple cases. However, a more sophisticated approach uses the \texttt{make} utility to define the relationships between the inputs and outputs of each step of the conversion and adaptively determine the necessary order of operations automatically. The primary advantages to the use of \texttt{make} in this context are that it correctly handles interrupted conversion processes without expending redundant effort, and it intelligently exploits opportunities for process-level parallelism.
 
@@ -604,11 +608,36 @@ This \texttt{Makefile} example is simplified from the complete planetary dataset
 
 %------------------------------------------------------------------------------
 
-\chapter{\scm\ Interactive Display}
+\chapter{\scm\ Render Library}
 
-\section{Render Library}
+The \scm\ renderer is implemented as a small C++ library that may be embedded within any \opengl\ host application.
 
-The \scm\ renderer is implemented as a small C++ library that may be embedded within any \opengl\ host application. This library has just one system-level configuration parameter:
+\section{\api}
+\label{sec:api}
+
+The \api\ provides three primary classes: a \emph{cache} class that manages \scm\ data input, a \emph{model} class that renders the spherical geometry to which the cached imagery is applied, and a \emph{label} class that optionally annotates the sphere and its imagery. An application that renders \scm\ data will require at least one cache object and one model object.
+
+The document lists the \emph{application} \api\ for each class, and includes only those methods of use to rendering applications. These classes do have other public methods, though they are generally reserved for intercommunication.
+
+\bigskip\noindent\textit{class scm\_cache} has the following public methods.
+
+\begin{description}
+\item[scm\_cache::scm\_cache(int size)]\hfill\\
+The cache constructor takes an integer giving the maximum cache size in pages.
+
+\item[int scm\_cache::add\_file(const std::string\& scm)]\hfill\\
+Add the named \scm\ \tiff\ file to the cache. The return value will be an integer descriptor for that file.
+
+\item[void scm\_cache::update(int time)]
+
+\item[void scm\_cache::draw()]
+
+\end{description}
+
+\section{\scm\ path}
+\label{sec:scmpath}
+
+This library has just one system-level configuration parameter:
 
 \scmpath\ is a shell environment variable akin to the bash executable path. It lists directories where \scm\ \tiff\ files may be found. If the application requests that the renderer load a file, but the renderer cannot find that file, then it will search this list of directories. Set this variable in the shell resource file, as need be, separated by colons. For example,
 
@@ -617,32 +646,6 @@ export SCMPATH=/share/scm:$HOME/data/scm:.
 \end{Verbatim}
 
 For cluster-driven display systems, try to replicate all \scm\ \tiff s to local directories on all rendering nodes. This will perform better than data files stored on network shares.
-
-\section{Panorama Definition File}
-
-An example panorama viewer, panoview, is implemented using the Thumb framework. While the previous sections on panorama handling apply to any embedding of the panorama renderer, the following sections describe the configuration and usage specifically of panoview.
-
-For correct display, panoview must understand the parameters of each panoramic image. The panorama definition is an \xml\ file that provides this information.
-
-Like any data file, Thumb must be able to find these panorama definitions. They are appear in the Thumb data hierarchy like any other configuration file. This means they may be placed in a data directory rooted at the current directory, or in the ~/.thumb hierarchy, or in a data hierarchy given by the \texttt{THUMB\_RO\_DATA} environment variable. Panorama definition files need not be stored along side the \tiff\ files that the reference. It is the \scmpath\ environment variable that defines the location of these.
-
-\subsection{Basic Stereo Panorama}
-
-Here is an example of a basic stereo panorama definition, named \texttt{Bluebonnet-0.xml}.
-
-\begin{Verbatim}
-<?xml version="1.0"?>
-  <sphere vert="glsl/scm-zoom.vert"
-          frag="glsl/scm-basic.frag"
-          mesh="16" radius="6">
-    <scm channel="0" file="Bluebonnet-0-L-512-4.tif" />
-    <scm channel="1" file="Bluebonnet-0-R-512-4.tif" />
-  </sphere>
-\end{Verbatim}
-
-The file begins with an \xml\ header and contains a single root sphere element with several attributes and one sub-element for each \scm\ image.
-
-The \texttt{vert} and \texttt{frag} attributes (lines 2--3) give the vertex and fragment shaders to be used by the renderer, named relative to the root of the Thumb data hierarchy. Tables~\ref{tab:vert} and~\ref{tab:frag} list the available shaders. In general, the correct shader selections depend upon the nature of the input and its intended manner of viewing. The Bluebonnet example is a single high-resolution stereoscopic panorama. It should be zoomable, yet it requires no special pixel processing, so the \texttt{scm-zoom.vert} vertex shader and the \texttt{scm-basic.frag} fragment shader are specified.
 
 \begin{table}
   \begin{tabular*}{\textwidth}{rcl}\hline
@@ -665,15 +668,45 @@ The \texttt{vert} and \texttt{frag} attributes (lines 2--3) give the vertex and 
   \label{tab:frag}
 \end{table}
 
-The \texttt{mesh} attribute (line 4) of the sphere element determines the tessellation of the geometry mesh used to render each page of data. The example value, 16, indicates that each page of the sphere will be rendered using a $16\times 16$ grid of polygons, which is an appropriate for panoramas.
+%------------------------------------------------------------------------------
+
+\chapter{\scm\ Example Applications}
+
+Two example \scm\ rendering applications have been implemented using the Thumb framework, which enables cross-platform portability and scalability from laptops to cluster-driven virtual reality environments. The first of these applications, \panoview, renders \scm files inside-out and is suitable for high-resolution spherical panorama rendering. The second, \orbiter, renders \scm\ files outside-in and is suitable for planetary rendering. While the previous chapter on \scm\ handling applies to any embedding of the \scm\ renderer, this chapter specifically describes the configuration and usage of \panoview\ and \orbiter.
+
+\section{Sphere Definition File}
+
+The sphere definition is an \xml\ file that organizes \scm\ images into visualization and gathers all of the information required by the renderer.
+
+As Thumb-based applications, \panoview\ and \orbiter\ must be able to find these \xml\ files. They appear in the Thumb data hierarchy like any other configuration file. This means they may be placed in a data directory rooted at the current directory, or in the \texttt{\textasciitilde/.thumb} hierarchy, or in a data hierarchy given by the \verb|THUMB_RO_PATH| environment variable. Sphere definition files need not be stored along side the \scm\ \tiff\ files that they reference, as the \scmpath\ environment variable still defines the location of \scm\ \tiff s.
+
+\subsection{Basic Stereo Panorama}
+
+Here is \texttt{Bluebonnet-0.xml}, a basic stereoscopic panorama definition.
+
+\begin{Verbatim}
+<?xml version="1.0"?>
+  <sphere vert="glsl/scm-zoom.vert"
+          frag="glsl/scm-basic.frag"
+          mesh="16" radius="6">
+    <scm channel="0" file="Bluebonnet-0-L-512-4.tif" />
+    <scm channel="1" file="Bluebonnet-0-R-512-4.tif" />
+  </sphere>
+\end{Verbatim}
+
+The file begins with an \xml\ header and contains a single root sphere element with optional attributes and one sub-element for each \scm\ image.
+
+The \texttt{vert} and \texttt{frag} attributes (lines 2--3) give the vertex and fragment shaders to be used by the renderer, named relative to the root of the Thumb data hierarchy. Tables~\ref{tab:vert} and~\ref{tab:frag} list the available shaders. This example is a single high-resolution stereoscopic panorama. It should be zoomable, yet it requires no special pixel processing, so the \texttt{scm-zoom.vert} vertex shader and the \texttt{scm-basic.frag} fragment shader are specified.
+
+The \texttt{mesh} attribute (line 4) of the sphere element determines the tessellation density of the geometry mesh used to render each page of data. The example value, 16, indicates that each page of the sphere will be rendered using a $16\times 16$ grid of polygons. This is the default, and is an appropriate value for panoramas.
 
 The \texttt{radius} attribute (line 4) determines the radius of the spherical geometry to which the \scm\ imagery is applied. This value is given in meters, and is most significant in determining the apparent scale of the sphere in a VR display environment.
 
-The \texttt{scm} sub-elements (lines 5--6) give the \scm\ file names and indicate which stereoscopic channel each provides.
+The \texttt{scm} sub-elements (lines 5--6) give the \scm\ file names. The \texttt{channel} attributes indicate which stereoscopic channel each \scm\ provides.
 
 \subsection{Multi-image Panorama}
 
-The following example, \texttt{Taliesin-Path.xml}, is a more complex stereoscopic panorama giving a series of images for each channel. The \texttt{scm} elements are wrapped in \texttt{frame} elements and organized into a sequence. The \texttt{frag} attribute of the \texttt{sphere} element specifies the \texttt{scm-blend.frag} fragment shader, which fades smoothly from one set of \scm s to the next.
+This example, \texttt{Taliesin-Path.xml}, is a more complex stereoscopic panorama giving a series of images for each channel. The \texttt{scm} elements are wrapped in \texttt{frame} groups and organized into a sequence. The \texttt{frag} attribute of the \texttt{sphere} element specifies the \texttt{scm-blend.frag} fragment shader, which fades smoothly from one frame to the next. The result is a panoramic virtual reality walk down a garden path at Taliesin.
 
 \begin{Verbatim}
 <?xml version="1.0"?>
@@ -714,8 +747,6 @@ The following example, \texttt{Taliesin-Path.xml}, is a more complex stereoscopi
   </sphere>
 \end{Verbatim}
 
-Note that non-interpolating panoramas like \texttt{Bluebonnet.xml} should use the \texttt{sph-render.vert} program, as \texttt{sph-blend.vert} doubles the texture access load of the renderer.
-
 \subsection{Displacement-mapped Illuminated Planet}
 
 The following example brings together multiple disparate data sets to produce a displacement-mapped sphere with real-time illumination and diffuse color, suitable for viewing with \texttt{orbiter}. It demonstrates a number of additional attributes.
@@ -725,54 +756,53 @@ The following example brings together multiple disparate data sets to produce a 
   <sphere mesh="128" r0="0.994728" r1="1.0062" radius="20.0"
             vert="glsl/scm-displace.vert"
             frag="glsl/scm-lomsee.frag">
-    <scm shader="vert" file="LDEM-720-7.tif" />
-    <scm shader="frag" file="LDEM-720-7-N.tif" />
+    <scm shader="vert" file="DTM-426-6.tif" />
+    <scm shader="frag" file="DTM-426-6-N.tif" />
     <scm shader="frag" file="clementine-512-3.tif" />
   </sphere>
 \end{Verbatim}
 
-The \texttt{mesh} resolution has been increased to 128 from its default 16. This is because a height map \scm\ is applied to the sphere geometry by the \texttt{scm-displace.vert} vertex shader. The geometry must have a dense tessellation to allow a close mapping from height map samples to \threed\ vertices. Related to this, the \texttt{r0} and \texttt{r1} attributes give the magnitude of the displacement applied to that geometry, relative to a radius of $1$. These are the same values used when generating the normal map in Section~\ref{sec:normal}. $\texttt{r0}=\num{1728240}/\num{1737300}$ and $\texttt{r1}=\num{1748170}/\num{1737400}$.
+The \texttt{mesh} resolution has been increased to 128 from its default 16. This is because a height map \scm\ is applied to the sphere geometry by the \texttt{scm-displace.vert} vertex shader. The geometry must have a dense tessellation to allow a close mapping from height map samples to \threed\ vertices. Related to this, the \texttt{r0} and \texttt{r1} attributes give the magnitude of the displacement applied to that geometry, relative to a radius of $1$. These are the same values used when generating the normal map in Section~\ref{sec:normal}. $\texttt{r0}=\num{1728240} / \num{1737300}$ and $\texttt{r1}=\num{1748170} / \num{1737400}$.
 
 The \texttt{scm} elements have an additional attribute, \texttt{shader}, which allows an \scm\ to be targeted toward a specific shader. In this case, the \texttt{scm-displace.vert} shader is granted access to the height map. The default shader target for \texttt{scm} elements is ``frag,'' which is given explicitly here for symmetry. This rendering uses the \texttt{scm-lomsee.frag} fragment shader which requires \emph{two} images, separately applied to the per-fragment normal and diffuse color coefficients of the Lommel-Seeliger lighting model. Order matters here, and this shader expects the normal map to be listed first.
 
+It's worth noting that not all of the data sets used in this visualization have the same page size and depth. Equality in not required, and the adaptive renderer will defer to the lowest page size to ensure that an appropriate level of detail is achieved for all data. Likewise, the deepest \scm\ depth \emph{will} be fully utilized, and shallower \scm s will undergo linear magnification filtering to match.
+
 \section{Panoview Usage}
 
-Panoview is configured and run like any other Thumb application. The following keyboard commands are defined.
+\panoview\ and \orbiter\ are configured and run like any other Thumb application. The following keyboard commands are defined.
 
 \begin{itemize}
-\item[F1] Toggle the panoview file selection dialog. This dialog allows the user to navigate the Thumb data hierarchy and select a panorama definition for viewing.
+\item[F1] Toggle the sphere definition file selection dialog. This dialog allows the user to navigate the Thumb data hierarchy and select a visualization definition for viewing.
 
 \item[F2] Toggle the cache visualization overlay. This allows the set of all resident pages to be viewed in thumbnail.
 
-\item[F3] Toggle the page coloration debug view. This feature recolors each incoming page to indicate its depth in the page tree.
+\item[F3] Toggle the model label, if any.
 
-\item[F4] Toggle automatic zoom centering. This option controls whether the center of the zoom is static or dynamic.
+\item[F4] Toggle the wire-frame view of the sphere geometry.
+
 \end{itemize}
 
-In addition, there is one option in the Thumb configuration file conf.xml that impacts the behavior and performance of the panorama renderer.
-
-% Probably want to rename everything from "sph" to "scm"
+In addition, there is one option in the Thumb configuration file \texttt{conf.xml} that impacts the behavior and performance of these applications:
 
 \begin{Verbatim}
-<option name="panoview_cache_size">128</option>
+<option name="scm_cache_size">128</option>
 \end{Verbatim}
 
-This option selects the maximum number of pages that may be loaded at any given moment. A $512\times 512$ page of \rgb\ data consumes 1\mb\ of \vram\, and this cache size option should be set accordingly. A larger value gives better performance, but too large a value will result in catastrophically bad performance.
+This option gives the value passed to the \texttt{scm\_cache} constructor, selecting the maximum number of pages that may be loaded at any given moment. A $512\times 512$ page of \rgb\ data consumes 1\mb\ of \vram\, and this cache size option should be set accordingly. A larger value gives better performance, but too large a value will result in catastrophically bad performance. Knowledge of your hardare's available \vram\ will help to determine the optimal value.
 
 \section{Troubleshooting}
 
-This is a list of issues to be aware of, should trouble arise.
+This is a list of issues to be aware of, should trouble arise when configuring or using \panoview\ and \orbiter.
 
 \begin{itemize}
-\item If the panorama definition \xml\ files are not visible in the panoview file loader, then be sure they are located within the Thumb data hierarchy, or add their location to the Thumb data hierarchy by including the path in the \textsc{thumb\_ro\_path} environment variable.
+\item If the panorama definition \xml\ files are not visible in the sphere definition file selector, then be sure they are located within the Thumb data hierarchy, or add their location to the Thumb data hierarchy by including the path in the \verb|THUMB_RO_PATH| environment variable.
 
-\item If the panorama definition loads but does not display an image, be sure the path to the spherical cube map \tiff\ files appears in the \scmpath\ environment variable.
+\item If the panorama definition loads but does not display an image, be sure the path to the \scm\ \tiff\ files appears in the \scmpath\ environment variable.
 
 \item If a multi-image panorama jumps from one panorama to the next instead of fading, be sure the blend fragment program is referenced by the definition.
 
-\item In general, be sure that the depth and size attributes of the panorama definition match the input files.
-
-\item If performance is sluggish, be sure that panorama image files are not being accessed from a network share.
+\item If performance is sluggish, be sure that panorama image files are not being accessed from a network share, and that the \texttt{conf.xml} setting of \verb|scm_cache_size| is not too high.
 \end{itemize}
 
 \appendix
