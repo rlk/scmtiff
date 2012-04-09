@@ -171,19 +171,16 @@ Each page is identified by an index between $0$ and $m$ giving the page's positi
 The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
 \[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
 
-Much like the classical binary heap data structure, \scm\ tree indices represent positions in a complete tree, and parent-child relationships follow from straightforward integer arithmetic. If page $p_j$ is the parent of page $p_i$ then
+Much like the classical binary heap data structure, \scm\ tree indices represent positions in a complete tree, and parent-child relationships follow from straightforward arithmetic. Using integer division, if page $p_j$ is the parent of page $p_i$ then
 \[j=(i-6)/4.\]
-
 If page $p_i$ is the $k$th child of page $p_j$ then
 \[i=6+4\,j+k\]
-
 The child order $k$ of page $p_i$ is
 \[k=(i-6)-4\,((i-6)/4).\]
-
-The \scm\ tree level $l$ at which page $p_i$ appears is
-\[l=\frac{\lfloor\log_2\,(i+2)\rfloor - 1}{2}\]
-
-When processing and rendering \scm\ data, it is often necessary for applications to determine the indices of spatially adjacent pages. This relationship does not emerge readily, and is somewhat more challenging to compute. An implementation, provided in the source, has complexity linear in the distance to the adjacent pages' first common ancestor.
+The \scm\ tree level $\ell$ at which page $p_i$ appears is
+\[\ell=\frac{\lfloor\log_2\,(i+2)\rfloor - 1}{2}\]
+and, given this $\ell$, the root page that page $p_i$ falls within is
+\[f=\frac{i - 2\,(4^\ell - 1)}{4^\ell}.\]
 
 %------------------------------------------------------------------------------
 
