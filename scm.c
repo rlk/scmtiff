@@ -454,14 +454,7 @@ static void scm_scan_extrema(scm *s, float *p, float *min, float *max)
     int i;
     int j;
 
-    for (j = 0; j < s->c; ++j)
-    {
-        min[j] =  FLT_MAX;
-        max[j] = -FLT_MAX;
-    }
-
     for (i = 0; i < (s->n + 2) * (s->n + 2); i++)
-
         for (j = 0; j < s->c; ++j)
         {
             if (min[j] > p[i * s->c + j])
@@ -504,12 +497,66 @@ void scm_make_extrema(scm *s)
 
             (p = scm_alloc_buffer(s)))
         {
+            // Initialize the extrema.
+
+            for (int i = 0; i < s->c * l; ++i)
+            {
+                minf[i] =  FLT_MAX;
+                maxf[i] = -FLT_MAX;
+            }
+
             // Determine the min and max samples for each page.
 
-            for (int i = 0; i < l; i++)
-                if (scm_read_page(s, a[i].o, p))
-                    scm_scan_extrema(s, p, minf + i * s->c, maxf + i * s->c);
+            for (int i = l - 1; i >= 0; i--)
+            {
+                long long x0 = scm_get_page_child(a[i].x, 0);
+                long long x1 = scm_get_page_child(a[i].x, 1);
+                long long x2 = scm_get_page_child(a[i].x, 2);
+                long long x3 = scm_get_page_child(a[i].x, 3);
 
+                // Check if this page's children have been scaned.
+
+                long long i0 = scm_seek_catalog(a, i  + 1, l, x0);
+                long long i1 = scm_seek_catalog(a, i0 + 1, l, x1);
+                long long i2 = scm_seek_catalog(a, i1 + 1, l, x2);
+                long long i3 = scm_seek_catalog(a, i2 + 1, l, x3);
+
+                // If not, scan them. Else merge their extrema.
+
+                if (i0 < 0 || i1 < 0 || i2 < 0 || i3 < 0)
+                {
+                    if (scm_read_page(s, a[i].o, p))
+                        scm_scan_extrema(s, p, minf + i * s->c, maxf + i * s->c);
+                }
+                else
+                {
+                    for (int j = 0; j < s->c; j++)
+                    {
+                        const int k = i * s->c + j;
+
+                        if (i0 >= 0)
+                        {
+                            minf[k] = min(minf[k], minf[i0 * s->c + j]);
+                            maxf[k] = max(maxf[k], maxf[i0 * s->c + j]);
+                        }
+                        if (i1 >= 0)
+                        {
+                            minf[k] = min(minf[k], minf[i1 * s->c + j]);
+                            maxf[k] = max(maxf[k], maxf[i1 * s->c + j]);
+                        }
+                        if (i2 >= 0)
+                        {
+                            minf[k] = min(minf[k], minf[i2 * s->c + j]);
+                            maxf[k] = max(maxf[k], maxf[i2 * s->c + j]);
+                        }
+                        if (i3 >= 0)
+                        {
+                            minf[k] = min(minf[k], minf[i3 * s->c + j]);
+                            maxf[k] = max(maxf[k], maxf[i3 * s->c + j]);
+                        }
+                    }
+                }
+            }
             // Convert the sample values to binary.
 
             ftob(minb, minf, s->c * l, s->b, s->g);
