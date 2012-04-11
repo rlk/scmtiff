@@ -496,8 +496,11 @@ void scm_make_extrema(scm *s)
 
         size_t sz = (size_t) l * s->c * s->b / 8;
 
-        if ((minb = malloc(sz)) && (minf = (float *) malloc(s->c * l)) &&
-            (maxb = malloc(sz)) && (maxf = (float *) malloc(s->c * l)) &&
+        if ((minb = malloc(sz)) &&
+            (maxb = malloc(sz)) &&
+
+            (minf = (float *) malloc(s->c * l * sizeof (float))) &&
+            (maxf = (float *) malloc(s->c * l * sizeof (float))) &&
 
             (p = scm_alloc_buffer(s)))
         {
