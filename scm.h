@@ -36,6 +36,7 @@ long long scm_scan_catalog(scm *, scm_pair **);
 void      scm_sort_catalog(scm_pair *, long long);
 long long scm_seek_catalog(scm_pair *, long long, long long, long long);
 void      scm_make_catalog(scm *s);
+void      scm_make_extrema(scm *s);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries

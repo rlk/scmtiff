@@ -368,6 +368,8 @@ int scm_write_preface(scm *s, const char *str)
         set_field(&s->D.predictor,         0x013D, 3, 1, p);
         set_field(&s->D.sample_format,     0x0153, 3, c, 0);
         set_field(&s->D.page_catalog,      0xFFB1, 4, 0, 0);
+        set_field(&s->D.page_minima,       0xFFB2, 4, 0, 0);
+        set_field(&s->D.page_maxima,       0xFFB2, 4, 0, 0);
 
         scm_write_field(s, &s->D.description,    str);
         scm_align(s);

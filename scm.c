@@ -265,49 +265,6 @@ long long scm_rewind(scm *s)
     return 0;
 }
 
-// Scan the offset and page index of each IFD and rewrite all SubIFD fields.
-// This has the effect of making the data structure depth-first seek-able
-// without the need for a cataloging and mapping pre-pass. We may safely
-// assume that this process does not change the length of the file or any
-// offsets within it.
-#if 0
-void scm_catalog(scm *s)
-{
-    scm_pair *a;
-    long long l;
-    ifd d;
-
-    assert(s);
-
-    if ((l = scm_scan_catalog(s, &a)))
-    {
-        scm_sort_catalog(a, l);
-
-        for (long long i = 0; i < l; ++i)
-            if (scm_read_ifd(s, &d, a[i].o) == 1)
-            {
-                long long x0 = scm_get_page_child(a[i].x, 0);
-                long long x1 = scm_get_page_child(a[i].x, 1);
-                long long x2 = scm_get_page_child(a[i].x, 2);
-                long long x3 = scm_get_page_child(a[i].x, 3);
-
-                long long i0 = scm_seek_catalog(a, i, l, x0);
-                long long i1 = scm_seek_catalog(a, i, l, x1);
-                long long i2 = scm_seek_catalog(a, i, l, x2);
-                long long i3 = scm_seek_catalog(a, i, l, x3);
-
-                d.sub[0] = (i0 < 0) ? 0 : (uint64_t) a[i0].o;
-                d.sub[1] = (i1 < 0) ? 0 : (uint64_t) a[i1].o;
-                d.sub[2] = (i2 < 0) ? 0 : (uint64_t) a[i2].o;
-                d.sub[3] = (i3 < 0) ? 0 : (uint64_t) a[i3].o;
-
-                scm_write_ifd(s, &d, a[i].o);
-            }
-
-        free(a);
-    }
-}
-#endif
 //------------------------------------------------------------------------------
 
 // Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
@@ -362,41 +319,6 @@ bool scm_read_page(scm *s, long long o, float *p)
     return false;
 }
 
-// Determine the file offset and page index of each IFD in SCM s. Return these
-// in a newly-allocated array of offsets, indexed by page index. The allocated
-// length of this array is sufficient to store a full tree, regardless of the
-// true sparseness of SCM s.
-#if 0
-int scm_mapping(scm *s, long long **a)
-{
-    long long l = 0;
-    long long x = 0;
-    long long o;
-    long long n;
-
-    assert(s);
-
-    // Determine the largest page index.
-
-    for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
-        if (l < x)
-            l = x;
-
-    // Determine the index and offset of each page and initialize a mapping.
-
-    int    d =          scm_get_page_depth(l);
-    size_t m = (size_t) scm_get_page_count(d);
-
-    if ((*a = (long long *) calloc(m, sizeof (long long))))
-    {
-        for (o = scm_rewind(s); (x = scm_read_node(s, o, &n, 0)) >= 0; o = n)
-            (*a)[x] = o;
-
-        return d;
-    }
-    return -1;
-}
-#endif
 //------------------------------------------------------------------------------
 
 // Compare two index-offset elements. This is the qsort / bsearch callback.
@@ -498,11 +420,121 @@ void scm_make_catalog(scm *s)
             if ((o = scm_write(s, a, (size_t) l * sizeof (scm_pair))) > 0)
             {
                 scm_link_catalog(s, o, l);
-                free(a);
             }
             else syserr("Failed to write SCM catalog");
         }
         else syserr("Failed to seek SCM");
+
+        free(a);
+    }
+}
+
+//------------------------------------------------------------------------------
+
+// Rewrite all IFDs to refer to the page extrema at o0 and o1 with count c.
+
+void scm_link_extrema(scm *s, long long o0, long long o1, long long c)
+{
+    long long p;
+
+    ifd i;
+
+    for (p = scm_rewind(s); scm_read_ifd(s, &i, p) > 0; p = ifd_next(&i))
+    {
+        set_field(&i.page_minima, 0xFFB2, scm_type(s), c, o0);
+        set_field(&i.page_maxima, 0xFFB3, scm_type(s), c, o1);
+        scm_write_ifd(s, &i, p);
+    }
+}
+
+// Scan a page of data, noting its sample minima and maxima.
+
+static void scm_scan_extrema(scm *s, float *p, float *min, float *max)
+{
+    int i;
+    int j;
+
+    for (j = 0; j < s->c; ++j)
+    {
+        min[j] =  FLT_MAX;
+        max[j] = -FLT_MAX;
+    }
+
+    for (i = 0; i < (s->n + 2) * (s->n + 2); i++)
+
+        for (j = 0; j < s->c; ++j)
+        {
+            if (min[j] > p[i * s->c + j])
+                min[j] = p[i * s->c + j];
+            if (max[j] < p[i * s->c + j])
+                max[j] = p[i * s->c + j];
+        }
+}
+
+// Append page extrema to the end of SCM s.
+
+void scm_make_extrema(scm *s)
+{
+    scm_pair *a;
+    long long l;
+    long long o0;
+    long long o1;
+
+    // Generate a sorted page catalog.
+
+    if ((l = scm_scan_catalog(s, &a)))
+    {
+        scm_sort_catalog(a, l);
+
+        void  *minb;
+        void  *maxb;
+        float *minf;
+        float *maxf;
+        float *p;
+
+        // Allocate temporary storage for page data and extrema.
+
+        size_t sz = (size_t) l * s->c * s->b / 8;
+
+        if ((minb = malloc(sz)) && (minf = (float *) malloc(s->c * l)) &&
+            (maxb = malloc(sz)) && (maxf = (float *) malloc(s->c * l)) &&
+
+            (p = scm_alloc_buffer(s)))
+        {
+            // Determine the min and max samples for each page.
+
+            for (int i = 0; i < l; i++)
+                if (scm_read_page(s, a[i].o, p))
+                    scm_scan_extrema(s, p, minf + i * s->c, maxf + i * s->c);
+
+            // Convert the sample values to binary.
+
+            ftob(minb, minf, s->c * l, s->b, s->g);
+            ftob(maxb, maxf, s->c * l, s->b, s->g);
+
+            // Append these buffers to the file and link them from each IFD.
+
+            if (fseeko(s->fp, 0, SEEK_END) == 0)
+            {
+                if ((o0 = scm_write(s, minb, sz)) > 0)
+                {
+                    if ((o1 = scm_write(s, maxb, sz)) > 0)
+                    {
+                        scm_link_extrema(s, o0, o1, s->c * l);
+                    }
+                    else syserr("Failed to write SCM maxima");
+                }
+                else syserr("Failed to write SCM minima");
+            }
+            else syserr("Failed to seek SCM");
+
+            free(p);
+            free(maxf);
+            free(minf);
+            free(maxb);
+            free(minb);
+        }
+        free(a);
     }
 }
 

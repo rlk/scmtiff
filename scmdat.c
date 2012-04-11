@@ -62,7 +62,10 @@ int is_ifd(ifd *ip)
         &&  ip->predictor.tag         == 0x013D
         &&  ip->sample_format.tag     == 0x0153
         &&  ip->page_index.tag        == 0xFFB0
-        &&  ip->page_catalog.tag      == 0xFFB1);
+        &&  ip->page_catalog.tag      == 0xFFB1
+        &&  ip->page_minima.tag       == 0xFFB2
+        &&  ip->page_maxima.tag       == 0xFFB3
+        );
 }
 
 //------------------------------------------------------------------------------
@@ -130,12 +133,12 @@ uint16_t scm_type(scm *s)
 
     if (s->g)
     {
-        if (s->b == 8)  return 6; // SBYTE
+        if (s->b ==  8) return 6; // SBYTE
         if (s->b == 16) return 8; // SSHORT
     }
     else
     {
-        if (s->b == 8)  return 1; // BYTE
+        if (s->b ==  8) return 1; // BYTE
         if (s->b == 16) return 3; // SHORT
     }
     return 7;                     // UNDEFINED
