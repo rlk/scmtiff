@@ -50,19 +50,6 @@ int scm_get_c(scm *);
 int scm_get_b(scm *);
 int scm_get_g(scm *);
 
-//------------------------------------------------------------------------------
-// SCM TIFF breadth-first page index relationships
-
-long long scm_get_page_count (long long);
-long long scm_get_page_root  (long long);
-int       scm_get_page_order (long long);
-int       scm_get_page_depth (long long);
-long long scm_get_page_parent(long long);
-long long scm_get_page_child (long long, int);
-
-void scm_get_page_neighbors(long long, long long *, long long *,
-									   long long *, long long *);
-
 void scm_get_sample_corners(int, long, long, long, double *);
 void scm_get_sample_center (int, long, long, long, double *);
 

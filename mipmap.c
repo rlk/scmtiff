@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "scm.h"
+#include "scmdef.h"
 #include "err.h"
 #include "util.h"
 #include "process.h"
@@ -69,10 +70,10 @@ static long long sample(scm *s)
             {
                 // Calculate the page indices for all children of x.
 
-                long long x0 = scm_get_page_child(x, 0);
-                long long x1 = scm_get_page_child(x, 1);
-                long long x2 = scm_get_page_child(x, 2);
-                long long x3 = scm_get_page_child(x, 3);
+                long long x0 = scm_page_child(x, 0);
+                long long x1 = scm_page_child(x, 1);
+                long long x2 = scm_page_child(x, 2);
+                long long x3 = scm_page_child(x, 3);
 
                 // Seek the catalog location of each page index.
 

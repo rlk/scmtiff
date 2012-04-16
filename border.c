@@ -5,6 +5,8 @@
 #include <string.h>
 
 #include "scm.h"
+#include "scmdef.h"
+
 #include "util.h"
 #include "process.h"
 
@@ -120,12 +122,10 @@ static void process(scm *s, scm *t)
                     // Determine the page indices of all adjacent pages.
 
                     long long x = a[i].x;
-                    long long xU;
-                    long long xD;
-                    long long xR;
-                    long long xL;
-
-                    scm_get_page_neighbors(x, &xU, &xD, &xR, &xL);
+                    long long xU = scm_page_north(x);
+                    long long xD = scm_page_south(x);
+                    long long xR = scm_page_east (x);
+                    long long xL = scm_page_west (x);
 
                     // Seek the page catalog locations of these pages.
 
@@ -144,17 +144,17 @@ static void process(scm *s, scm *t)
                     // Copy the borders of all adjacent pages into this one.
 
                     if (oU && scm_read_page(s, oU, q))
-                        copyu(p, scm_get_page_root(x),
-                              q, scm_get_page_root(xU), o, c);
+                        copyu(p, scm_page_root(x),
+                              q, scm_page_root(xU), o, c);
                     if (oD && scm_read_page(s, oD, q))
-                        copyd(p, scm_get_page_root(x),
-                              q, scm_get_page_root(xD), o, c);
+                        copyd(p, scm_page_root(x),
+                              q, scm_page_root(xD), o, c);
                     if (oR && scm_read_page(s, oR, q))
-                        copyr(p, scm_get_page_root(x),
-                              q, scm_get_page_root(xR), o, c);
+                        copyr(p, scm_page_root(x),
+                              q, scm_page_root(xR), o, c);
                     if (oL && scm_read_page(s, oL, q))
-                        copyl(p, scm_get_page_root(x),
-                              q, scm_get_page_root(xL), o, c);
+                        copyl(p, scm_page_root(x),
+                              q, scm_page_root(xL), o, c);
 
                     // Patch up the corners with an average.
 

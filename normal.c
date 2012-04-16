@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "scm.h"
+#include "scmdef.h"
 #include "err.h"
 #include "util.h"
 #include "process.h"
@@ -113,7 +114,7 @@ static long long divide(scm      *s, long long x,
 
         if (scm_read_page(s, o, p))
         {
-            const int f = scm_get_page_root(x);
+            const int f = scm_page_root(x);
             const int n = scm_get_n(s);
             const int c = scm_get_c(s);
             int i;
@@ -129,10 +130,10 @@ static long long divide(scm      *s, long long x,
 
         // Generate normal maps for the children of page x.
 
-        long long x0 = scm_get_page_child(x, 0);
-        long long x1 = scm_get_page_child(x, 1);
-        long long x2 = scm_get_page_child(x, 2);
-        long long x3 = scm_get_page_child(x, 3);
+        long long x0 = scm_page_child(x, 0);
+        long long x1 = scm_page_child(x, 1);
+        long long x2 = scm_page_child(x, 2);
+        long long x3 = scm_page_child(x, 3);
 
         long u0 = u * 2, u1 = u0 + 1;
         long v0 = v * 2, v1 = v0 + 1;

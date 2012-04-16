@@ -8,6 +8,7 @@
 #include <float.h>
 #include <math.h>
 
+#include "scmdef.h"
 #include "scmdat.h"
 #include "scmio.h"
 #include "scm.h"
@@ -509,10 +510,10 @@ void scm_make_extrema(scm *s)
 
             for (int i = l - 1; i >= 0; i--)
             {
-                long long x0 = scm_get_page_child(a[i].x, 0);
-                long long x1 = scm_get_page_child(a[i].x, 1);
-                long long x2 = scm_get_page_child(a[i].x, 2);
-                long long x3 = scm_get_page_child(a[i].x, 3);
+                long long x0 = scm_page_child(a[i].x, 0);
+                long long x1 = scm_page_child(a[i].x, 1);
+                long long x2 = scm_page_child(a[i].x, 2);
+                long long x3 = scm_page_child(a[i].x, 3);
 
                 // Check if this page's children have been scaned.
 
@@ -635,186 +636,17 @@ int scm_get_g(scm *s)
 
 //------------------------------------------------------------------------------
 
-static long long log2i(long long n)
-{
-    long long r = 0;
-
-    if (n >= (1LL << 32)) { n >>= 32; r += 32; }
-    if (n >= (1LL << 16)) { n >>= 16; r += 16; }
-    if (n >= (1LL <<  8)) { n >>=  8; r +=  8; }
-    if (n >= (1LL <<  4)) { n >>=  4; r +=  4; }
-    if (n >= (1LL <<  2)) { n >>=  2; r +=  2; }
-    if (n >= (1LL <<  1)) {           r +=  1; }
-
-    return r;
-}
-
-// Calculate the number of pages in an SCM of depth d.
-
-long long scm_get_page_count(long long d)
-{
-    return (1 << (2 * d + 3)) - 2;
-}
-
-// Traverse up the tree to find the root page of page i.
-
-long long scm_get_page_root(long long i)
-{
-    while (i > 5)
-        i = scm_get_page_parent(i); // TODO: Constant time implementation.
-
-    return i;
-}
-
-// Calculate the order (child index) of page i.
-
-int scm_get_page_order(long long i)
-{
-    return (int) ((i - 6) - ((i - 6) / 4) * 4);
-}
-
-// Calculate the recursion level at which page i appears.
-
-int scm_get_page_depth(long long i)
-{
-    return (int) ((log2i(i + 2) - 1) / 2);
-}
-
-// Calculate the breadth-first index of the parent of page i.
-
-long long scm_get_page_parent(long long i)
-{
-    return (i - 6) / 4;
-}
-
-// Calculate the breadth-first index of the kth child of page p.
-
-long long scm_get_page_child(long long p, int k)
-{
-    return 6 + 4 * p + k;
-}
-
-// Find the index of page (i, j) of (s, s) in the tree rooted at page p.
-
-static long long scm_locate_page(long long p, long i, long j, long s)
-{
-    if (s > 1)
-    {
-        int k = 0;
-
-        s >>= 1;
-
-        if (i >= s) k |= 2;
-        if (j >= s) k |= 1;
-
-        return scm_locate_page(scm_get_page_child(p, k), i % s, j % s, s);
-    }
-    else return p;
-}
-
-// Find the indices of the four neighbors of page p.
-
-void scm_get_page_neighbors(long long p, long long *u, long long *d,
-                                         long long *r, long long *l)
-{
-    struct turn
-    {
-        unsigned int p :  3;
-        unsigned int r :  3;
-        unsigned int c :  3;
-        unsigned int   : 23;
-    };
-
-    static const struct turn uu[6] = {
-        { 2, 5, 3 }, { 2, 2, 0 }, { 5, 0, 5 },
-        { 4, 3, 2 }, { 2, 3, 2 }, { 2, 0, 5 },
-    };
-
-    static const struct turn dd[6] = {
-        { 3, 2, 3 }, { 3, 5, 0 }, { 4, 0, 2 },
-        { 5, 3, 5 }, { 3, 0, 2 }, { 3, 3, 5 },
-    };
-
-    static const struct turn rr[6] = {
-        { 4, 1, 3 }, { 5, 1, 3 }, { 1, 0, 1 },
-        { 1, 3, 4 }, { 1, 1, 3 }, { 0, 1, 3 },
-    };
-
-    static const struct turn ll[6] = {
-        { 5, 1, 0 }, { 4, 1, 0 }, { 0, 0, 4 },
-        { 0, 3, 1 }, { 0, 1, 0 }, { 1, 1, 0 },
-    };
-
-    long o[6];
-    long i = 0;
-    long j = 0;
-    long s;
-
-    for (s = 1; p > 5; s <<= 1, p = scm_get_page_parent(p))
-    {
-        if (scm_get_page_order(p) & 1) j += s;
-        if (scm_get_page_order(p) & 2) i += s;
-    }
-
-    o[0] = 0;
-    o[1] = i;
-    o[2] = j;
-    o[3] = s     - 1;
-    o[4] = s - i - 1;
-    o[5] = s - j - 1;
-
-    if (i     != 0) *u = scm_locate_page(p, i - 1, j, s);
-    else            *u = scm_locate_page(uu[p].p, o[uu[p].r], o[uu[p].c], s);
-
-    if (i + 1 != s) *d = scm_locate_page(p, i + 1, j, s);
-    else            *d = scm_locate_page(dd[p].p, o[dd[p].r], o[dd[p].c], s);
-
-    if (j     != 0) *r = scm_locate_page(p, i, j - 1, s);
-    else            *r = scm_locate_page(rr[p].p, o[rr[p].r], o[rr[p].c], s);
-
-    if (j + 1 != s) *l = scm_locate_page(p, i, j + 1, s);
-    else            *l = scm_locate_page(ll[p].p, o[ll[p].r], o[ll[p].c], s);
-}
-
-//------------------------------------------------------------------------------
-
-// Spherical cube map projection. The special sauce is Thousand Island dressing.
-
-static void scube(int f, double x, double y, double *v)
-{
-    const double s = x * (M_PI / 2.0) - (M_PI / 4.0);
-    const double t = y * (M_PI / 2.0) - (M_PI / 4.0);
-
-    double w[3];
-
-    w[0] =  sin(s) * cos(t);
-    w[1] = -cos(s) * sin(t);
-    w[2] =  cos(s) * cos(t);
-
-    normalize(w);
-
-    switch (f)
-    {
-        case 0: v[0] =  w[2]; v[1] =  w[1]; v[2] = -w[0]; break;
-        case 1: v[0] = -w[2]; v[1] =  w[1]; v[2] =  w[0]; break;
-        case 2: v[0] =  w[0]; v[1] =  w[2]; v[2] = -w[1]; break;
-        case 3: v[0] =  w[0]; v[1] = -w[2]; v[2] =  w[1]; break;
-        case 4: v[0] =  w[0]; v[1] =  w[1]; v[2] =  w[2]; break;
-        case 5: v[0] = -w[0]; v[1] =  w[1]; v[2] = -w[2]; break;
-    }
-}
-
 void scm_get_sample_corners(int f, long i, long j, long n, double *v)
 {
-    scube(f, (double) (j + 0) / n, (double) (i + 0) / n, v + 0);
-    scube(f, (double) (j + 0) / n, (double) (i + 1) / n, v + 3);
-    scube(f, (double) (j + 1) / n, (double) (i + 0) / n, v + 6);
-    scube(f, (double) (j + 1) / n, (double) (i + 1) / n, v + 9);
+    scm_vector(f, (double) (i + 0) / n, (double) (j + 0) / n, v + 0);
+    scm_vector(f, (double) (i + 1) / n, (double) (j + 0) / n, v + 3);
+    scm_vector(f, (double) (i + 0) / n, (double) (j + 1) / n, v + 6);
+    scm_vector(f, (double) (i + 1) / n, (double) (j + 1) / n, v + 9);
 }
 
 void scm_get_sample_center(int f, long i, long j, long n, double *v)
 {
-    scube(f, (j + 0.5) / n, (i + 0.5) / n, v);
+    scm_vector(f, (i + 0.5) / n, (j + 0.5) / n, v);
 }
 
 //------------------------------------------------------------------------------

@@ -5,6 +5,8 @@ INVARIANT: SCM TIFF files represent a complete, correct, usable spherical cube m
 
 INVARIANT: An SCM TIFF file covers the entire sphere without gaps. As a consequence of this, an SCM TIFF contains at least six pages and each page has either zero or four sub-pages.
 
+INVARIANT: If an SCM TIFF file includes a page, then it includes that page's parent.
+
 INVARIANT: All channels have the same depth and format.
 
 INVARIANT: All pages have the same size, channel count, min value, and max value.

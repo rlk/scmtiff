@@ -8,6 +8,7 @@
 #include <math.h>
 
 #include "scm.h"
+#include "scmdef.h"
 #include "img.h"
 #include "err.h"
 #include "util.h"
@@ -143,11 +144,11 @@ static long long divide(scm *s, long long b, int  d, long long x,
 {
     long long a = b;
 
-    if (overlap(p, scm_get_page_root(x), u, v, w))
+    if (overlap(p, scm_page_root(x), u, v, w))
     {
         if (d == 0)
         {
-            const int f = scm_get_page_root(x);
+            const int f = scm_page_root(x);
             const int o = scm_get_n(s) + 2;
             const int c = scm_get_c(s);
             const int n = scm_get_n(s);
@@ -168,10 +169,10 @@ static long long divide(scm *s, long long b, int  d, long long x,
         }
         else
         {
-            long long x0 = scm_get_page_child(x, 0);
-            long long x1 = scm_get_page_child(x, 1);
-            long long x2 = scm_get_page_child(x, 2);
-            long long x3 = scm_get_page_child(x, 3);
+            long long x0 = scm_page_child(x, 0);
+            long long x1 = scm_page_child(x, 1);
+            long long x2 = scm_page_child(x, 2);
+            long long x3 = scm_page_child(x, 3);
 
             a = divide(s, a, d - 1, x0, u * 2,     v * 2,     w * 2, p, q);
             a = divide(s, a, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, q);

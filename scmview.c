@@ -20,6 +20,7 @@
 #endif
 
 #include "scm.h"
+#include "scmdef.h"
 #include "err.h"
 #include "util.h"
 
@@ -320,15 +321,15 @@ static void keyboard(unsigned char key, int x, int y)
     }
 
     else if (key == '0') jump(0);
-    else if (key == '1') jump(scm_get_page_count(0));
-    else if (key == '2') jump(scm_get_page_count(1));
-    else if (key == '3') jump(scm_get_page_count(2));
-    else if (key == '4') jump(scm_get_page_count(3));
-    else if (key == '5') jump(scm_get_page_count(4));
-    else if (key == '6') jump(scm_get_page_count(5));
-    else if (key == '7') jump(scm_get_page_count(6));
-    else if (key == '8') jump(scm_get_page_count(7));
-    else if (key == '9') jump(scm_get_page_count(8));
+    else if (key == '1') jump(scm_page_count(0));
+    else if (key == '2') jump(scm_page_count(1));
+    else if (key == '3') jump(scm_page_count(2));
+    else if (key == '4') jump(scm_page_count(3));
+    else if (key == '5') jump(scm_page_count(4));
+    else if (key == '6') jump(scm_page_count(5));
+    else if (key == '7') jump(scm_page_count(6));
+    else if (key == '8') jump(scm_page_count(7));
+    else if (key == '9') jump(scm_page_count(8));
 }
 
 // GLUT special keyboard callback.
