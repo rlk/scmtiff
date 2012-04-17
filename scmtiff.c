@@ -108,7 +108,10 @@ int main(int argc, char **argv)
     argv += optind;
 
     if (p == NULL || h)
-        apperr("\nUsage: %s [-p process] [-o output] [options] input [...]\n\n"
+        apperr("\nUsage: %s [options] input [...]\n"
+                "\t\t-p process . . Select process\n"
+                "\t\t-o output  . . Output file\n"
+                "\t\t-T . . . . . . Emit timing information\n\n"
                 "\t%s -p convert [options]\n"
                 "\t\t-t text  . . . Image description text file\n"
                 "\t\t-n n . . . . . Page size\n"
@@ -119,8 +122,9 @@ int main(int argc, char **argv)
                 "\t\t-P c,d0,d1 . . Latitude blend range\n"
                 "\t\t-N n0,n1 . . . Normalization range\n\n"
                 "\t%s -p combine [-m mode]\n"
-                "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m sum . . . . Combine by sum\n\n"
+                "\t\t-m max . . . . Combine by maximum\n"
+                "\t\t-m avg . . . . Combine by average\n\n"
                 "\t%s -p mipmap\n\n"
                 "\t%s -p border\n\n"
                 "\t%s -p catalog\n\n"

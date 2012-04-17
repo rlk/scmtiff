@@ -53,20 +53,7 @@ static void cpy(float *p, const float *q, int c)
     }
 }
 
-static void avg3(float *p, const float *q,
-                           const float *r,
-                           const float *s, int c)
-{
-    switch (c)
-    {
-        case 4: p[3] = (q[3] + r[3] + s[3]) / 3.f;
-        case 3: p[2] = (q[2] + r[2] + s[2]) / 3.f;
-        case 2: p[1] = (q[1] + r[1] + s[1]) / 3.f;
-        case 1: p[0] = (q[0] + r[0] + s[0]) / 3.f;
-    }
-}
-
-static void copyu(float *p, long long x, float *q, long long y, int n, int c)
+static void copyn(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
         cpy(pixel(p, n, c, 0, j),
@@ -74,7 +61,7 @@ static void copyu(float *p, long long x, float *q, long long y, int n, int c)
                            translate_j[x][y](n - 2, j, n)), c);
 }
 
-static void copyd(float *p, long long x, float *q, long long y, int n, int c)
+static void copys(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
         cpy(pixel(p, n, c, n - 1, j),
@@ -82,7 +69,7 @@ static void copyd(float *p, long long x, float *q, long long y, int n, int c)
                            translate_j[x][y](1, j, n)), c);
 }
 
-static void copyr(float *p, long long x, float *q, long long y, int n, int c)
+static void copyw(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
         cpy(pixel(p, n, c, i, 0),
@@ -90,12 +77,44 @@ static void copyr(float *p, long long x, float *q, long long y, int n, int c)
                            translate_j[x][y](i, n - 2, n)), c);
 }
 
-static void copyl(float *p, long long x, float *q, long long y, int n, int c)
+static void copye(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
         cpy(pixel(p, n, c, i, n - 1),
             pixel(q, n, c, translate_i[x][y](i, 1, n),
                            translate_j[x][y](i, 1, n)), c);
+}
+
+static void copynw(float *p, long long x, float *q, long long y, int n, int c)
+{
+    if (translate_i[x][y])
+        cpy(pixel(p, n, c, 0, 0),
+            pixel(q, n, c, translate_i[x][y](n - 2, n - 2, n),
+                           translate_j[x][y](n - 2, n - 2, n)), c);
+}
+
+static void copyne(float *p, long long x, float *q, long long y, int n, int c)
+{
+    if (translate_i[x][y])
+        cpy(pixel(p, n, c, 0, n - 1),
+            pixel(q, n, c, translate_i[x][y](n - 2, 1, n),
+                           translate_j[x][y](n - 2, 1, n)), c);
+}
+
+static void copysw(float *p, long long x, float *q, long long y, int n, int c)
+{
+    if (translate_i[x][y])
+        cpy(pixel(p, n, c, n - 1, 0),
+            pixel(q, n, c, translate_i[x][y](1, n - 2, n),
+                           translate_j[x][y](1, n - 2, n)), c);
+}
+
+static void copyse(float *p, long long x, float *q, long long y, int n, int c)
+{
+    if (translate_i[x][y])
+        cpy(pixel(p, n, c, n - 1, n - 1),
+            pixel(q, n, c, translate_i[x][y](1, 1, n),
+                           translate_j[x][y](1, 1, n)), c);
 }
 
 static void process(scm *s, scm *t)
@@ -119,56 +138,79 @@ static void process(scm *s, scm *t)
             {
                 if (scm_read_page(s, a[i].o, p))
                 {
-                    // Determine the page indices of all adjacent pages.
+                    // Determine the page indices of all neighboring pages.
 
-                    long long x = a[i].x;
-                    long long xU = scm_page_north(x);
-                    long long xD = scm_page_south(x);
-                    long long xR = scm_page_east (x);
-                    long long xL = scm_page_west (x);
+                    long long x   = a[i].x;
+
+                    long long xn  = scm_page_north(x);
+                    long long xs  = scm_page_south(x);
+                    long long xw  = scm_page_west (x);
+                    long long xe  = scm_page_east (x);
+
+                    long long xnw = (xn == x) ? scm_page_west (xn)
+                                              : scm_page_north(xw);
+                    long long xne = (xn == x) ? scm_page_east (xn)
+                                              : scm_page_north(xe);
+                    long long xsw = (xs == x) ? scm_page_west (xs)
+                                              : scm_page_south(xw);
+                    long long xse = (xs == x) ? scm_page_east (xs)
+                                              : scm_page_south(xe);
 
                     // Seek the page catalog locations of these pages.
 
-                    long long iU = scm_seek_catalog(a, 0, l, xU);
-                    long long iD = scm_seek_catalog(a, 0, l, xD);
-                    long long iR = scm_seek_catalog(a, 0, l, xR);
-                    long long iL = scm_seek_catalog(a, 0, l, xL);
+                    long long in  = scm_seek_catalog(a, 0, l, xn);
+                    long long is  = scm_seek_catalog(a, 0, l, xs);
+                    long long iw  = scm_seek_catalog(a, 0, l, xw);
+                    long long ie  = scm_seek_catalog(a, 0, l, xe);
+                    long long inw = scm_seek_catalog(a, 0, l, xnw);
+                    long long ine = scm_seek_catalog(a, 0, l, xne);
+                    long long isw = scm_seek_catalog(a, 0, l, xsw);
+                    long long ise = scm_seek_catalog(a, 0, l, xse);
 
                     // Note the file offsets of any located catalog entries.
 
-                    long long oU = (iU < 0) ? 0 : a[iU].o;
-                    long long oD = (iD < 0) ? 0 : a[iD].o;
-                    long long oR = (iR < 0) ? 0 : a[iR].o;
-                    long long oL = (iL < 0) ? 0 : a[iL].o;
+                    long long os  = (is  < 0) ? 0 : a[is ].o;
+                    long long ow  = (iw  < 0) ? 0 : a[iw ].o;
+                    long long oe  = (ie  < 0) ? 0 : a[ie ].o;
+                    long long on  = (in  < 0) ? 0 : a[in ].o;
+                    long long onw = (inw < 0) ? 0 : a[inw].o;
+                    long long one = (ine < 0) ? 0 : a[ine].o;
+                    long long osw = (isw < 0) ? 0 : a[isw].o;
+                    long long ose = (ise < 0) ? 0 : a[ise].o;
+
+                    // Note the root pages of all diagonal pages.
+
+                    long long f   = scm_page_root(x);
+                    long long fn  = scm_page_root(xn);
+                    long long fs  = scm_page_root(xs);
+                    long long fw  = scm_page_root(xw);
+                    long long fe  = scm_page_root(xe);
+                    long long fnw = scm_page_root(xnw);
+                    long long fne = scm_page_root(xne);
+                    long long fsw = scm_page_root(xsw);
+                    long long fse = scm_page_root(xse);
 
                     // Copy the borders of all adjacent pages into this one.
 
-                    if (oU && scm_read_page(s, oU, q))
-                        copyu(p, scm_page_root(x),
-                              q, scm_page_root(xU), o, c);
-                    if (oD && scm_read_page(s, oD, q))
-                        copyd(p, scm_page_root(x),
-                              q, scm_page_root(xD), o, c);
-                    if (oR && scm_read_page(s, oR, q))
-                        copyr(p, scm_page_root(x),
-                              q, scm_page_root(xR), o, c);
-                    if (oL && scm_read_page(s, oL, q))
-                        copyl(p, scm_page_root(x),
-                              q, scm_page_root(xL), o, c);
+                    if (on && scm_read_page(s, on, q))
+                        copyn(p, f, q, fn, o, c);
+                    if (os && scm_read_page(s, os, q))
+                        copys(p, f, q, fs, o, c);
+                    if (ow && scm_read_page(s, ow, q))
+                        copyw(p, f, q, fw, o, c);
+                    if (oe && scm_read_page(s, oe, q))
+                        copye(p, f, q, fe, o, c);
 
-                    // Patch up the corners with an average.
+                    // Copy the corners of all diagonal pages into this one.
 
-                    const int y = o - 2;
-                    const int z = o - 1;
-
-                    avg3(pixel(p, o, c, 0, 0), pixel(p, o, c, 1, 0),
-                         pixel(p, o, c, 0, 1), pixel(p, o, c, 1, 1), c);
-                    avg3(pixel(p, o, c, z, 0), pixel(p, o, c, y, 0),
-                         pixel(p, o, c, z, 1), pixel(p, o, c, y, 1), c);
-                    avg3(pixel(p, o, c, 0, z), pixel(p, o, c, 1, z),
-                         pixel(p, o, c, 0, y), pixel(p, o, c, 1, y), c);
-                    avg3(pixel(p, o, c, z, z), pixel(p, o, c, y, z),
-                         pixel(p, o, c, z, y), pixel(p, o, c, y, y), c);
+                    if (onw && scm_read_page(s, onw, q))
+                        copynw(p, f, q, fnw, o, c);
+                    if (one && scm_read_page(s, one, q))
+                        copyne(p, f, q, fne, o, c);
+                    if (osw && scm_read_page(s, osw, q))
+                        copysw(p, f, q, fsw, o, c);
+                    if (ose && scm_read_page(s, ose, q))
+                        copyse(p, f, q, fse, o, c);
 
                     // Write the resulting page to the output.
 

@@ -150,12 +150,6 @@ static int data_init(int argc, char **argv)
 
                 if ((filev[i].l = scm_scan_catalog(filev[i].s, &filev[i].a)))
                 {
-                    // printf("%12lld %s\n", filev[i].l, argv[argi]);
-
-                    // for (int j = 0; j < filev[i].l; ++j)
-                    //     printf("%8d %16llx %16llx\n", j, filev[i].a[j].x,
-                    //                                      filev[i].a[j].o);
-
                     scm_sort_catalog(filev[i].a, filev[i].l);
                     pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
                 }
@@ -166,6 +160,8 @@ static int data_init(int argc, char **argv)
 
     if (i && N && C)
     {
+        glutReshapeWindow((argc - 1) * N, N);
+
         if ((buf = (GLfloat *) malloc((size_t) N *
                                       (size_t) N *
                                       (size_t) C * sizeof (GLfloat))))
@@ -257,7 +253,13 @@ static void jump(long long x)
 
     pagei = x;
 
-    sprintf(str, "%lld\n", x);
+    sprintf(str, "page %lld face %lld level %lld row %lld col %lld\n",
+        x,
+        scm_page_root(x),
+        scm_page_level(x),
+        scm_page_row(x),
+        scm_page_col(x));
+
     glutSetWindowTitle(str);
     glutPostRedisplay();
 }
@@ -320,16 +322,32 @@ static void keyboard(unsigned char key, int x, int y)
         glutPostRedisplay();
     }
 
-    else if (key == '0') jump(0);
-    else if (key == '1') jump(scm_page_count(0));
-    else if (key == '2') jump(scm_page_count(1));
-    else if (key == '3') jump(scm_page_count(2));
-    else if (key == '4') jump(scm_page_count(3));
-    else if (key == '5') jump(scm_page_count(4));
-    else if (key == '6') jump(scm_page_count(5));
-    else if (key == '7') jump(scm_page_count(6));
-    else if (key == '8') jump(scm_page_count(7));
-    else if (key == '9') jump(scm_page_count(8));
+    if (glutGetModifiers() & GLUT_ACTIVE_CTRL)
+    {
+        if      (key == '0') jump(0);
+        else if (key == '1') jump(scm_page_count(0));
+        else if (key == '2') jump(scm_page_count(1));
+        else if (key == '3') jump(scm_page_count(2));
+        else if (key == '4') jump(scm_page_count(3));
+        else if (key == '5') jump(scm_page_count(4));
+        else if (key == '6') jump(scm_page_count(5));
+        else if (key == '7') jump(scm_page_count(6));
+        else if (key == '8') jump(scm_page_count(7));
+        else if (key == '9') jump(scm_page_count(8));
+    }
+    else
+    {
+        if      (key == '0') jump(scm_page_root (pagei));
+        else if (key == '1') jump(scm_page_child(pagei, 2));
+        else if (key == '2') jump(scm_page_south(pagei));
+        else if (key == '3') jump(scm_page_child(pagei, 3));
+        else if (key == '4') jump(scm_page_west (pagei));
+        else if (key == '5') jump((pagei < 6) ? pagei : scm_page_parent(pagei));
+        else if (key == '6') jump(scm_page_east (pagei));
+        else if (key == '7') jump(scm_page_child(pagei, 0));
+        else if (key == '8') jump(scm_page_north(pagei));
+        else if (key == '9') jump(scm_page_child(pagei, 1));
+    }
 }
 
 // GLUT special keyboard callback.
@@ -440,7 +458,7 @@ int main(int argc, char **argv)
     setexe(argv[0]);
 
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE);
-    glutInitWindowSize((argc - 1) * 512, 512);
+    glutInitWindowSize(128, 128);
     glutInit(&argc, argv);
 
     glutCreateWindow(argv[0]);

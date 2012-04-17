@@ -1,15 +1,13 @@
 
 INVARIANT: SCM TIFF files are BigTIFFs.
 
-INVARIANT: SCM TIFF files represent a complete, correct, usable spherical cube map file, regardless of data process progress.
-
 INVARIANT: An SCM TIFF file covers the entire sphere without gaps. As a consequence of this, an SCM TIFF contains at least six pages and each page has either zero or four sub-pages.
 
 INVARIANT: If an SCM TIFF file includes a page, then it includes that page's parent.
 
 INVARIANT: All channels have the same depth and format.
 
-INVARIANT: All pages have the same size, channel count, min value, and max value.
+INVARIANT: All pages have the same size and channel count.
 
 INVARIANT: All calculations giving sample values are performed in single precision float. All calculations giving sample positions are performed in double precision float. The allows fine resolution while keeping buffer sizes low.
 
@@ -18,20 +16,20 @@ NOT invariant: No page order is defined.
 
 TODO:
 
-	Should model::tick call cache::update?
+-	corner border pixel isn't matched (see Tycho).
 
-	Can prep be merged into draw after the rewrite?
+-	east and west might be reversed (e.g. in border).  Be sure.
 
-	Change scmview to
+-	Change scmview to
 		select the window size from the input
 		refuse to scan past the end of the data
 
-	Convert all indices up from int?
+-	Convert all indices up from int?
 
 -	Convert all vector calculations to double
 		Leave the sample precision at single
 
-	Convert scm_mapping to a sparse representation
+-	Convert scm_mapping to a sparse representation
 		This will be necessary for NAC ROI
 
 		the original catalog implementation will work for
@@ -46,7 +44,7 @@ TODO:
 			Assume elements are already sorted.
 				Use the midpoint pivot to avoid the worst case.
 
-	There will HAVE to be some mechanism that limits very deep accesses
+-	There will HAVE to be some mechanism that limits very deep accesses
 		to shallow or sparse data sets.
 		We can't store half a billion flags for every loaded data set.
 			Especially not in a dynamically-allocated container.
@@ -60,7 +58,7 @@ TODO:
 				Be advised that not all SCMs are linked.
 				The LibTIFF implementation probably wont be as efficient.
 
-	Relink should guarantee that pages 0-5 exist.
+?	Relink should guarantee that pages 0-5 exist.
 
 -	Deal with repeat on combine and mipmap.
 
@@ -97,74 +95,3 @@ TODO:
 
 -	Fix the mipmap flaw
 		Turns out it was in the corner vector calculator
-
-
-scmtiff [opts] [files ...]
-
-	-o <output>
-	-p <process>
-
-		-p convert
-			-t <text>		image description text file
-			-n <n>			page size
-			-d <d>			tree depth
-			-b <b>			channel depth
-			-g <g>			channel signedness
-			-L <f>,<f>,<f>	longitude blend range
-			-P <f>,<f>,<f>	latitude blend range
-			-N <f>,<f>		normalization range
-		-p combine
-			-m max			max operation
-			-m sum			sum operation
-		-p mipmap
-		-p border
-		-p normal
-			-r <f>,<f>		radius
-
-scmtiff -pconvert -n512 -d3 -P90,12,15 ldem_45n_100m.lbl
-
-
-	$ time mpirun -np 16 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
-	real    4m0.345s
-	user    0m0.035s
-	sys     0m0.075s
-
-	$ time mpirun -np 32 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
-	real    4m1.559s
-	user    0m0.048s
-	sys     0m0.094s
-
-	$ time mpirun -np 48 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
-	real    3m41.149s
-	user    0m0.061s
-	sys     0m0.080s
-
-	time mpirun -np 60 ~/Projects/scmtiff/scmtiff-mpi -convert -n 256 -d 0 -norm0 -9160 -norm1 10770 ldem_1024_*.lbl
-	real    4m8.795s
-	user    0m0.072s
-	sys     0m0.132s
-
-
-Process output order
-	breadth-first
-		combine
-		border
-		mipmap
-	depth-first
-		convert
-		normal
-	input-order
-		catalog
-
-
-a b g h l o p q y z
-
-c
-d e
-f
-x y z
-i j k
-m n
-s t r
-u v w
-x

@@ -9,7 +9,19 @@
 #include "util.h"
 #include "process.h"
 
-#define sub(a, b) ((a) + (b))
+//------------------------------------------------------------------------------
+
+static inline float sum(float a, float b)
+{
+    return a + b;
+}
+
+static inline float avg(float a, float b)
+{
+    if (a == 0.f) return b;
+    if (b == 0.f) return a;
+    return (a + b) * 0.5f;
+}
 
 //------------------------------------------------------------------------------
 
@@ -64,7 +76,7 @@ static int addfile(struct file *F, int C, const char *name)
 
 // Sum all SCMs given by the input array. Write the output to SCM s.
 
-static void process(scm *s, struct file *F, int C, int M)
+static void process(scm *s, struct file *F, int C, int O)
 {
     const size_t S = (size_t) (scm_get_n(s) + 2)
                    * (size_t) (scm_get_n(s) + 2)
@@ -115,25 +127,34 @@ static void process(scm *s, struct file *F, int C, int M)
 
             // If there is exactly one contributor, repeat its page.
 
-            if (k == 1)
+/*            if (k == 1)
                 b = scm_repeat(s, b, F[g].s, o[g]);
 
             // If there is more than one, append their summed pages.
 
-            else if (k > 1)
+            else if (k > 1) */
+            if (k > 0)
             {
                 memset(p, 0, S * sizeof (float));
 
                 for (int f = 0; f < C; ++f)
                     if (o[f] && scm_read_page(F[f].s, o[f], q))
-                    {
-                        if (M)
-                            for (size_t j = 0; j < S; ++j)
-                                p[j] = max(p[j], q[j]);
-                        else
-                            for (size_t j = 0; j < S; ++j)
-                                p[j] = sub(p[j], q[j]);
-                    }
+
+                        switch (O)
+                        {
+                            case 0:
+                                for (size_t j = 0; j < S; ++j)
+                                    p[j] = sum(p[j], q[j]);
+                                break;
+                            case 1:
+                                for (size_t j = 0; j < S; ++j)
+                                    p[j] = max(p[j], q[j]);
+                                break;
+                            case 2:
+                                for (size_t j = 0; j < S; ++j)
+                                    p[j] = avg(p[j], q[j]);
+                                break;
+                        }
 
                 b = scm_append(s, b, x, p);
             }
@@ -150,14 +171,15 @@ int combine(int argc, char **argv, const char *o, const char *m)
 {
     struct file *F = NULL;
     int          C = 0;
-    int          M = 0;
+    int          O = 0;
 
     const char *out = o ? o : "out.tif";
 
     if (m)
     {
-        if      (strcmp(m, "sum") == 0) M = 0;
-        else if (strcmp(m, "max") == 0) M = 1;
+        if      (strcmp(m, "sum") == 0) O = 0;
+        else if (strcmp(m, "max") == 0) O = 1;
+        else if (strcmp(m, "avg") == 0) O = 2;
     }
 
     if ((F = (struct file *) calloc((size_t) argc, sizeof (struct file))))
@@ -177,7 +199,7 @@ int combine(int argc, char **argv, const char *o, const char *m)
 
             if ((s = scm_ofile(out, n, c, b, g, T)))
             {
-                process(s, F, C, M);
+                process(s, F, C, O);
                 scm_close(s);
             }
         }
