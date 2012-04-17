@@ -52,7 +52,7 @@ static inline long long scm_page_root(long long i)
 
 // Calculate the tile number (face index) of page i. ---------------------------
 
-static inline long long scm_page_tile(long long i)
+static inline long long scm_page_rank(long long i)
 {
     long long n = 1LL << (2 * scm_page_level(i));
     return (i - 2 * (n - 1)) % n;
@@ -62,14 +62,14 @@ static inline long long scm_page_tile(long long i)
 
 static inline long long scm_page_row(long long i)
 {
-    return scm_page_tile(i) / (1LL << scm_page_level(i));
+    return scm_page_rank(i) / (1LL << scm_page_level(i));
 }
 
 // Calculate the tile column of page i. ----------------------------------------
 
 static inline long long scm_page_col(long long i)
 {
-    return scm_page_tile(i) % (1LL << scm_page_level(i));
+    return scm_page_rank(i) % (1LL << scm_page_level(i));
 }
 
 // Calculate the index of the page on root a at level l, row r, column c. -----

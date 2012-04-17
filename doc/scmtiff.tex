@@ -52,6 +52,18 @@
 
 \newcommand{\inangles}[1]{$\langle$#1$\rangle$}
 
+\newcommand{\scmcount} [1]{\ensuremath{\mathit{count}(#1)}}
+\newcommand{\scmwidth} [1]{\ensuremath{\mathit{width}(#1)}}
+\newcommand{\scmheight}[1]{\ensuremath{\mathit{height}(#1)}}
+\newcommand{\scmlevel} [1]{\ensuremath{\mathit{level}(#1)}}
+\newcommand{\scmroot}  [1]{\ensuremath{\mathit{root}(#1)}}
+\newcommand{\scmrank}  [1]{\ensuremath{\mathit{rank}(#1)}}
+\newcommand{\scmrow}   [1]{\ensuremath{\mathit{row}(#1)}}
+\newcommand{\scmcol}   [1]{\ensuremath{\mathit{col}(#1)}}
+\newcommand{\scmindex} [1]{\ensuremath{\mathit{index}(#1)}}
+\newcommand{\scmparent}[1]{\ensuremath{\mathit{parent}(#1)}}
+\newcommand{\scmchild} [1]{\ensuremath{\mathit{child}(#1)}}
+
 \newenvironment{optionlist}
   {\setlength{\leftmargini}{1in}\begin{itemize}}{\end{itemize}}
 
@@ -86,15 +98,15 @@
 The mapping of image data onto the sphere is intuitively similar to a standard \opengl\ cube map. Begin by considering an $n\times n$ raster image applied to the $+Z$ face of a cube. For a spherical cube map, the pixel at row~$r$ and column~$c$ gives a sample at a position $(\alpha, \beta)$ on the sphere, where
 \[\alpha=90^{\circ}\,\frac{c + \sfrac{1}{2}}{n} - 45^{\circ}\qquad\beta=90^{\circ}\,\frac{r + \sfrac{1}{2}}{n} - 45^{\circ}.\]
 This corresponds to the \threed\ vector
-\begin{align*}
-x& = \phantom{-}\sin\alpha\, \cos\beta\\
-y& =         {-}\cos\alpha\, \sin\beta\\
-z& = \phantom{-}\cos\alpha\, \cos\beta.
-\end{align*}
+\[v=\left[\begin{array}{c}
+\phantom{-}\sin\alpha\, \cos\beta\\
+        {-}\cos\alpha\, \sin\beta\\
+\phantom{-}\cos\alpha\, \cos\beta
+\end{array}\right].\]
 
-This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\), but when normalization is required, one will probably prefer the more familiar divisor \(\sqrt{x^2+y^2+z^2}\).
+This vector has length \(\sqrt{\cos^2\,\alpha + \sin^2\,\alpha\,\cos^2\,\beta}\), but when normalization is required, one will probably prefer the more familiar divisor \(\sqrt{v_x^2+v_y^2+v_z^2}\).
 
-Vectors within the remaining cube faces are simple \ang{90} rotations of the definition for $+Z$, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ toward the sample at row and column $(r, c)$ is defined in terms of $(x, y, z)$ as follows.
+Vectors within the remaining cube faces are simple \ang{90} rotations of the definition for $+Z$, trivially implemented in the form of swizzles and negations. For each face, the vector $(x', y', z')$ is defined in terms of $(x, y, z)$ as follows.
 \begin{center}
 \begin{tabular}{rr|r|r|r|r|r}
     &$\Pos{X}$&$\Neg{X}$&$\Pos{Y}$&$\Neg{Y}$&$\Pos{Z}$&$\Neg{Z}$\B\\\hline
@@ -141,10 +153,10 @@ The mechanism is akin to a standard \opengl\ mipmap applied to each face of the 
 \end{figure}
 
 Let $d$ be the number of recursive subdivisions applied to the cube. The total number of pages in an \scm\ tree of depth $d$ is
-\[m=2^{2\,d+3}-2.\]
+\[\scmcount{d}=2^{2\,d+3}-2.\]
 
 Let $n$ be the size in pixels of each page of image data. The effective sphere map resolution of an \scm\ tree with page size $n$ and depth $d$ is
-\[w=n\,2^{d+2}\qquad h=n\,2^{d+1}.\]
+\[\scmwidth{d}=n\,2^{d+2}\qquad \scmheight{d}=n\,2^{d+1}.\]
 
 For reference, Table~\ref{tab:resolution} shows the effective resolutions and page counts of \scm\ trees with depths down to $7$. Page size $n=512$ is often used for power-of-two source images, and $n=720$ works well for geographic and planetary gridded data.
 
@@ -165,23 +177,53 @@ For reference, Table~\ref{tab:resolution} shows the effective resolutions and pa
   \caption{Effective resolutions and page counts of \scm\ trees with various depths and page sizes.}
 \end{table}
 
-Each page is identified by an index between $0$ and $m$ giving the page's position in the breadth-first traversal of the page tree. This index provides a natural ordering for stored pages that maximizes locality of reference and ensures that any prefix of a valid \scm\ is also a valid \scm.
-
-The page index uniquely determines each page's size, position, and orientation on the sphere, and the configuration of the first six root pages determines the layout of the data as a whole. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
+Each page is identified by an index between $0$ and $m$ giving the page's position in a breadth-first enumeration of the page tree. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
 \[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
 
-Much like the classical binary heap data structure, \scm\ tree indices represent positions in a complete tree, and parent-child relationships follow from straightforward arithmetic. Using integer division, if page $p_j$ is the parent of page $p_i$ then
-\[j=(i-6)/4.\]
-If page $p_i$ is the $k$th child of page $p_j$ then
-\[i=6+4\,j+k\]
-The child order $k$ of page $p_i$ is
-\[k=(i-6)-4\,((i-6)/4).\]
-The \scm\ tree level $\ell$ at which page $p_i$ appears is
-\[\ell=\frac{\lfloor\log_2\,(i+2)\rfloor - 1}{2}\]
-and, given this $\ell$, the root page that page $p_i$ falls within is
-\[f=\frac{i - 2\,(4^\ell - 1)}{4^\ell}.\]
+The page index uniquely determines all of a page's parameters. Its size, position, and orientation on the sphere, plus its parent, children, and neighbors can all be determined in constant time given only the page index $i$. The next several equations build the integer arithmetic giving this capability.
 
-% This will be rewritten.  Define integer binary logarithm lb.  Give C in the notes.
+The levels of the \scm\ tree are enumerated in increasing order. Within each level, the sub-pages of each root page are contiguous. Thus, each level $\ell$, $0\leq\ell\leq d$ consists of six arrays of $2^\ell\times2^\ell$ pages. The level of a given page $i$ is
+\[\scmlevel{i}=\frac{\lfloor\log_2\,(i+2)\rfloor-1}{2}.\]
+This integer binary logarithm is used heavily when computing page index relationship, and an efficient C implementation is given in Appendix~\ref{cha:log}.
+
+The root page of a page $i$, its earliest ancestor, is
+\[\scmroot{i}=(i-2\,(4^{\scmlevel{i}}-1))\ /\ 4^{\scmlevel{i}}.\]
+The pages of the $2^\ell\times 2^\ell$ array for each level and root are enumerated beginning at the top left, going left-to-right and top-to-bottom. The rank of a page in this array is
+\[\scmrank{i}=(i-2\,(4^{\scmlevel{i}}-1))\ \%\ 4^{\scmlevel{i}}.\]
+Note the use of integer division and modulus, plus the useful symmetry in the definitions of \textit{root} and \textit{rank}. The row and column in the array follow directly from this rank.
+\[\scmrow{i}=\scmrank{i}\ /\ 2^{\scmlevel{i}}\]
+\[\scmcol{i}=\scmrank{i}\ \%\ 2^{\scmlevel{i}}\]
+
+Given these, the \scm\ spherical mapping defined in Section~\ref{sec:sampling} may be applied, and the \threed\ position vector of each page corner may be determined. To the west and east,
+\[\alpha_w=\ang{90}\frac{col(i)}{2^{\scmlevel{i}}}-\ang{45}\quad\textrm{and}\quad
+  \alpha_e=\ang{90}\frac{col(i)+1}{2^{\scmlevel{i}}}-\ang{45}.\]
+To the north and south,
+\[\beta_n=\ang{90}\frac{row(i)}{2^{\scmlevel{i}}}-\ang{45}\quad\textrm{and}\quad
+  \beta_s=\ang{90}\frac{row(i)+1}{2^{\scmlevel{i}}}-\ang{45}.\]
+The vector pointing toward the north-west corner is thus
+\[v_{nw}=\left[\begin{array}{c}
+\phantom{-}\sin\alpha_w\, \cos\beta_n\\
+        {-}\cos\alpha_w\, \sin\beta_n\\
+\phantom{-}\cos\alpha_w\, \cos\beta_n
+\end{array}\right],\]
+subject to the table of swizzles and negations given in Section~\ref{sec:sampling}. The remaining corners $v_{ne}$, $v_{sw}$, and $v_{se}$ follow accordlingly.
+
+Moving on, just as a page's index uniquely determine its \textit{root}, \textit{level}, \textit{row}, and \textit{col}, so to do these four values together uniquely give an index.
+\[\scmindex{f, \ell, r, c}=\scmcount{\ell-1}+f\,4^\ell+r\,2\ell+c.\]
+Given this two-way set of definitions, parent, child, and neighbor relationships emerge. The parent one level higher,
+\begin{align*}
+\scmparent{i}=\scmindex{\scmroot{i}&,\\
+                        \scmlevel{i}&-1,\\
+                        \scmrow{i}&\ /\ 2,\\
+                        \scmcol{i}&\ /\ 2},
+\end{align*}
+and the four children $0\leq k < 4$ are one level lower,
+\begin{align*}
+\scmchild{i,k}=\scmindex{\scmroot{i}&,\\
+                        \scmlevel{i}&+1,\\
+                       2\,\scmrow{i}&+k\ /\ 2,\\
+                       2\,\scmcol{i}&+k\ \%\ 2}.
+\end{align*}
 
 %------------------------------------------------------------------------------
 
@@ -835,13 +877,40 @@ This is a list of issues to be aware of, should trouble arise when configuring o
 \item If performance is sluggish, be sure that panorama image files are not being accessed from a network share, and that the \texttt{conf.xml} setting of \verb|scm_cache_size| is not too high.
 \end{itemize}
 
+
+%-------------------------------------------------------------------------------
+
 \appendix
-\chapter{Makefile}
+\chapter{Integer Binary Logarithm}
+\label{cha:log}
+
+The following C Language function computes the 64-bit integer binary logarithm in $O(\log n)$ operations. It takes and returns a signed value, instead of unsigned, as this is the most appropriate C type for \scm\ page indices.
+
+\begin{Verbatim}
+static inline long long log2i(long long n)
+{
+    unsigned long long v = (unsigned long long) n;
+    unsigned long long r;
+    unsigned long long s;
+
+    r = (v > 0xFFFFFFFFULL) << 5; v >>= r;
+    s = (v > 0xFFFFULL    ) << 4; v >>= s; r |= s;
+    s = (v > 0xFFULL      ) << 3; v >>= s; r |= s;
+    s = (v > 0xFULL       ) << 2; v >>= s; r |= s;
+    s = (v > 0x3ULL       ) << 1; v >>= s; r |= s;
+
+    return (long long) (r | (v >> 1));
+}
+\end{Verbatim}
+
+%-------------------------------------------------------------------------------
+
+\chapter{LRO DTM Makefile}
 \label{cha:makefile}
 
 \begin{Verbatim}
-N=256
-D=0
+N=426
+D=6
 
 NAME = DTM-$(N)-$(D)
 FORM = -n $(N) -d $(D)
@@ -868,52 +937,52 @@ LOLA =\
 # Convert a raw normal map to a bordered and cataloged normal map.
 
 $(NAME)-N.tif: $(NAME)-O.tif
-        scmtiff -p border -o $@ $<
-        scmtiff -p catalog $@
+        scmtiff -T -p border -o $@ $<
+        scmtiff -T -p catalog $@
 
 # Convert a height map into a raw normal map.
 
 $(NAME)-O.tif: $(NAME).tif
-        scmtiff -p normal $(RADI) -o $@ $<
+        scmtiff -T -p normal $(RADI) -o $@ $<
 
 # Border and catalog.
 
 $(NAME).tif: $(NAME)-M.tif
-        scmtiff -p border -o $@ $<
-        scmtiff -p catalog $@
+        scmtiff -T -p border -o $@ $<
+        scmtiff -T -p catalog $@
 
 # Combine the two projections and mipmap the result.
 
 $(NAME)-M.tif: $(NAME)-E.tif $(NAME)-P.tif
-        scmtiff -p combine -m max -o $@ $^
-        scmtiff -p mipmap $@
+        scmtiff -T -p combine -m avg -o $@ $^
+        scmtiff -T -p mipmap $@
 
 # Sum the equirectangular projections.
 
 $(NAME)-E.tif: $(GLDE)
-        scmtiff -p combine -o $@ $^
+        scmtiff -T -p combine -m max -o $@ $^
 
 # Sum the polar projections.
 
 $(NAME)-P.tif: $(GLDP) $(LOLA)
-        scmtiff -p combine -o $@ $^
+        scmtiff -T -p combine -o $@ $^
 
 # Convert all PDS files to TIFF.
 
 WAC_GLD100_E%.tif: WAC_GLD100_E%.IMG
-        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ $<
+        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ $<
 
 WAC_GLD100_P900N0000_100M.tif: WAC_GLD100_P900N0000_100M.IMG
-        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,12,11 $<
+        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,12,11 $<
 
 WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
-        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,12,11 $<
+        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,12,11 $<
 
 ldem_45n_100m.tif: ldem_45n_100m.lbl
-        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,11,12 $<
+        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,11,12 $<
 
 ldem_45s_100m.tif: ldem_45s_100m.lbl
-        scmtiff -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,11,12 $<
+        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,11,12 $<
 
 clean:
         rm -f $(NAME).tif $(GLDE) $(GLDP) $(LOLA)
