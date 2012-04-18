@@ -177,7 +177,7 @@ For reference, Table~\ref{tab:resolution} shows the effective resolutions and pa
   \caption{Effective resolutions and page counts of \scm\ trees with various depths and page sizes.}
 \end{table}
 
-Each page is identified by an index between $0$ and $m$ giving the page's position in a breadth-first enumeration of the page tree. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
+Each page is identified by an index between $0$ and $\scmcount{d}$ giving the page's position in a breadth-first enumeration of the page tree. As with all basic definitions shown so far, this root configuration coincides with the definition of a standard \opengl\ cube map. Pages zero through five map onto the faces of a cube as follows.
 \[p_0=+X\quad p_1=-X\quad p_2=+Y\quad p_3=-Y\quad p_4=+Z\quad p_5=-Z\]
 
 The page index uniquely determines all of a page's parameters. Its size, position, and orientation on the sphere, plus its parent, children, and neighbors can all be determined in constant time given only the page index $i$. The next several equations build the integer arithmetic giving this capability.
@@ -200,7 +200,7 @@ Given these, the \scm\ spherical mapping defined in Section~\ref{sec:sampling} m
 To the north and south,
 \[\beta_n=\ang{90}\frac{row(i)}{2^{\scmlevel{i}}}-\ang{45}\quad\textrm{and}\quad
   \beta_s=\ang{90}\frac{row(i)+1}{2^{\scmlevel{i}}}-\ang{45}.\]
-The vector pointing toward the north-west corner is thus
+The vector pointing toward the north-west corner of page $i$ is thus
 \[v_{nw}=\left[\begin{array}{c}
 \phantom{-}\sin\alpha_w\, \cos\beta_n\\
         {-}\cos\alpha_w\, \sin\beta_n\\
@@ -209,8 +209,8 @@ The vector pointing toward the north-west corner is thus
 subject to the table of swizzles and negations given in Section~\ref{sec:sampling}. The remaining corners $v_{ne}$, $v_{sw}$, and $v_{se}$ follow accordlingly.
 
 Moving on, just as a page's index uniquely determine its \textit{root}, \textit{level}, \textit{row}, and \textit{col}, so to do these four values together uniquely give an index.
-\[\scmindex{f, \ell, r, c}=\scmcount{\ell-1}+f\,4^\ell+r\,2\ell+c.\]
-Given this two-way set of definitions, parent, child, and neighbor relationships emerge. The parent one level higher,
+\[\scmindex{f, \ell, r, c}=\scmcount{\ell-1}+f\,4^\ell+r\,2^\ell+c.\]
+Given this two-way set of definitions, parent, child, and neighbor relationships emerge. The parent is one level higher,
 \begin{align*}
 \scmparent{i}=\scmindex{\scmroot{i}&,\\
                         \scmlevel{i}&-1,\\
@@ -224,6 +224,8 @@ and the four children $0\leq k < 4$ are one level lower,
                        2\,\scmrow{i}&+k\ /\ 2,\\
                        2\,\scmcol{i}&+k\ \%\ 2}.
 \end{align*}
+
+The calculation of neighbor indices is a bit more complicated. In the trivial case, the approach is identical to the calculation of a parent or child. One has only to increment or decrement the row or column argument to \scmindex{f,\ell,r,c} to determine any adjacency. However, finding neighbors across cube map face boundaries causes complications due to the varying orientations of the roots.
 
 %------------------------------------------------------------------------------
 
@@ -462,7 +464,21 @@ Fortunately, GLD100 is registered with the Lunar Digital Elevation Model (LDEM) 
   \label{fig:gldp}
 \end{figure}
 
-From Section~\ref{sec:paging}, $w=n\,2^{d+2}$. Plugging in $w=\num{109164}$, arbitrarily choosing $d=5$, and solving, we find $n=852$. Experience has shown that large pages incur increased I/O latency, and $852$ is a bit high. Choosing $d=6$, we find $n=426$, which is better. \scm\ parameters $n=426$ and $d=6$ will give an effective resolution of $\num{109056}\times\num{54528}$ in $\num{32766}$ pages. This is a couple pixels short, but very close to perfect. Rounding up would give an odd value for $n$, which will cause mipmapping artifacts.
+We need to select a page size and tree depth appropriate for this data set. There are many considerations.
+
+\begin{enumerate}
+\item To properly represent the source data, we select $n$ and $d$ such that the effective width, $w=n\,2^{d+2}$, closely matches the total horizontal resolution of the input.
+
+\item Large $n$ incurs high I/O latency. RAM-to-VRAM data transfers take time, and if a page upload consumes a significant fraction of a frame period then the frame rate is likely to break up during high I/O load. Given 2012 era hardware, we'll want $n$ around $512$.
+
+\item For a given $w$, small $n$ requires large $d$. This increases the total number of pages in flight at any given moment, as well as the number of texture image units consumed by the renderer. This is usually not a problem, but there are limits.
+
+\item The page granularity of a height map impacts the effectiveness of visibility testing, as small pages allow tighter bounding volumes than large pages. This consideration does not apply to color maps or normal maps.
+
+\item $n$ should be an even number to ensure no artifacts arise during the mipmapping process.
+\end{enumerate}
+
+Given $w=\num{109164}$, arbitrarily choosing $d=5$, and solving, we find $n=852$. That's quite high. Choosing $d=6$, we find $n=426$, which is reasonable from most perspectives. \scm\ parameters $n=426$ and $d=6$ will give an effective resolution of $\num{109056}\times\num{54528}$ in $\num{32766}$ pages. This is a couple pixels short, but very close to perfect.
 
 It's important to remember that an \scm\ data product is essentially a temporary cache for visualization. It's not a permanent archive, so source integrity need not be considered precious and we're free to renormalize. This will let us benefit from any smoothing that occurs during resampling and reprojection and take full advantage of the output bit depth. Both GLD and LDEM are signed 16-bit samples ranging from roughly \SI{-9160}{\meter} to \SI{10770}{\meter}, giving height values relative to the moon's average radius of \SI{1737400}{\meter}. These values give our normalization range. Of course, normalization maps the data onto $(0,1)$, so there's no longer any point in using a signed sample, so we'll override the \img\ data type and force unsigned output.
 
