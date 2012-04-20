@@ -430,6 +430,40 @@ void scm_make_catalog(scm *s)
     }
 }
 
+// Read the catalog from SCM s. If none is found, scan and sort a new one.
+
+long long scm_read_catalog(scm *s, scm_pair **a)
+{
+    long long o;
+    long long l;
+    ifd i;
+
+    assert(s);
+
+    if ((o = scm_rewind(s)))
+    {
+        if (scm_read_ifd(s, &i, o) == 1)
+        {
+            l = (long long) (i.page_catalog.count / 2);
+
+            if ((a[0] = malloc((size_t) l * sizeof (scm_pair))))
+            {
+                if (scm_read_field(s, &i.page_catalog, a[0]) == 1)
+                    return l;
+
+                if ((l = scm_scan_catalog(s, a)))
+                {
+                    scm_sort_catalog(a[0], l);
+                    return l;
+                }
+                free(a[0]);
+            }
+        }
+        else apperr("Failed to read SCM TIFF IFD");
+    }
+    return 0;
+}
+
 //------------------------------------------------------------------------------
 
 // Rewrite all IFDs to refer to the page extrema at o0 and o1 with count c.

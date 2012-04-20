@@ -148,11 +148,9 @@ static int data_init(int argc, char **argv)
                 glTexParameteri(T, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-                if ((filev[i].l = scm_scan_catalog(filev[i].s, &filev[i].a)))
-                {
-                    scm_sort_catalog(filev[i].a, filev[i].l);
+                if ((filev[i].l = scm_read_catalog(filev[i].s, &filev[i].a)))
                     pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
-                }
+
                 i++;
             }
 
@@ -322,43 +320,37 @@ static void keyboard(unsigned char key, int x, int y)
         glutPostRedisplay();
     }
 
-    if (glutGetModifiers() & GLUT_ACTIVE_CTRL)
-    {
-        if      (key == '0') jump(0);
-        else if (key == '1') jump(scm_page_count(0));
-        else if (key == '2') jump(scm_page_count(1));
-        else if (key == '3') jump(scm_page_count(2));
-        else if (key == '4') jump(scm_page_count(3));
-        else if (key == '5') jump(scm_page_count(4));
-        else if (key == '6') jump(scm_page_count(5));
-        else if (key == '7') jump(scm_page_count(6));
-        else if (key == '8') jump(scm_page_count(7));
-        else if (key == '9') jump(scm_page_count(8));
-    }
-    else
-    {
-        if      (key == '0') jump(scm_page_root (pagei));
-        else if (key == '1') jump(scm_page_child(pagei, 2));
-        else if (key == '2') jump(scm_page_south(pagei));
-        else if (key == '3') jump(scm_page_child(pagei, 3));
-        else if (key == '4') jump(scm_page_west (pagei));
-        else if (key == '5') jump((pagei < 6) ? pagei : scm_page_parent(pagei));
-        else if (key == '6') jump(scm_page_east (pagei));
-        else if (key == '7') jump(scm_page_child(pagei, 0));
-        else if (key == '8') jump(scm_page_north(pagei));
-        else if (key == '9') jump(scm_page_child(pagei, 1));
-    }
+    else if (key == ')') jump(0);
+    else if (key == '!') jump(scm_page_count(0));
+    else if (key == '@') jump(scm_page_count(1));
+    else if (key == '#') jump(scm_page_count(2));
+    else if (key == '$') jump(scm_page_count(3));
+    else if (key == '%') jump(scm_page_count(4));
+    else if (key == '^') jump(scm_page_count(5));
+    else if (key == '&') jump(scm_page_count(6));
+    else if (key == '*') jump(scm_page_count(7));
+    else if (key == '(') jump(scm_page_count(8));
+
+    else if (key == '0') jump(scm_page_root (pagei));
+    else if (key == '1') jump(scm_page_child(pagei, 2));
+    else if (key == '2') jump(scm_page_south(pagei));
+    else if (key == '3') jump(scm_page_child(pagei, 3));
+    else if (key == '4') jump(scm_page_west (pagei));
+    else if (key == '5') jump((pagei < 6) ? pagei : scm_page_parent(pagei));
+    else if (key == '6') jump(scm_page_east (pagei));
+    else if (key == '7') jump(scm_page_child(pagei, 0));
+    else if (key == '8') jump(scm_page_north(pagei));
+    else if (key == '9') jump(scm_page_child(pagei, 1));
 }
 
 // GLUT special keyboard callback.
 
 static void special(int key, int x, int y)
 {
-    int d = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? 10 : 1;
-    int s = (glutGetModifiers() & GLUT_ACTIVE_CTRL)  ?  1 : 0;
+    int s = (glutGetModifiers() & GLUT_ACTIVE_SHIFT)  ?  1 : 0;
 
-    if      (key == GLUT_KEY_PAGE_UP)   page(+d, s);
-    else if (key == GLUT_KEY_PAGE_DOWN) page(-d, s);
+    if      (key == GLUT_KEY_PAGE_UP)   page(+1, s);
+    else if (key == GLUT_KEY_PAGE_DOWN) page(-1, s);
     else if (key == GLUT_KEY_F1)
     {
         glUseProgram(0);

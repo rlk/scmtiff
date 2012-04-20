@@ -8,8 +8,8 @@
 
 void scm_vector(long long a, double y, double x, double *v)
 {
-    const double s = x * M_PI_2 - M_PI_4;
-    const double t = y * M_PI_2 - M_PI_4;
+    const double s = x * M_PI / 2.0 - M_PI / 4.0;
+    const double t = y * M_PI / 2.0 - M_PI / 4.0;
 
     double u[3];
 
@@ -29,7 +29,7 @@ void scm_vector(long long a, double y, double x, double *v)
         case 1: v[0] = -u[2]; v[1] =  u[1]; v[2] =  u[0]; break;
         case 2: v[0] =  u[0]; v[1] =  u[2]; v[2] = -u[1]; break;
         case 3: v[0] =  u[0]; v[1] = -u[2]; v[2] =  u[1]; break;
-        case 4: v[0] =  u[0]; v[1] =  u[1]; v[2] =  u[2]; break;
+        case 4: v[0] =  u[0]; v[1] = u[1]; v[2] =  u[2]; break;
         case 5: v[0] = -u[0]; v[1] =  u[1]; v[2] = -u[2]; break;
     }
 }

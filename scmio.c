@@ -610,29 +610,4 @@ int scm_link_list(scm *s, long long c, long long p)
     return -1;
 }
 
-// Set IFD c to be the nth "child" of IFD p.
-#if 0
-int scm_link_tree(scm *s, long long c, long long p, int n)
-{
-    ifd i;
-
-    if (p)
-    {
-        if (scm_read_ifd(s, &i, p) == 1)
-        {
-            i.sub[n] = (uint64_t) c;
-
-            if (scm_write_ifd(s, &i, p) == 1)
-            {
-                return 1;
-            }
-            else apperr("Failed to write parent IFD");
-        }
-        else apperr("Failed to read parent IFD");
-
-        return -1;
-    }
-    return 0;
-}
-#endif
 //------------------------------------------------------------------------------
