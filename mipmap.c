@@ -14,29 +14,38 @@
 //------------------------------------------------------------------------------
 
 // Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
-// the c-channel n-by-n image buffer p, downsampling 2-to-1.
+// the c-channel n-by-n image buffer p, downsampling 2-to-1. Don't factor in
+// zeros.
 
 static void box(float *p, int ki, int kj, int c, int n, float *q)
 {
     int qi;
     int qj;
+    int k;
 
     #pragma omp parallel for private(qj)
-    for     (qi = 0; qi < n; ++qi)
-        for (qj = 0; qj < n; ++qj)
+    for     (qi = 0; qi < n; qi += 2)
+        for (qj = 0; qj < n; qj += 2)
         {
             const int pi = qi / 2 + ki * n / 2;
             const int pj = qj / 2 + kj * n / 2;
 
-            float *qq = q + ((n + 2) * (qi + 1) + (qj + 1)) * c;
+            float *q0 = q + ((n + 2) * (qi + 1) + (qj + 1)) * c;
+            float *q1 = q + ((n + 2) * (qi + 1) + (qj + 2)) * c;
+            float *q2 = q + ((n + 2) * (qi + 2) + (qj + 1)) * c;
+            float *q3 = q + ((n + 2) * (qi + 2) + (qj + 2)) * c;
             float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;
 
-            switch (c)
+            for (k = 0; k < c; ++k)
             {
-                case 4: pp[3] += qq[3] / 4.f;
-                case 3: pp[2] += qq[2] / 4.f;
-                case 2: pp[1] += qq[1] / 4.f;
-                case 1: pp[0] += qq[0] / 4.f;
+                int s = 0;
+
+                if (q0[k] > 0) s++;
+                if (q1[k] > 0) s++;
+                if (q2[k] > 0) s++;
+                if (q3[k] > 0) s++;
+
+                pp[k] = s ? (q0[k] + q1[k] + q2[k] + q3[k]) / s : 0;
             }
         }
 }

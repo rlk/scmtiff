@@ -199,6 +199,8 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
         uint64_t O[sc];
         uint32_t L[sc];
 
+        D.next = 0;
+
         if (scm_read_cache(t, t->zipv, oo, lo, sc, O, L) > 0)
         {
             if ((o = ftello(s->fp)) >= 0)

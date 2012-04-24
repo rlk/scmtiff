@@ -127,13 +127,12 @@ static void process(scm *s, struct file *F, int C, int O)
 
             // If there is exactly one contributor, repeat its page.
 
-/*            if (k == 1)
+            if (k == 1)
                 b = scm_repeat(s, b, F[g].s, o[g]);
 
             // If there is more than one, append their summed pages.
 
-            else if (k > 1) */
-            if (k > 0)
+            else if (k > 1)
             {
                 memset(p, 0, S * sizeof (float));
 
