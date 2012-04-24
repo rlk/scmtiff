@@ -63,6 +63,10 @@
 \newcommand{\scmindex} [1]{\ensuremath{\mathit{index}(#1)}}
 \newcommand{\scmparent}[1]{\ensuremath{\mathit{parent}(#1)}}
 \newcommand{\scmchild} [1]{\ensuremath{\mathit{child}(#1)}}
+\newcommand{\scmnorth} [1]{\ensuremath{\mathit{north}(#1)}}
+\newcommand{\scmsouth} [1]{\ensuremath{\mathit{south}(#1)}}
+\newcommand{\scmwest}  [1]{\ensuremath{\mathit{west}(#1)}}
+\newcommand{\scmeast}  [1]{\ensuremath{\mathit{east}(#1)}}
 
 \newenvironment{optionlist}
   {\setlength{\leftmargini}{1in}\begin{itemize}}{\end{itemize}}
@@ -225,33 +229,130 @@ and the four children $0\leq k < 4$ are one level lower,
                     2\cdot\scmcol{i}&+k\ \%\ 2}.
 \end{align*}
 
-The calculation of neighbor indices is a bit more complicated. In the trivial case, the approach is identical to the calculation of a parent or child. One has only to increment or decrement the row or column argument to \scmindex{f,\ell,r,c} to determine any adjacency. However, finding neighbors across cube map face boundaries causes complications due to the varying orientations of the roots. The resulting six cases are tedious to compute, so they are fully listed here for reference and ease of implementation.
-
-\[
-\mathit{north}(f,\ell,r,c)=\mathit{index}\left(
+The calculation of neighbor indices is a bit more complicated. In the trivial case, the approach is identical to the calculation of a parent or child. One has only to increment or decrement the row or column argument to \scmindex{f,\ell,r,c} to determine any adjacency. However, finding neighbors across cube map face boundaries causes complications due to the varying orientations of the roots. The resulting cases are tedious to derive, so they are fully enumerated here for reference and ease of implementation.
+\[\scmnorth{f,\ell,r,c}=\mathit{index}\left(
 \begin{array}{c}
   f, \\ 2, \\ 2, \\ 5, \\ 4, \\ 2, \\ 2,
 \end{array}
 \begin{array}{c}
-  \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell
+  \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell,
 \end{array}
 \begin{array}{c}
-  r-1, \\ 2^\ell-c-1, \\ c, \\ 0, \\ 2^\ell-1, \\ 2^\ell -1, \\ 0
+  r-1, \\ 2^\ell-c-1, \\ c, \\ 0, \\ 2^\ell-1, \\ 2^\ell -1, \\ 0,
 \end{array}
 \begin{array}{c}
-  c \\ 2^\ell \\ 0 \\ 2^\ell-c-1 \\ c \\ c \\ 2^\ell-c-1
+  c \\ 2^\ell-1 \\ 0 \\ 2^\ell-c-1 \\ c \\ c \\ 2^\ell-c-1
 \end{array}
 \right)
 \begin{array}{l}
-\mbox{if } r > 0 \\
-\mbox{if } f = 0 \\
-\mbox{if } f = 1 \\
-\mbox{if } f = 2 \\
-\mbox{if } f = 3 \\
-\mbox{if } f = 4 \\
-\mbox{if } f = 5
+  \text{if } r > 0 \\
+  \text{if } f = 0 \\
+  \text{if } f = 1 \\
+  \text{if } f = 2 \\
+  \text{if } f = 3 \\
+  \text{if } f = 4 \\
+  \text{if } f = 5
+\end{array}\]
+%
+\[\scmsouth{f,\ell,r,c}=\mathit{index}\left(
+\begin{array}{c}
+  f, \\ 3, \\ 3, \\ 4, \\ 5, \\ 3, \\ 3,
 \end{array}
+\begin{array}{c}
+  \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell,
+\end{array}
+\begin{array}{c}
+  r+1, \\ c, \\ 2^\ell-c-1, \\ 0, \\ 2^\ell-1, \\ 0, \\ 2^\ell -1,
+\end{array}
+\begin{array}{c}
+  c \\ 2^\ell-1 \\ 0 \\ c \\ 2^\ell-c-1 \\ c \\ 2^\ell-c-1
+\end{array}
+\right)
+\begin{array}{l}
+  \text{if } r > 0 \\
+  \text{if } f = 0 \\
+  \text{if } f = 1 \\
+  \text{if } f = 2 \\
+  \text{if } f = 3 \\
+  \text{if } f = 4 \\
+  \text{if } f = 5
+\end{array}\]
+%
+\[\scmwest{f,\ell,r,c}=\mathit{index}\left(
+\begin{array}{c}
+  f, \\ 4, \\ 5, \\ 1, \\ 1, \\ 1, \\ 0,
+\end{array}
+\begin{array}{c}
+  \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell,
+\end{array}
+\begin{array}{c}
+  r, \\ r, \\ r, \\ 0, \\ 2^\ell-1, \\ r, \\ r,
+\end{array}
+\begin{array}{c}
+  c-1 \\ 2^\ell-1 \\ 2^\ell-1 \\ r \\ 2^\ell-r-1 \\ 2^\ell-1 \\ 2^\ell-1
+\end{array}
+\right)
+\begin{array}{l}
+  \text{if } r > 0 \\
+  \text{if } f = 0 \\
+  \text{if } f = 1 \\
+  \text{if } f = 2 \\
+  \text{if } f = 3 \\
+  \text{if } f = 4 \\
+  \text{if } f = 5
+\end{array}\]
+%
+\[\scmeast{f,\ell,r,c}=\mathit{index}\left(
+\begin{array}{c}
+  f, \\ 5, \\ 4, \\ 0, \\ 0, \\ 0, \\ 1,
+\end{array}
+\begin{array}{c}
+  \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell, \\ \ell,
+\end{array}
+\begin{array}{c}
+  r, \\ r, \\ r, \\ 0, \\ 2^\ell-1, \\ r, \\ r,
+\end{array}
+\begin{array}{c}
+  c+1 \\ 0 \\ 0 \\ 2^\ell-r-1 \\ r \\ 0 \\ 0
+\end{array}
+\right)
+\begin{array}{l}
+  \text{if } r > 0 \\
+  \text{if } f = 0 \\
+  \text{if } f = 1 \\
+  \text{if } f = 2 \\
+  \text{if } f = 3 \\
+  \text{if } f = 4 \\
+  \text{if } f = 5
+\end{array}\]
+
+As shorthand, let $\scmnorth{i} = \scmnorth{\scmroot{i},\scmlevel{i},\scmrow{i},\scmcol{i}}$, etc., and note that our complication has a complication. Due to potential changes in page orientation, diagonal adjacency does not follow directly from nested evaluations of cardinal adjacency. Instead,
+\[
+\mathit{northwest}(i)=\begin{cases}
+\scmnorth{\scmwest{i}} & \text{if } \scmroot{i}=\scmroot{\scmwest{i}} \\
+\scmwest{\scmnorth{i}} & \text{otherwise,}\\
+\end{cases}
 \]
+\[
+\mathit{northeast}(i)=\begin{cases}
+\scmnorth{\scmeast{i}} & \text{if } \scmroot{i}=\scmroot{\scmeast{i}} \\
+\scmeast{\scmnorth{i}} & \text{otherwise,}\\
+\end{cases}
+\]
+\[
+\mathit{southwest}(i)=\begin{cases}
+\scmsouth{\scmwest{i}} & \text{if } \scmroot{i}=\scmroot{\scmwest{i}} \\
+\scmwest{\scmsouth{i}} & \text{otherwise,}\\
+\end{cases}
+\]
+\[
+\mathit{southeast}(i)=\begin{cases}
+\scmsouth{\scmeast{i}} & \text{if } \scmroot{i}=\scmroot{\scmeast{i}} \\
+\scmeast{\scmsouth{i}} & \text{otherwise.}\\
+\end{cases}
+\]
+
+This completes the set of mathematical tools needed to immediately determine all parameters of any \scm\ page.
 
 %------------------------------------------------------------------------------
 
