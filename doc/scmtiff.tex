@@ -229,7 +229,7 @@ and the four children $0\leq k < 4$ are one level lower,
                     2\cdot\scmcol{i}&+k\ \%\ 2}.
 \end{align*}
 
-The calculation of neighbor indices is a bit more complicated. In the trivial case, the approach is identical to the calculation of a parent or child. One has only to increment or decrement the row or column argument to \scmindex{f,\ell,r,c} to determine any adjacency. However, finding neighbors across cube map face boundaries causes complications due to the varying orientations of the roots. The resulting cases are tedious to derive, so they are fully enumerated here for reference and ease of implementation.
+The calculation of neighbor indices is a bit more complicated. In the trivial case, the approach is identical to the calculation of a parent or child. One has only to increment or decrement the row or column argument to \scmindex{f,\ell,r,c} to determine any adjacency. However, finding neighbors across cube map face boundaries causes complications due to the varying orientations of the roots. The face swizzle table comes into play and the resulting cases are tedious to derive. They are fully enumerated here for reference and ease of implementation.
 \[\scmnorth{f,\ell,r,c}=\mathit{index}\left(
 \begin{array}{c}
   f, \\ 2, \\ 2, \\ 5, \\ 4, \\ 2, \\ 2,
@@ -269,7 +269,7 @@ The calculation of neighbor indices is a bit more complicated. In the trivial ca
 \end{array}
 \right)
 \begin{array}{l}
-  \text{if } r > 0 \\
+  \text{if } r < 2^\ell \\
   \text{if } f = 0 \\
   \text{if } f = 1 \\
   \text{if } f = 2 \\
@@ -293,7 +293,7 @@ The calculation of neighbor indices is a bit more complicated. In the trivial ca
 \end{array}
 \right)
 \begin{array}{l}
-  \text{if } r > 0 \\
+  \text{if } c > 0 \\
   \text{if } f = 0 \\
   \text{if } f = 1 \\
   \text{if } f = 2 \\
@@ -317,7 +317,7 @@ The calculation of neighbor indices is a bit more complicated. In the trivial ca
 \end{array}
 \right)
 \begin{array}{l}
-  \text{if } r > 0 \\
+  \text{if } c < 2^\ell \\
   \text{if } f = 0 \\
   \text{if } f = 1 \\
   \text{if } f = 2 \\
@@ -357,6 +357,8 @@ This completes the set of mathematical tools needed to immediately determine all
 %------------------------------------------------------------------------------
 
 \chapter{\scm\ Pre-processing}
+
+As a multi-page raster image, An \scm\ tree is naturally amenable to storage in the form of a \tiff\ image file. In this form, \scm\ data is accessible to a variety of existing applications and tools, most notably the \libtiff\ image library.
 
 \section{SCMTIFF Usage}
 
