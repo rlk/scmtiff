@@ -19,24 +19,26 @@ long long scm_align(scm *);
 
 //------------------------------------------------------------------------------
 
-int scm_read_header  (scm *, header *);
-int scm_write_header (scm *, header *);
+int scm_read_header (scm *, header *);
+int scm_write_header(scm *, header *);
 
-int scm_read_field   (scm *, field *,       void *);
-int scm_write_field  (scm *, field *, const void *);
+int scm_read_field  (scm *, field *,       void *);
+int scm_write_field (scm *, field *, const void *);
 
-int scm_read_ifd     (scm *, ifd *, long long);
-int scm_write_ifd    (scm *, ifd *, long long);
+int scm_init_hfd    (scm *, hfd *);
+int scm_read_hfd    (scm *, hfd *, long long);
+int scm_write_hfd   (scm *, hfd *, long long);
 
-int scm_read_preface (scm *);
-int scm_write_preface(scm *, const char *);
+int scm_init_ifd    (scm *, ifd *);
+int scm_read_ifd    (scm *, ifd *, long long);
+int scm_write_ifd   (scm *, ifd *, long long);
 
 //------------------------------------------------------------------------------
 
-int scm_read_cache (scm *, uint8_t **, uint64_t,   uint64_t,   uint16_t,
-                                                   uint64_t *, uint32_t *);
-int scm_write_cache(scm *, uint8_t **, uint64_t *, uint64_t *, uint16_t *,
-                                                   uint64_t *, uint32_t *);
+int scm_read_zips (scm *, uint8_t **, uint64_t,   uint64_t,   uint16_t,
+                                                  uint64_t *, uint32_t *);
+int scm_write_zips(scm *, uint8_t **, uint64_t *, uint64_t *, uint16_t *,
+                                                  uint64_t *, uint32_t *);
 
 int scm_read_data (scm *,       float *, uint64_t,   uint64_t,   uint16_t);
 int scm_write_data(scm *, const float *, uint64_t *, uint64_t *, uint16_t *);
@@ -44,7 +46,6 @@ int scm_write_data(scm *, const float *, uint64_t *, uint64_t *, uint16_t *);
 //------------------------------------------------------------------------------
 
 int scm_link_list(scm *, long long, long long);
-int scm_link_tree(scm *, long long, long long, int);
 
 //------------------------------------------------------------------------------
 

@@ -7,12 +7,20 @@
 
 //------------------------------------------------------------------------------
 // The following structures define the format of an SCM TIFF: a BigTIFF with a
-// specific set of seventeen fields in each IFD. LibTIFF4 has no trouble reading
-// this format, but its SubIFD API is not sufficient to write it.
+// specific set of fields in each IFD. LibTIFF4 has no trouble handling this,
+// Though our usage of 0x129 PageNumber is non-standard.
 
 typedef struct header header;
 typedef struct field  field;
+typedef struct hfd    hfd;
 typedef struct ifd    ifd;
+
+#define SCM_HFD_COUNT    9
+#define SCM_IFD_COUNT    14
+#define SCM_PAGE_INDEX   0xFFB1
+#define SCM_PAGE_OFFSET  0xFFB2
+#define SCM_PAGE_MINIMUM 0xFFB3
+#define SCM_PAGE_MAXIMUM 0xFFB4
 
 #pragma pack(push)
 #pragma pack(2)
@@ -34,34 +42,45 @@ struct field
     uint64_t offset;
 };
 
+struct hfd
+{
+    uint64_t count;
+
+    field image_width;          // 0x0100
+    field image_length;         // 0x0101
+    field bits_per_sample;      // 0x0102
+    field description;          // 0x010E
+    field samples_per_pixel;    // 0x0115
+    field sample_format;        // 0x0153
+    field page_index;           // SCM_PAGE_INDEX
+    field page_offset;          // SCM_PAGE_OFFSET
+    field page_minimum;         // SCM_PAGE_MINIMUM
+    field page_maximum;         // SCM_PAGE_MAXIMUM
+
+    uint64_t next;
+};
+
 struct ifd
 {
     uint64_t count;
 
-    field subfile_type;         // 0x00FE
-    field image_width;          // 0x0100
-    field image_length;         // 0x0101
-    field bits_per_sample;      // 0x0102
-    field compression;          // 0x0103
-    field interpretation;       // 0x0106
-    field description;          // 0x010E
-    field strip_offsets;        // 0x0111 *
-    field orientation;          // 0x0112
-    field samples_per_pixel;    // 0x0115
+    field image_width;          // 0x0100 * Required, uniform across all pages.
+    field image_length;         // 0x0101 *
+    field bits_per_sample;      // 0x0102 *
+    field compression;          // 0x0103 *
+    field interpretation;       // 0x0106 *
+    field strip_offsets;        // 0x0111
+    field orientation;          // 0x0112 *
+    field samples_per_pixel;    // 0x0115 *
     field rows_per_strip;       // 0x0116
-    field strip_byte_counts;    // 0x0117 *
-    field configuration;        // 0x011C
-    field predictor;            // 0x013D
-    field sample_format;        // 0x0153
-    field page_index;           // 0xFFB0 *
-    field page_catalog;         // 0xFFB1
-    field page_minima;          // 0xFFB2
-    field page_maxima;          // 0xFFB3
+    field strip_byte_counts;    // 0x0117
+    field configuration;        // 0x011C *
+    field page_number;          // 0x0129
+    field predictor;            // 0x013D *
+    field sample_format;        // 0x0153 *
 
     uint64_t next;
-};                              // * Per-page variant fields
-
-#define SCM_FIELD_COUNT 19
+};
 
 #pragma pack(pop)
 
@@ -78,7 +97,11 @@ struct scm
     int g;                      // Channel signed flag
     int r;                      // Rows per strip
 
-    ifd D;                      // IFD template
+    long long  count;
+    long long *index;
+    long long *offset;
+    float     *minimum;
+    float     *maximum;
 
     uint8_t **binv;             // Strip bin scratch buffer pointers
     uint8_t **zipv;             // Strip zip scratch buffer pointers
@@ -92,10 +115,8 @@ void set_header(header *);
 void set_field (field *, uint16_t, uint16_t, uint64_t, uint64_t);
 
 int is_header(header *);
+int is_hfd   (hfd *);
 int is_ifd   (ifd *);
-
-long long ifd_next (ifd *);
-long long ifd_index(ifd *);
 
 //------------------------------------------------------------------------------
 
@@ -106,11 +127,22 @@ uint16_t scm_form(scm *);
 uint16_t scm_type(scm *);
 uint64_t scm_hdif(scm *);
 
+//------------------------------------------------------------------------------
+
 void ftob(void *, const float *, size_t, int, int);
 void btof(const void *, float *, size_t, int, int);
 
-void enhdif(void *p, int, int, int);
-void dehdif(void *p, int, int, int);
+void enhdif(void *, int, int, int);
+void dehdif(void *, int, int, int);
+
+void   tobin(scm *, uint8_t *, const float *, int);
+void frombin(scm *, const uint8_t *, float *, int);
+
+void   todif(scm *s, uint8_t *, int);
+void fromdif(scm *s, uint8_t *, int);
+
+void   tozip(scm *, uint8_t *, int, uint8_t *, uint32_t *);
+void fromzip(scm *, uint8_t *, int, uint8_t *, uint32_t);
 
 //------------------------------------------------------------------------------
 

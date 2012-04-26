@@ -243,6 +243,132 @@ int scm_write_field(scm *s, field *f, const void *p)
 
 //------------------------------------------------------------------------------
 
+// Initialize an HFD with defaults for SCM s.
+
+int scm_init_hfd(scm *s, hfd *h)
+{
+    if ((size_t) s->c * tifsizeof(scm_type(s)) <= sizeof (uint64_t))
+    {
+        uint16_t f = (uint16_t) scm_form(s);
+        uint16_t b = (uint16_t) s->b;
+        uint64_t c = (uint64_t) s->c;
+
+        set_field(&h->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
+        set_field(&h->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        set_field(&h->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+
+        set_field(&h->bits_per_sample,   0x0102, 3, c, 0);
+        set_field(&h->sample_format,     0x0153, 3, c, 0);
+
+        for (int k = 0; k < 4; ++k)
+        {
+            ((uint16_t *) &h->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
+            ((uint16_t *) &h->sample_format  .offset)[k] = (k < s->c) ? f : 0;
+        }
+
+        h->count = SCM_HFD_COUNT;
+        h->next  = 0;
+
+        return 1;
+    }
+    else apperr("Unsupported pixel configuration (more than 64 BPP)");
+
+    return -1;
+}
+
+// Read an IFD at offset o of SCM TIFF s.
+
+int scm_read_hfd(scm *s, hfd *h, long long o)
+{
+    assert(s);
+    assert(h);
+
+    if (o)
+    {
+        if (fseeko(s->fp, o, SEEK_SET) == 0)
+        {
+            if (fread(h, sizeof (hfd), 1, s->fp) == 1)
+            {
+                if (is_hfd(h))
+                {
+                    return 1;
+                }
+                else apperr("File is not an SCM TIFF");
+            }
+            else syserr("Failed to read SCM HFD");
+        }
+        else syserr("Failed to seek SCM");
+    }
+    return -1;
+}
+
+// Write an HFD at offset o of SCM TIFF s.
+
+int scm_write_hfd(scm *s, hfd *h, long long o)
+{
+    assert(s);
+    assert(h);
+
+    if (fseeko(s->fp, o, SEEK_SET) == 0)
+    {
+        if (fwrite(h, sizeof (hfd), 1, s->fp) == 1)
+        {
+            return 1;
+        }
+        else syserr("Failed to write SCM HFD");
+    }
+    else syserr("Failed to seek SCM");
+
+    return -1;
+}
+
+//------------------------------------------------------------------------------
+
+// Initialize an IFD with defaults for SCM s.
+
+int scm_init_ifd(scm *s, ifd *i)
+{
+    if ((size_t) s->c * tifsizeof(scm_type(s)) <= sizeof (uint64_t))
+    {
+        uint16_t f = (uint16_t) scm_form(s);
+        uint16_t b = (uint16_t) s->b;
+        uint64_t c = (uint64_t) s->c;
+
+        set_field(&i->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
+        set_field(&i->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        set_field(&i->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+        set_field(&i->rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
+
+        set_field(&i->interpretation,    0x0106, 3, 1, scm_pint(s));
+        set_field(&i->predictor,         0x013D, 3, 1, scm_hdif(s));
+
+        set_field(&i->compression,       0x0103, 3, 1, 8);
+        set_field(&i->orientation,       0x0112, 3, 1, 2);
+        set_field(&i->configuration,     0x011C, 3, 1, 1);
+
+        set_field(&i->bits_per_sample,   0x0102, 3, c, 0);
+        set_field(&i->sample_format,     0x0153, 3, c, 0);
+        set_field(&i->strip_offsets,     0x0111, 0, 0, 0);
+        set_field(&i->rows_per_strip,    0x0116, 0, 0, 0);
+        set_field(&i->strip_byte_counts, 0x0117, 0, 0, 0);
+        set_field(&i->page_number,       0x0129, 0, 0, 0);
+
+        for (int k = 0; k < 4; ++k)
+        {
+            ((uint16_t *) &i->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
+            ((uint16_t *) &i->sample_format  .offset)[k] = (k < s->c) ? f : 0;
+        }
+
+        i->count = SCM_IFD_COUNT;
+        i->next  = 0;
+
+        return 1;
+    }
+    else apperr("Unsupported pixel configuration (more than 64 BPP)");
+
+    return -1;
+}
+
 // Read an IFD at offset o of SCM TIFF s.
 
 int scm_read_ifd(scm *s, ifd *i, long long o)
@@ -290,7 +416,7 @@ int scm_write_ifd(scm *s, ifd *i, long long o)
 }
 
 //------------------------------------------------------------------------------
-
+#if 0
 // Read the first IFD and determine basic image parameters from it, including
 // the image size, channel count, bits-per-sample, and sample format.
 
@@ -384,83 +510,18 @@ int scm_write_preface(scm *s, const char *str)
     }
     return -1;
 }
+#endif
 
-//------------------------------------------------------------------------------
-// The following ancillary functions perform the fine-grained tasks of binary
-// data conversion, compression and decompression, and application of the
-// horizontal difference predictor. These are abstracted into tiny adapter
-// functions to ease the implementation of threaded file I/O with OpenMP.
-
-// Translate rows i through i+r from floating point to binary and back.
-
-static void tobin(scm *s, uint8_t *bin, const float *dat, int i)
-{
-    const int n = s->n + 2;
-    const int m = s->c * n;
-    const int d = s->b * m / 8;
-
-    for (int j = 0; j < s->r && i + j < n; ++j)
-        ftob(bin + j * d, dat + (i + j) * m, (size_t) m, s->b, s->g);
-}
-
-static void frombin(scm *s, const uint8_t *bin, float *dat, int i)
-{
-    const int n = s->n + 2;
-    const int m = s->c * n;
-    const int d = s->b * m / 8;
-
-    for (int j = 0; j < s->r && i + j < n; ++j)
-        btof(bin + j * d, dat + (i + j) * m, (size_t) m, s->b, s->g);
-}
-
-// Apply or reverse the horizontal difference predector in rows i through i+r.
-
-static void todif(scm *s, uint8_t *bin, int i)
-{
-    const int n = s->n + 2;
-    const int d = s->c * s->b * n / 8;
-
-    for (int j = 0; j < s->r && i + j < n; ++j)
-        enhdif(bin + j * d, n, s->c, s->b);
-}
-
-static void fromdif(scm *s, uint8_t *bin, int i)
-{
-    const int n = s->n + 2;
-    const int d = s->c * s->b * n / 8;
-
-    for (int j = 0; j < s->r && i + j < n; ++j)
-        dehdif(bin + j * d, n, s->c, s->b);
-}
-
-// Compress or decompress rows i through i+r.
-
-static void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
-{
-    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
-    uLong z = compressBound(l);
-
-    compress((Bytef *) zip, &z, (const Bytef *) bin, l);
-    *c = (uint32_t) z;
-}
-
-static void fromzip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t c)
-{
-    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
-    uLong z = (uLong) c;
-
-    uncompress((Bytef *) bin, &l, (const Bytef *) zip, z);
-}
 
 //------------------------------------------------------------------------------
 
 // Read a page of data into the zip caches. Store the strip offsets and lengths
 // in the given arrays. This is the serial part of the parallel input handler.
 
-int scm_read_cache(scm *s, uint8_t **zv,
-                           uint64_t oo,
-                           uint64_t lo,
-                           uint16_t sc, uint64_t *o, uint32_t *l)
+int scm_read_zips(scm *s, uint8_t **zv,
+                          uint64_t  oo,
+                          uint64_t  lo,
+                          uint16_t  sc, uint64_t *o, uint32_t *l)
 {
     // Read the strip offset and length arrays.
 
@@ -477,14 +538,14 @@ int scm_read_cache(scm *s, uint8_t **zv,
 }
 
 // Write a page of data from the zip caches. This is the serial part of the
-// parallel output handler. Also, in concert with scm_read_cache, this function
+// parallel output handler. Also, in concert with scm_read_zips, this function
 // allows data to be copied from one SCM to another without the computational
 // cost of an unnecessary encode-decode cycle.
 
-int scm_write_cache(scm *s, uint8_t **zv,
-                            uint64_t *oo,
-                            uint64_t *lo,
-                            uint16_t *sc, uint64_t *o, uint32_t *l)
+int scm_write_zips(scm *s, uint8_t **zv,
+                           uint64_t *oo,
+                           uint64_t *lo,
+                           uint16_t *sc, uint64_t *o, uint32_t *l)
 {
     size_t c = (size_t) (*sc);
     long long t;
@@ -526,7 +587,7 @@ int scm_read_data(scm *s, float *p, uint64_t oo,
     uint64_t o[c];
     uint32_t l[c];
 
-    if (scm_read_cache(s, s->zipv, oo, lo, sc, o, l) > 0)
+    if (scm_read_zips(s, s->zipv, oo, lo, sc, o, l) > 0)
     {
         // Decode each strip.
 
@@ -566,7 +627,7 @@ int scm_write_data(scm *s, const float *p, uint64_t *oo,
 
     *sc = (uint16_t) c;
 
-    return scm_write_cache(s, s->zipv, oo, lo, sc, o, l);
+    return scm_write_zips(s, s->zipv, oo, lo, sc, o, l);
 }
 
 //------------------------------------------------------------------------------

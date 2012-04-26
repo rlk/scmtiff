@@ -11,8 +11,7 @@ INVARIANT: All pages have the same size and channel count.
 
 INVARIANT: All calculations giving sample values are performed in single precision float. All calculations giving sample positions are performed in double precision float. The allows fine resolution while keeping buffer sizes low.
 
-NOT invariant: No page order is defined.
-
+INVARIANT: A cataloged SCM enumerates pages in index order. This allows reverse index lookups to be performed given offset.
 
 TODO:
 

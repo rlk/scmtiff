@@ -2,8 +2,10 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <zlib.h>
 
 #include "scmdat.h"
+#include "util.h"
 
 //------------------------------------------------------------------------------
 
@@ -42,17 +44,32 @@ int is_header(header *hp)
         &&  hp->zero       == 0x0000);
 }
 
+int is_hfd(hfd *hp)
+{
+    return (hp->count == SCM_HFD_COUNT
+
+        &&  hp->image_width.tag       == 0x0100
+        &&  hp->image_length.tag      == 0x0101
+        &&  hp->bits_per_sample.tag   == 0x0102
+        &&  hp->description.tag       == 0x010E
+        &&  hp->samples_per_pixel.tag == 0x0115
+        &&  hp->sample_format.tag     == 0x0153
+        &&  hp->page_index.tag        == 0xFFB1
+        &&  hp->page_offset.tag       == 0xFFB2
+        &&  hp->page_minimum.tag      == 0xFFB3
+        &&  hp->page_maximum.tag      == 0xFFB4
+        );
+}
+
 int is_ifd(ifd *ip)
 {
-    return (ip->count == SCM_FIELD_COUNT
+    return (ip->count == SCM_IFD_COUNT
 
-        &&  ip->subfile_type.tag      == 0x00FE
         &&  ip->image_width.tag       == 0x0100
         &&  ip->image_length.tag      == 0x0101
         &&  ip->bits_per_sample.tag   == 0x0102
         &&  ip->compression.tag       == 0x0103
         &&  ip->interpretation.tag    == 0x0106
-        &&  ip->description.tag       == 0x010E
         &&  ip->strip_offsets.tag     == 0x0111
         &&  ip->orientation.tag       == 0x0112
         &&  ip->samples_per_pixel.tag == 0x0115
@@ -61,23 +78,7 @@ int is_ifd(ifd *ip)
         &&  ip->configuration.tag     == 0x011C
         &&  ip->predictor.tag         == 0x013D
         &&  ip->sample_format.tag     == 0x0153
-        &&  ip->page_index.tag        == 0xFFB0
-        &&  ip->page_catalog.tag      == 0xFFB1
-        &&  ip->page_minima.tag       == 0xFFB2
-        &&  ip->page_maxima.tag       == 0xFFB3
         );
-}
-
-//------------------------------------------------------------------------------
-
-long long ifd_next(ifd *ip)
-{
-    return (long long) ip->next;
-}
-
-long long ifd_index(ifd *ip)
-{
-    return (long long) ip->page_index.offset;
 }
 
 //------------------------------------------------------------------------------
@@ -296,6 +297,73 @@ void dehdif(void *p, int n, int c, int b)
 //              for (int k = 0; k < c; ++k)
 //                  q[i * s + (j+1) * c + k] += q[i * s + j * c + k];
     }
+}
+
+//------------------------------------------------------------------------------
+// The following ancillary functions perform the fine-grained tasks of binary
+// data conversion, compression and decompression, and application of the
+// horizontal difference predictor. These are abstracted into tiny adapter
+// functions to ease the implementation of threaded file I/O with OpenMP.
+
+// Translate rows i through i+r from floating point to binary and back.
+
+void tobin(scm *s, uint8_t *bin, const float *dat, int i)
+{
+    const int n = s->n + 2;
+    const int m = s->c * n;
+    const int d = s->b * m / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        ftob(bin + j * d, dat + (i + j) * m, (size_t) m, s->b, s->g);
+}
+
+void frombin(scm *s, const uint8_t *bin, float *dat, int i)
+{
+    const int n = s->n + 2;
+    const int m = s->c * n;
+    const int d = s->b * m / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        btof(bin + j * d, dat + (i + j) * m, (size_t) m, s->b, s->g);
+}
+
+// Apply or reverse the horizontal difference predector in rows i through i+r.
+
+void todif(scm *s, uint8_t *bin, int i)
+{
+    const int n = s->n + 2;
+    const int d = s->c * s->b * n / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        enhdif(bin + j * d, n, s->c, s->b);
+}
+
+void fromdif(scm *s, uint8_t *bin, int i)
+{
+    const int n = s->n + 2;
+    const int d = s->c * s->b * n / 8;
+
+    for (int j = 0; j < s->r && i + j < n; ++j)
+        dehdif(bin + j * d, n, s->c, s->b);
+}
+
+// Compress or decompress rows i through i+r.
+
+void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
+{
+    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong z = compressBound(l);
+
+    compress((Bytef *) zip, &z, (const Bytef *) bin, l);
+    *c = (uint32_t) z;
+}
+
+void fromzip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t c)
+{
+    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong z = (uLong) c;
+
+    uncompress((Bytef *) bin, &l, (const Bytef *) zip, z);
 }
 
 //------------------------------------------------------------------------------

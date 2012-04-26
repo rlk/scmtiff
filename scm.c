@@ -107,6 +107,65 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 
 //------------------------------------------------------------------------------
 
+// Allocate and return a buffer with the proper size to fit one page of data,
+// as determined by the parameters of SCM s, assuming float precision samples.
+
+float *scm_alloc_buffer(scm *s)
+{
+    size_t o = (size_t) s->n + 2;
+    size_t c = (size_t) s->c;
+
+    return (float *) malloc(o * o * c * sizeof (float));
+}
+
+// Query the parameters of SCM s.
+
+char *scm_get_description(scm *s)
+{
+    assert(s);
+    return s->str;
+}
+
+int scm_get_n(scm *s)
+{
+    assert(s);
+    return s->n;
+}
+
+int scm_get_c(scm *s)
+{
+    assert(s);
+    return s->c;
+}
+
+int scm_get_b(scm *s)
+{
+    assert(s);
+    return s->b;
+}
+
+int scm_get_g(scm *s)
+{
+    assert(s);
+    return s->g;
+}
+
+//------------------------------------------------------------------------------
+
+void scm_get_sample_corners(int f, long i, long j, long n, double *v)
+{
+    scm_vector(f, (double) (i + 0) / n, (double) (j + 0) / n, v + 0);
+    scm_vector(f, (double) (i + 1) / n, (double) (j + 0) / n, v + 3);
+    scm_vector(f, (double) (i + 0) / n, (double) (j + 1) / n, v + 6);
+    scm_vector(f, (double) (i + 1) / n, (double) (j + 1) / n, v + 9);
+}
+
+void scm_get_sample_center(int f, long i, long j, long n, double *v)
+{
+    scm_vector(f, (i + 0.5) / n, (j + 0.5) / n, v);
+}
+//------------------------------------------------------------------------------
+
 // Append a page at the current SCM TIFF file pointer. Offset b is the previous
 // IFD, which will be updated to include the new page as next. x is the breadth-
 // first page index. f points to a page of data to be written. Return the offset
@@ -122,52 +181,53 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
     uint64_t lo;
     uint16_t sc;
 
-    ifd D  = s->D;
-    D.next = 0;
+    ifd D;
 
-    if (fseeko(s->fp, 0, SEEK_END) == 0)
+    if (scm_init_ifd(s, &D) == 1)
     {
-        if ((o = ftello(s->fp)) >= 0)
+        if (fseeko(s->fp, 0, SEEK_END) == 0)
         {
-            if (scm_write_ifd(s, &D, o) == 1)
+            if ((o = ftello(s->fp)) >= 0)
             {
-                if ((scm_write_data(s, f, &oo, &lo, &sc)) > 0)
+                if (scm_write_ifd(s, &D, o) == 1)
                 {
-                    if (scm_align(s) >= 0)
+                    if ((scm_write_data(s, f, &oo, &lo, &sc)) > 0)
                     {
-                        uint64_t rr = (uint64_t) s->r;
-                        uint64_t xx = (uint64_t) x;
-
-                        set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                        set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
-                        set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-                        set_field(&D.page_index,        0xFFB0,  4,  1, xx);
-
-                        if (scm_write_ifd(s, &D, o) == 1)
+                        if (scm_align(s) >= 0)
                         {
-                            if (scm_link_list(s, o, b) >= 0)
-                            {
-                                if (fseeko(s->fp, 0, SEEK_END) == 0)
-                                {
-                                    fflush(s->fp);
-                                    return o;
-                                }
-                                else syserr("Failed to seek SCM");
-                            }
-                            else apperr("Failed to link IFD list");
-                        }
-                        else apperr("Failed to re-write IFD");
-                    }
-                    else syserr("Failed to align SCM");
-                }
-                else apperr("Failed to write data");
-            }
-            else apperr("Failed to pre-write IFD");
-        }
-        else syserr("Failed to tell SCM");
-    }
-    else syserr("Failed to seek SCM");
+                            uint64_t rr = (uint64_t) s->r;
+                            uint64_t xx = (uint64_t) x;
 
+                            set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
+                            set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
+                            set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
+                            set_field(&D.page_number,       0x0129,  4,  1, xx);
+
+                            if (scm_write_ifd(s, &D, o) == 1)
+                            {
+                                if (scm_link_list(s, o, b) >= 0)
+                                {
+                                    if (fseeko(s->fp, 0, SEEK_END) == 0)
+                                    {
+                                        fflush(s->fp);
+                                        return o;
+                                    }
+                                    else syserr("Failed to seek SCM");
+                                }
+                                else apperr("Failed to link IFD list");
+                            }
+                            else apperr("Failed to re-write IFD");
+                        }
+                        else syserr("Failed to align SCM");
+                    }
+                    else apperr("Failed to write data");
+                }
+                else apperr("Failed to pre-write IFD");
+            }
+            else syserr("Failed to tell SCM");
+        }
+        else syserr("Failed to seek SCM");
+    }
     return 0;
 }
 
@@ -201,13 +261,13 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
 
         D.next = 0;
 
-        if (scm_read_cache(t, t->zipv, oo, lo, sc, O, L) > 0)
+        if (scm_read_zips(t, t->zipv, oo, lo, sc, O, L) > 0)
         {
             if ((o = ftello(s->fp)) >= 0)
             {
                 if (scm_write_ifd(s, &D, o) == 1)
                 {
-                    if (scm_write_cache(s, t->zipv, &oo, &lo, &sc, O, L) > 0)
+                    if (scm_write_zips(s, t->zipv, &oo, &lo, &sc, O, L) > 0)
                     {
                         if (scm_align(s) >= 0)
                         {
@@ -273,7 +333,7 @@ long long scm_rewind(scm *s)
 // Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
 // null, store the next IFD offset there. If v is not null, assume it can store
 // four offsets and copy the SubIFDs there.
-
+#if 0
 long long scm_read_node(scm *s, long long o, long long *n, long long *v)
 {
     ifd i;
@@ -286,20 +346,13 @@ long long scm_read_node(scm *s, long long o, long long *n, long long *v)
         {
             if (n)
                 n[0] = (long long) i.next;
-            // if (v)
-            // {
-            //     v[0] = (long long) i.sub[0];
-            //     v[1] = (long long) i.sub[1];
-            //     v[2] = (long long) i.sub[2];
-            //     v[3] = (long long) i.sub[3];
-            // }
             return (long long) i.page_index.offset;
         }
         else apperr("Failed to read SCM TIFF IFD");
     }
     return -1;
 }
-
+#endif
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
 // data to be stored.
 
@@ -323,7 +376,7 @@ bool scm_read_page(scm *s, long long o, float *p)
 }
 
 //------------------------------------------------------------------------------
-
+#if 0
 // Compare two index-offset elements. This is the qsort / bsearch callback.
 
 static int _cmp(const void *p, const void *q)
@@ -624,65 +677,6 @@ void scm_make_extrema(scm *s)
         free(a);
     }
 }
-
-//------------------------------------------------------------------------------
-
-// Allocate and return a buffer with the proper size to fit one page of data,
-// as determined by the parameters of SCM s, assuming float precision samples.
-
-float *scm_alloc_buffer(scm *s)
-{
-    size_t o = (size_t) s->n + 2;
-    size_t c = (size_t) s->c;
-
-    return (float *) malloc(o * o * c * sizeof (float));
-}
-
-// Query the parameters of SCM s.
-
-char *scm_get_description(scm *s)
-{
-    assert(s);
-    return s->str;
-}
-
-int scm_get_n(scm *s)
-{
-    assert(s);
-    return s->n;
-}
-
-int scm_get_c(scm *s)
-{
-    assert(s);
-    return s->c;
-}
-
-int scm_get_b(scm *s)
-{
-    assert(s);
-    return s->b;
-}
-
-int scm_get_g(scm *s)
-{
-    assert(s);
-    return s->g;
-}
-
-//------------------------------------------------------------------------------
-
-void scm_get_sample_corners(int f, long i, long j, long n, double *v)
-{
-    scm_vector(f, (double) (i + 0) / n, (double) (j + 0) / n, v + 0);
-    scm_vector(f, (double) (i + 1) / n, (double) (j + 0) / n, v + 3);
-    scm_vector(f, (double) (i + 0) / n, (double) (j + 1) / n, v + 6);
-    scm_vector(f, (double) (i + 1) / n, (double) (j + 1) / n, v + 9);
-}
-
-void scm_get_sample_center(int f, long i, long j, long n, double *v)
-{
-    scm_vector(f, (i + 0.5) / n, (j + 0.5) / n, v);
-}
+#endif
 
 //------------------------------------------------------------------------------
