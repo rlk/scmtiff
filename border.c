@@ -147,16 +147,26 @@ static void process(scm *s, scm *t)
                     long long xw  = scm_page_west (x);
                     long long xe  = scm_page_east (x);
 
-                    long long xnw = (xn == x) ? scm_page_west (xn)
+                    // Determine their roots.
+
+                    long long f   = scm_page_root(x);
+                    long long fn  = scm_page_root(xn);
+                    long long fs  = scm_page_root(xs);
+                    long long fw  = scm_page_root(xw);
+                    long long fe  = scm_page_root(xe);
+
+                    // Use roots to guide the determination of diagonals.
+
+                    long long xnw = (fn == f) ? scm_page_west (xn)
                                               : scm_page_north(xw);
-                    long long xne = (xn == x) ? scm_page_east (xn)
+                    long long xne = (fn == f) ? scm_page_east (xn)
                                               : scm_page_north(xe);
-                    long long xsw = (xs == x) ? scm_page_west (xs)
+                    long long xsw = (fs == f) ? scm_page_west (xs)
                                               : scm_page_south(xw);
-                    long long xse = (xs == x) ? scm_page_east (xs)
+                    long long xse = (fs == f) ? scm_page_east (xs)
                                               : scm_page_south(xe);
 
-                    // Seek the page catalog locations of these pages.
+                    // Seek the page catalog locations of all neighbors.
 
                     long long in  = scm_seek_catalog(a, 0, l, xn);
                     long long is  = scm_seek_catalog(a, 0, l, xs);
@@ -178,18 +188,6 @@ static void process(scm *s, scm *t)
                     long long osw = (isw < 0) ? 0 : a[isw].o;
                     long long ose = (ise < 0) ? 0 : a[ise].o;
 
-                    // Note the root pages of all diagonal pages.
-
-                    long long f   = scm_page_root(x);
-                    long long fn  = scm_page_root(xn);
-                    long long fs  = scm_page_root(xs);
-                    long long fw  = scm_page_root(xw);
-                    long long fe  = scm_page_root(xe);
-                    long long fnw = scm_page_root(xnw);
-                    long long fne = scm_page_root(xne);
-                    long long fsw = scm_page_root(xsw);
-                    long long fse = scm_page_root(xse);
-
                     // Copy the borders of all adjacent pages into this one.
 
                     if (on && scm_read_page(s, on, q))
@@ -202,6 +200,11 @@ static void process(scm *s, scm *t)
                         copye(p, f, q, fe, o, c);
 
                     // Copy the corners of all diagonal pages into this one.
+
+                    long long fnw = scm_page_root(xnw);
+                    long long fne = scm_page_root(xne);
+                    long long fsw = scm_page_root(xsw);
+                    long long fse = scm_page_root(xse);
 
                     if (onw && scm_read_page(s, onw, q))
                         copynw(p, f, q, fnw, o, c);
