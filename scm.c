@@ -37,7 +37,9 @@ void scm_close(scm *s)
 
 scm *scm_ifile(const char *name)
 {
-    scm  *s  = NULL;
+    scm   *s  = NULL;
+    header h;
+    hfd    i;
 
     assert(name);
 
@@ -45,7 +47,7 @@ scm *scm_ifile(const char *name)
     {
         if ((s->fp = fopen(name, "r+b")))
         {
-            if (scm_read_preface(s) == 1)
+            if (scm_read_preamble(s) == 1)
             {
                 if (scm_alloc(s))
                 {
@@ -53,7 +55,7 @@ scm *scm_ifile(const char *name)
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
             }
-            else syserr("Failed to read '%s'", name);
+            else syserr("Failed to read '%s' preamble", name);
         }
         else syserr("Failed to open '%s'", name);
     }
@@ -68,7 +70,9 @@ scm *scm_ifile(const char *name)
 
 scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 {
-    scm *s  = NULL;
+    scm   *s  = NULL;
+    header h;
+    hfd    i;
 
     assert(name);
     assert(n > 0);
@@ -87,7 +91,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 
         if ((s->fp = fopen(name, "w+b")))
         {
-            if (scm_write_preface(s, str))
+            if (scm_write_preamble(s, str))
             {
                 if (scm_alloc(s))
                 {
@@ -95,7 +99,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
                 }
                 else syserr("Failed to allocate SCM scratch buffers");
             }
-            else syserr("Failed to write '%s' preface", name);
+            else syserr("Failed to write '%s' preamble", name);
         }
         else syserr("Failed to open '%s'", name);
     }

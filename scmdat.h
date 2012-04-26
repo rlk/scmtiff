@@ -15,7 +15,7 @@ typedef struct field  field;
 typedef struct hfd    hfd;
 typedef struct ifd    ifd;
 
-#define SCM_HFD_COUNT    9
+#define SCM_HFD_COUNT    10
 #define SCM_IFD_COUNT    14
 #define SCM_PAGE_INDEX   0xFFB1
 #define SCM_PAGE_OFFSET  0xFFB2
@@ -51,6 +51,7 @@ struct hfd
     field bits_per_sample;      // 0x0102
     field description;          // 0x010E
     field samples_per_pixel;    // 0x0115
+    field rows_per_strip;       // 0x0116
     field sample_format;        // 0x0153
     field page_index;           // SCM_PAGE_INDEX
     field page_offset;          // SCM_PAGE_OFFSET
@@ -72,7 +73,7 @@ struct ifd
     field strip_offsets;        // 0x0111
     field orientation;          // 0x0112 *
     field samples_per_pixel;    // 0x0115 *
-    field rows_per_strip;       // 0x0116
+    field rows_per_strip;       // 0x0116 *
     field strip_byte_counts;    // 0x0117
     field configuration;        // 0x011C *
     field page_number;          // 0x0129
@@ -110,9 +111,6 @@ struct scm
 typedef struct scm scm;
 
 //------------------------------------------------------------------------------
-
-void set_header(header *);
-void set_field (field *, uint16_t, uint16_t, uint64_t, uint64_t);
 
 int is_header(header *);
 int is_hfd   (hfd *);

@@ -19,19 +19,24 @@ long long scm_align(scm *);
 
 //------------------------------------------------------------------------------
 
-int scm_read_header (scm *, header *);
-int scm_write_header(scm *, header *);
+void scm_init_header (       header *);
+int  scm_read_header (scm *, header *);
+int  scm_write_header(scm *, header *);
 
-int scm_read_field  (scm *, field *,       void *);
-int scm_write_field (scm *, field *, const void *);
+void scm_init_field  (       field *, uint16_t, uint16_t, uint64_t, uint64_t);
+int  scm_read_field  (scm *, field *,       void *);
+int  scm_write_field (scm *, field *, const void *);
 
-int scm_init_hfd    (scm *, hfd *);
-int scm_read_hfd    (scm *, hfd *, long long);
-int scm_write_hfd   (scm *, hfd *, long long);
+int  scm_init_hfd    (scm *, hfd *);
+int  scm_read_hfd    (scm *, hfd *, long long);
+int  scm_write_hfd   (scm *, hfd *, long long);
 
-int scm_init_ifd    (scm *, ifd *);
-int scm_read_ifd    (scm *, ifd *, long long);
-int scm_write_ifd   (scm *, ifd *, long long);
+int  scm_init_ifd    (scm *, ifd *);
+int  scm_read_ifd    (scm *, ifd *, long long);
+int  scm_write_ifd   (scm *, ifd *, long long);
+
+int  scm_read_preamble  (scm *);
+int  scm_rwrite_preamble(scm *, const char *);
 
 //------------------------------------------------------------------------------
 

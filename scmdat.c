@@ -9,29 +9,6 @@
 
 //------------------------------------------------------------------------------
 
-// Initialize an SCM TIFF header.
-
-void set_header(header *hp)
-{
-    hp->endianness = 0x4949;
-    hp->version    = 0x002B;
-    hp->offsetsize = 8;
-    hp->zero       = 0;
-    hp->first_ifd  = 0;
-}
-
-// Initialize an SCM TIFF field.
-
-void set_field(field *fp, uint16_t t, uint16_t y, uint64_t c, uint64_t o)
-{
-    fp->tag    = t;
-    fp->type   = y;
-    fp->count  = c;
-    fp->offset = o;
-}
-
-//------------------------------------------------------------------------------
-
 // We're very very picky about what constitutes an SCM TIFF. Essentially, it's
 // not an SCM TIFF if it wasn't written by this TIFF writer. Check a TIFF header
 // and IFD to confirm that it provides exactly the expected content.

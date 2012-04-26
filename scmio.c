@@ -123,7 +123,18 @@ long long scm_align(scm *s)
 
 //------------------------------------------------------------------------------
 
-// Read the SCM TIFF header.
+// Initialize an SCM TIFF header.
+
+void scm_init_header(header *h)
+{
+    h->endianness = 0x4949;
+    h->version    = 0x002B;
+    h->offsetsize = 8;
+    h->zero       = 0;
+    h->first_ifd  = 0;
+}
+
+/// Read the SCM TIFF header.
 
 int scm_read_header(scm *s, header *h)
 {
@@ -168,6 +179,16 @@ int scm_write_header(scm *s, header *h)
 }
 
 //------------------------------------------------------------------------------
+
+// Initialize an SCM TIFF field.
+
+void scm_set_field(field *fp, uint16_t t, uint16_t y, uint64_t c, uint64_t o)
+{
+    fp->tag    = t;
+    fp->type   = y;
+    fp->count  = c;
+    fp->offset = o;
+}
 
 // Read the value of an IFD field. The length of buffer p is defined by the type
 // and count of the field f. If the size of the value exceeds the offset size,
@@ -245,7 +266,7 @@ int scm_write_field(scm *s, field *f, const void *p)
 
 // Initialize an HFD with defaults for SCM s.
 
-int scm_init_hfd(scm *s, hfd *h)
+int scm_init_hfd(scm *s, hfd *i)
 {
     if ((size_t) s->c * tifsizeof(scm_type(s)) <= sizeof (uint64_t))
     {
@@ -253,21 +274,22 @@ int scm_init_hfd(scm *s, hfd *h)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        set_field(&h->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
-        set_field(&h->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
-        set_field(&h->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
-
-        set_field(&h->bits_per_sample,   0x0102, 3, c, 0);
-        set_field(&h->sample_format,     0x0153, 3, c, 0);
+        scm_set_field(&i->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
+        scm_set_field(&i->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        scm_set_field(&i->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+        scm_set_field(&i->bits_per_sample,   0x0102, 3, c, 0);
+        scm_set_field(&i->sample_format,     0x0153, 3, c, 0);
+        scm_set_field(&i->description,       0x0116, 0, 0, 0);
+        scm_set_field(&i->rows_per_strip,    0x0116, 0, 0, 0);
 
         for (int k = 0; k < 4; ++k)
         {
-            ((uint16_t *) &h->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
-            ((uint16_t *) &h->sample_format  .offset)[k] = (k < s->c) ? f : 0;
+            ((uint16_t *) &i->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
+            ((uint16_t *) &i->sample_format  .offset)[k] = (k < s->c) ? f : 0;
         }
 
-        h->count = SCM_HFD_COUNT;
-        h->next  = 0;
+        i->count = SCM_HFD_COUNT;
+        i->next  = 0;
 
         return 1;
     }
@@ -278,18 +300,18 @@ int scm_init_hfd(scm *s, hfd *h)
 
 // Read an IFD at offset o of SCM TIFF s.
 
-int scm_read_hfd(scm *s, hfd *h, long long o)
+int scm_read_hfd(scm *s, hfd *i, long long o)
 {
     assert(s);
-    assert(h);
+    assert(i);
 
     if (o)
     {
         if (fseeko(s->fp, o, SEEK_SET) == 0)
         {
-            if (fread(h, sizeof (hfd), 1, s->fp) == 1)
+            if (fread(i, sizeof (hfd), 1, s->fp) == 1)
             {
-                if (is_hfd(h))
+                if (is_hfd(i))
                 {
                     return 1;
                 }
@@ -304,14 +326,14 @@ int scm_read_hfd(scm *s, hfd *h, long long o)
 
 // Write an HFD at offset o of SCM TIFF s.
 
-int scm_write_hfd(scm *s, hfd *h, long long o)
+int scm_write_hfd(scm *s, hfd *i, long long o)
 {
     assert(s);
-    assert(h);
+    assert(i);
 
     if (fseeko(s->fp, o, SEEK_SET) == 0)
     {
-        if (fwrite(h, sizeof (hfd), 1, s->fp) == 1)
+        if (fwrite(i, sizeof (hfd), 1, s->fp) == 1)
         {
             return 1;
         }
@@ -334,24 +356,21 @@ int scm_init_ifd(scm *s, ifd *i)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        set_field(&i->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
-        set_field(&i->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
-        set_field(&i->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
-        set_field(&i->rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
-
-        set_field(&i->interpretation,    0x0106, 3, 1, scm_pint(s));
-        set_field(&i->predictor,         0x013D, 3, 1, scm_hdif(s));
-
-        set_field(&i->compression,       0x0103, 3, 1, 8);
-        set_field(&i->orientation,       0x0112, 3, 1, 2);
-        set_field(&i->configuration,     0x011C, 3, 1, 1);
-
-        set_field(&i->bits_per_sample,   0x0102, 3, c, 0);
-        set_field(&i->sample_format,     0x0153, 3, c, 0);
-        set_field(&i->strip_offsets,     0x0111, 0, 0, 0);
-        set_field(&i->rows_per_strip,    0x0116, 0, 0, 0);
-        set_field(&i->strip_byte_counts, 0x0117, 0, 0, 0);
-        set_field(&i->page_number,       0x0129, 0, 0, 0);
+        scm_set_field(&i->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
+        scm_set_field(&i->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        scm_set_field(&i->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+        scm_set_field(&i->rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
+        scm_set_field(&i->interpretation,    0x0106, 3, 1, scm_pint(s));
+        scm_set_field(&i->predictor,         0x013D, 3, 1, scm_hdif(s));
+        scm_set_field(&i->compression,       0x0103, 3, 1, 8);
+        scm_set_field(&i->orientation,       0x0112, 3, 1, 2);
+        scm_set_field(&i->configuration,     0x011C, 3, 1, 1);
+        scm_set_field(&i->bits_per_sample,   0x0102, 3, c, 0);
+        scm_set_field(&i->sample_format,     0x0153, 3, c, 0);
+        scm_set_field(&i->strip_offsets,     0x0111, 0, 0, 0);
+        scm_set_field(&i->rows_per_strip,    0x0116, 0, 0, 0);
+        scm_set_field(&i->strip_byte_counts, 0x0117, 0, 0, 0);
+        scm_set_field(&i->page_number,       0x0129, 0, 0, 0);
 
         for (int k = 0; k < 4; ++k)
         {
@@ -416,6 +435,41 @@ int scm_write_ifd(scm *s, ifd *i, long long o)
 }
 
 //------------------------------------------------------------------------------
+
+// Read the first IFD and determine basic image parameters from it, including
+// the image size, channel count, bits-per-sample, and sample format.
+
+int scm_read_preable(scm *s)
+{
+    header h;
+    hfd    d;
+
+    if (scm_read_header(s, &h) == 1)
+    {
+        if (scm_read_ifd(s, &s->D, (long long) h.first_ifd) == 1)
+        {
+            if (scm_read_header(s, &h) == 1)
+            {
+                if (scm_read_hfd(s, &d, h.first_ifd) == 1)
+                {
+                    s->n = (int)               d.image_width      .offset - 2;
+                    s->c = (int)               d.samples_per_pixel.offset;
+                    s->r = (int)               d.rows_per_strip   .offset;
+                    s->b = (int) ((uint16_t *) d.bits_per_sample  .offset)[0];
+                    s->g = (2 == ((uint16_t *) d.sample_format    .offset)[0]);
+
+                    return 1;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+int scm_write_preamble(scm *s, const char *str)
+{
+}
+
 #if 0
 // Read the first IFD and determine basic image parameters from it, including
 // the image size, channel count, bits-per-sample, and sample format.
