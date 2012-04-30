@@ -12,9 +12,10 @@
 
 //------------------------------------------------------------------------------
 
-int       scm_alloc(scm *);
+bool      scm_alloc(scm *);
 void      scm_free (scm *);
 
+bool      scm_ffwd (scm *);
 bool      scm_seek (scm *,                       long long);
 bool      scm_read (scm *,       void *, size_t, long long);
 long long scm_write(scm *, const void *, size_t);

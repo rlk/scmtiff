@@ -15,7 +15,7 @@
 
 // Allocate properly-sized bin and zip scratch buffers for SCM s.
 
-int scm_alloc(scm *s)
+bool scm_alloc(scm *s)
 {
     size_t bs = (size_t) s->r * (size_t) (s->n + 2)
               * (size_t) s->c * (size_t)  s->b / 8;
@@ -31,9 +31,9 @@ int scm_alloc(scm *s)
             s->binv[i] = (uint8_t *) malloc(bs);
             s->zipv[i] = (uint8_t *) malloc(zs);
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 // Free the bin and zip scratch buffers.
@@ -60,6 +60,19 @@ void scm_free(scm *s)
 }
 
 //------------------------------------------------------------------------------
+
+// Move the SCM file pointer to the end of the file
+
+bool scm_ffwd(scm *s)
+{
+    if (fseeko(s->fp, 0, SEEK_END) == 0)
+    {
+        return true;
+    }
+    else syserr("Failed to seek SCM");
+
+    return false;
+}
 
 // Move the SCM file pointer to offset o.
 
@@ -186,9 +199,9 @@ long long scm_write_header(scm *s, header *h)
     assert(s);
     assert(h);
 
-    if (scm_seek(s, 0) >= 0)
+    if (scm_seek(s, 0))
     {
-        return scm_write(s, &h, sizeof (header));
+        return scm_write(s, h, sizeof (header));
     }
     return -1;
 }
@@ -205,13 +218,15 @@ bool scm_init_hfd(scm *s, hfd *d)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        scm_field(&d->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
-        scm_field(&d->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
-        scm_field(&d->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
-        scm_field(&d->bits_per_sample,   0x0102, 3, c, 0);
-        scm_field(&d->sample_format,     0x0153, 3, c, 0);
-        scm_field(&d->description,       0x0116, 0, 0, 0);
-        scm_field(&d->rows_per_strip,    0x0116, 0, 0, 0);
+        scm_field(&d->image_width,       0x0100,  3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->image_length,      0x0101,  3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->samples_per_pixel, 0x0115,  3, 1, (uint64_t) s->c);
+        scm_field(&d->rows_per_strip,    0x0116,  3, 1, (uint64_t) s->r);
+        scm_field(&d->bits_per_sample,   0x0102,  3, c, 0);
+        scm_field(&d->strip_offsets,     0x0111, 16, 0, 0);
+        scm_field(&d->strip_byte_counts, 0x0117,  4, 0, 0);
+        scm_field(&d->sample_format,     0x0153,  3, c, 0);
+        scm_field(&d->description,       0x010E,  2, 0, 0);
 
         scm_field(&d->page_index,   SCM_PAGE_INDEX,   0, 0, 0);
         scm_field(&d->page_offset,  SCM_PAGE_OFFSET,  0, 0, 0);
@@ -291,7 +306,6 @@ bool scm_init_ifd(scm *s, ifd *d)
         scm_field(&d->bits_per_sample,   0x0102, 3, c, 0);
         scm_field(&d->sample_format,     0x0153, 3, c, 0);
         scm_field(&d->strip_offsets,     0x0111, 0, 0, 0);
-        scm_field(&d->rows_per_strip,    0x0116, 0, 0, 0);
         scm_field(&d->strip_byte_counts, 0x0117, 0, 0, 0);
         scm_field(&d->page_number,       0x0129, 0, 0, 0);
 
@@ -341,11 +355,11 @@ long long scm_write_ifd(scm *s, ifd *d, long long o)
     {
         if (scm_seek(s, o) >= 0)
         {
-            return scm_write(s, d, sizeof (hfd));
+            return scm_write(s, d, sizeof (ifd));
         }
         else return -1;
     }
-    else return scm_write(s, d, sizeof (hfd));
+    else return scm_write(s, d, sizeof (ifd));
 }
 
 //------------------------------------------------------------------------------
@@ -383,13 +397,13 @@ bool scm_write_preamble(scm *s)
 
     scm_init_header(&h);
 
-    if (scm_init_hfd(s, &d) == 1)
+    if (scm_init_hfd(s, &d))
     {
-        if (scm_write_header(s, &h) == 1)
+        if (scm_write_header(s, &h) >= 0)
         {
-            if ((h.first_ifd = (uint64_t) scm_write(s, &d, sizeof (hfd))))
+            if ((h.first_ifd = (uint64_t) scm_write_hfd(s, &d)))
             {
-                if (scm_write_header(s, &h) == 1)
+                if (scm_write_header(s, &h) >= 0)
                 {
                     return true;
                 }

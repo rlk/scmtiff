@@ -16,7 +16,7 @@ typedef struct field  field;
 typedef struct hfd    hfd;
 typedef struct ifd    ifd;
 
-#define SCM_HFD_COUNT    10
+#define SCM_HFD_COUNT    13
 #define SCM_IFD_COUNT    14
 #define SCM_PAGE_INDEX   0xFFB1
 #define SCM_PAGE_OFFSET  0xFFB2
@@ -51,8 +51,10 @@ struct hfd
     field image_length;         // 0x0101
     field bits_per_sample;      // 0x0102
     field description;          // 0x010E
+    field strip_offsets;        // 0x0111
     field samples_per_pixel;    // 0x0115
     field rows_per_strip;       // 0x0116
+    field strip_byte_counts;    // 0x0117
     field sample_format;        // 0x0153
     field page_index;           // SCM_PAGE_INDEX
     field page_offset;          // SCM_PAGE_OFFSET

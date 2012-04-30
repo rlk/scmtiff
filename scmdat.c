@@ -15,47 +15,46 @@
 
 bool is_header(header *hp)
 {
-    return (hp->endianness == 0x4949
-        &&  hp->version    == 0x002B
-        &&  hp->offsetsize == 0x0008
-        &&  hp->zero       == 0x0000);
+    if (hp->endianness            != 0x4949)           return false;
+    if (hp->version               != 0x002B)           return false;
+    if (hp->offsetsize            != 0x0008)           return false;
+    if (hp->zero                  != 0x0000)           return false;
+    return true;
 }
 
 bool is_hfd(hfd *hp)
 {
-    return (hp->count == SCM_HFD_COUNT
-
-        &&  hp->image_width.tag       == 0x0100
-        &&  hp->image_length.tag      == 0x0101
-        &&  hp->bits_per_sample.tag   == 0x0102
-        &&  hp->description.tag       == 0x010E
-        &&  hp->samples_per_pixel.tag == 0x0115
-        &&  hp->sample_format.tag     == 0x0153
-        &&  hp->page_index.tag        == 0xFFB1
-        &&  hp->page_offset.tag       == 0xFFB2
-        &&  hp->page_minimum.tag      == 0xFFB3
-        &&  hp->page_maximum.tag      == 0xFFB4
-        );
+    if (hp->count                 != SCM_HFD_COUNT)    return false;
+    if (hp->image_width.tag       != 0x0100)           return false;
+    if (hp->image_length.tag      != 0x0101)           return false;
+    if (hp->bits_per_sample.tag   != 0x0102)           return false;
+    if (hp->description.tag       != 0x010E)           return false;
+    if (hp->samples_per_pixel.tag != 0x0115)           return false;
+    if (hp->sample_format.tag     != 0x0153)           return false;
+    if (hp->page_index.tag        != SCM_PAGE_INDEX)   return false;
+    if (hp->page_offset.tag       != SCM_PAGE_OFFSET)  return false;
+    if (hp->page_minimum.tag      != SCM_PAGE_MINIMUM) return false;
+    if (hp->page_maximum.tag      != SCM_PAGE_MAXIMUM) return false;
+    return true;
 }
 
 bool is_ifd(ifd *ip)
 {
-    return (ip->count == SCM_IFD_COUNT
-
-        &&  ip->image_width.tag       == 0x0100
-        &&  ip->image_length.tag      == 0x0101
-        &&  ip->bits_per_sample.tag   == 0x0102
-        &&  ip->compression.tag       == 0x0103
-        &&  ip->interpretation.tag    == 0x0106
-        &&  ip->strip_offsets.tag     == 0x0111
-        &&  ip->orientation.tag       == 0x0112
-        &&  ip->samples_per_pixel.tag == 0x0115
-        &&  ip->rows_per_strip.tag    == 0x0116
-        &&  ip->strip_byte_counts.tag == 0x0117
-        &&  ip->configuration.tag     == 0x011C
-        &&  ip->predictor.tag         == 0x013D
-        &&  ip->sample_format.tag     == 0x0153
-        );
+    if (ip->count                 != SCM_IFD_COUNT)    return false;
+    if (ip->image_width.tag       != 0x0100)           return false;
+    if (ip->image_length.tag      != 0x0101)           return false;
+    if (ip->bits_per_sample.tag   != 0x0102)           return false;
+    if (ip->compression.tag       != 0x0103)           return false;
+    if (ip->interpretation.tag    != 0x0106)           return false;
+    if (ip->strip_offsets.tag     != 0x0111)           return false;
+    if (ip->orientation.tag       != 0x0112)           return false;
+    if (ip->samples_per_pixel.tag != 0x0115)           return false;
+    if (ip->rows_per_strip.tag    != 0x0116)           return false;
+    if (ip->strip_byte_counts.tag != 0x0117)           return false;
+    if (ip->configuration.tag     != 0x011C)           return false;
+    if (ip->predictor.tag         != 0x013D)           return false;
+    if (ip->sample_format.tag     != 0x0153)           return false;
+    return true;
 }
 
 //------------------------------------------------------------------------------

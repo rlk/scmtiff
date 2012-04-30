@@ -45,20 +45,15 @@ scm *scm_ifile(const char *name)
     {
         if ((s->fp = fopen(name, "r+b")))
         {
-            if (scm_read_preamble(s) == 1)
+            if (scm_read_preamble(s))
             {
                 if (scm_alloc(s))
                 {
                     return s;
                 }
-                else syserr("Failed to allocate SCM scratch buffers");
             }
-            else syserr("Failed to read '%s' preamble", name);
         }
-        else syserr("Failed to open '%s'", name);
     }
-    else syserr("Failed to allocate SCM");
-
     scm_close(s);
     return NULL;
 }
@@ -91,16 +86,14 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
             {
                 if (scm_alloc(s))
                 {
-                    return s;
+                    if (scm_ffwd(s))
+                    {
+                        return s;
+                    }
                 }
-                else syserr("Failed to allocate SCM scratch buffers");
             }
-            else syserr("Failed to write '%s' preamble", name);
         }
-        else syserr("Failed to open '%s'", name);
     }
-    else syserr("Failed to allocate SCM");
-
     scm_close(s);
     return NULL;
 }
@@ -187,52 +180,41 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
     uint64_t lo;
     uint16_t sc;
 
-    ifd D;
+    ifd d;
 
-    if (scm_init_ifd(s, &D) == 1)
+    if (scm_init_ifd(s, &d))
     {
-        if (fseeko(s->fp, 0, SEEK_END) == 0)
+        if (scm_ffwd(s))
         {
-            if ((o = ftello(s->fp)) >= 0)
+            if ((o = scm_write_ifd(s, &d, 0)) >= 0)
             {
-                if (scm_write_ifd(s, &D, o) == 1)
+                if ((scm_write_data(s, f, &oo, &lo, &sc)))
                 {
-                    if ((scm_write_data(s, f, &oo, &lo, &sc)) > 0)
+                    if (scm_align(s) >= 0)
                     {
-                        if (scm_align(s) >= 0)
+                        uint64_t rr = (uint64_t) s->r;
+                        uint64_t xx = (uint64_t) x;
+
+                        scm_field(&d.strip_offsets,     0x0111, 16, sc, oo);
+                        scm_field(&d.rows_per_strip,    0x0116,  3,  1, rr);
+                        scm_field(&d.strip_byte_counts, 0x0117,  4, sc, lo);
+                        scm_field(&d.page_number,       0x0129,  4,  1, xx);
+
+                        if (scm_write_ifd(s, &d, o) >= 1)
                         {
-                            uint64_t rr = (uint64_t) s->r;
-                            uint64_t xx = (uint64_t) x;
-
-                            scm_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                            scm_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
-                            scm_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-                            scm_field(&D.page_number,       0x0129,  4,  1, xx);
-
-                            if (scm_write_ifd(s, &D, o) == 1)
+                            if (scm_link_list(s, o, b))
                             {
-                                if (scm_link_list(s, o, b) >= 0)
+                                if (scm_ffwd(s))
                                 {
-                                    if (fseeko(s->fp, 0, SEEK_END) == 0)
-                                    {
-                                        fflush(s->fp);
-                                        return o;
-                                    }
-                                    else syserr("Failed to seek SCM");
+                                    fflush(s->fp);
+                                    return o;
                                 }
-                                else apperr("Failed to link IFD list");
                             }
-                            else apperr("Failed to re-write IFD");
                         }
-                        else syserr("Failed to align SCM");
                     }
-                    else apperr("Failed to write data");
                 }
-                else apperr("Failed to pre-write IFD");
             }
-            else syserr("Failed to tell SCM");
         }
-        else syserr("Failed to seek SCM");
     }
     return 0;
 }
@@ -254,61 +236,49 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
     assert(s->g == t->g);
     assert(s->r == t->r);
 
-    ifd D;
+    ifd d;
 
-    if (scm_read_ifd(t, &D, o) == 1)
+    if (scm_read_ifd(t, &d, o) == 1)
     {
-        uint64_t oo = (uint64_t) D.strip_offsets.offset;
-        uint64_t lo = (uint64_t) D.strip_byte_counts.offset;
-        uint16_t sc = (uint16_t) D.strip_byte_counts.count;
+        uint64_t oo = (uint64_t) d.strip_offsets.offset;
+        uint64_t lo = (uint64_t) d.strip_byte_counts.offset;
+        uint16_t sc = (uint16_t) d.strip_byte_counts.count;
 
         uint64_t O[sc];
         uint32_t L[sc];
 
-        D.next = 0;
+        d.next = 0;
 
         if (scm_read_zips(t, t->zipv, oo, lo, sc, O, L) > 0)
         {
-            if ((o = ftello(s->fp)) >= 0)
+            if ((o = scm_write_ifd(s, &d, 0)) >= 0)
             {
-                if (scm_write_ifd(s, &D, o) == 1)
+                if (scm_write_zips(s, t->zipv, &oo, &lo, &sc, O, L))
                 {
-                    if (scm_write_zips(s, t->zipv, &oo, &lo, &sc, O, L) > 0)
+                    if (scm_align(s) >= 0)
                     {
-                        if (scm_align(s) >= 0)
+                        uint64_t rr = (uint64_t) s->r;
+
+                        scm_field(&d.strip_offsets,     0x0111, 16, sc, oo);
+                        scm_field(&d.rows_per_strip,    0x0116,  3,  1, rr);
+                        scm_field(&d.strip_byte_counts, 0x0117,  4, sc, lo);
+
+                        if (scm_write_ifd(s, &d, o) >= 0)
                         {
-                            uint64_t rr = (uint64_t) s->r;
-
-                            scm_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                            scm_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
-                            scm_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-
-                            if (scm_write_ifd(s, &D, o) == 1)
+                            if (scm_link_list(s, o, b))
                             {
-                                if (scm_link_list(s, o, b) >= 0)
+                                if (scm_ffwd(s))
                                 {
-                                    if (fseeko(s->fp, 0, SEEK_END) == 0)
-                                    {
-                                        fflush(s->fp);
-                                        return o;
-                                    }
-                                    else syserr("Failed to seek SCM");
+                                    fflush(s->fp);
+                                    return o;
                                 }
-                                else apperr("Failed to link IFD list");
                             }
-                            else apperr("Failed to re-write IFD");
                         }
-                        else syserr("Failed to align SCM");
                     }
-                    else apperr("Failed to write compressed data");
                 }
-                else apperr("Failed to pre-write IFD");
             }
-            else syserr("Failed to tell SCM");
         }
-        else syserr("Failed to read compressed data");
     }
-    else apperr("Failed to read IFD");
 
     return 0;
 }
@@ -342,7 +312,7 @@ bool scm_read_page(scm *s, long long o, float *p)
 
     assert(s);
 
-    if (scm_read_ifd(s, &i, o) == 1)
+    if (scm_read_ifd(s, &i, o) >= 0)
     {
         uint64_t oo = (uint64_t) i.strip_offsets.offset;
         uint64_t lo = (uint64_t) i.strip_byte_counts.offset;
