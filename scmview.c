@@ -29,10 +29,8 @@
 
 struct file
 {
-    scm      *s;           // SCM file
-    scm_pair *a;           // Index-offset array
-    long long l;           // Index-offset array length
-    GLuint    texture;     // On-screen texture cache
+    scm   *s;           // SCM file
+    GLuint texture;     // On-screen texture cache
 };
 
 struct file     *filev;
@@ -92,30 +90,30 @@ static int data_load(long long x)
 
     for (int i = 0; i < filec; ++i)
     {
-        const int       o = scm_get_n(filev[i].s) + 2;
+        const int       n = scm_get_n(filev[i].s) + 2;
         const int       c = scm_get_c(filev[i].s);
-        const long long j = scm_seek_catalog(filev[i].a, 0, filev[i].l, x);
+        const long long o = scm_find_offset(filev[i].s, x);
 
-        if (j >= 0)
-            scm_read_page(filev[i].s, filev[i].a[j].o, buf);
+        if (o >= 0)
+            scm_read_page(filev[i].s, o, buf);
         else
-            data_null(o, c);
+            data_null(n, c);
 
         glBindTexture(GL_TEXTURE_2D, filev[i].texture);
-        glTexImage2D (GL_TEXTURE_2D, 0, f[c], o, o, 0, e[c], GL_FLOAT, buf);
+        glTexImage2D (GL_TEXTURE_2D, 0, f[c], n, n, 0, e[c], GL_FLOAT, buf);
     }
     return 0;
 }
 
 // Determine whether any of the loaded files has a page at index x.
 
-static int data_test(long long x)
+static bool data_test(long long x)
 {
     for (int i = 0; i < filec; ++i)
-        if (scm_seek_catalog(filev[i].a, 0, filev[i].l, x) >= 0)
-            return 1;
+        if (scm_find_offset(filev[i].s, x) >= 0)
+            return true;
 
-    return 0;
+    return false;
 }
 
 // Iterate the list of files given on the command line and initialize a data
@@ -148,8 +146,9 @@ static int data_init(int argc, char **argv)
                 glTexParameteri(T, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-                if ((filev[i].l = scm_read_catalog(filev[i].s, &filev[i].a)))
-                    pagem = max(pagem, filev[i].a[filev[i].l - 1].x);
+                scm_scan_catalog(filev[i].s);
+                scm_sort_catalog(filev[i].s);
+                pagem = max(pagem, scm_get_index(filev[i].s, scm_get_l(filev[i].s) - 1));
 
                 i++;
             }

@@ -37,9 +37,7 @@ void scm_close(scm *s)
 
 scm *scm_ifile(const char *name)
 {
-    scm   *s  = NULL;
-    header h;
-    hfd    i;
+    scm *s = NULL;
 
     assert(name);
 
@@ -70,9 +68,7 @@ scm *scm_ifile(const char *name)
 
 scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 {
-    scm   *s  = NULL;
-    header h;
-    hfd    i;
+    scm *s = NULL;
 
     assert(name);
     assert(n > 0);
@@ -91,7 +87,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
 
         if ((s->fp = fopen(name, "w+b")))
         {
-            if (scm_write_preamble(s, str))
+            if (scm_write_preamble(s))
             {
                 if (scm_alloc(s))
                 {
@@ -154,6 +150,12 @@ int scm_get_g(scm *s)
     return s->g;
 }
 
+int scm_get_l(scm *s)
+{
+    assert(s);
+    return s->l;
+}
+
 //------------------------------------------------------------------------------
 
 void scm_get_sample_corners(int f, long i, long j, long n, double *v)
@@ -202,10 +204,10 @@ long long scm_append(scm *s, long long b, long long x, const float *f)
                             uint64_t rr = (uint64_t) s->r;
                             uint64_t xx = (uint64_t) x;
 
-                            set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                            set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
-                            set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
-                            set_field(&D.page_number,       0x0129,  4,  1, xx);
+                            scm_field(&D.strip_offsets,     0x0111, 16, sc, oo);
+                            scm_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
+                            scm_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
+                            scm_field(&D.page_number,       0x0129,  4,  1, xx);
 
                             if (scm_write_ifd(s, &D, o) == 1)
                             {
@@ -277,9 +279,9 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
                         {
                             uint64_t rr = (uint64_t) s->r;
 
-                            set_field(&D.strip_offsets,     0x0111, 16, sc, oo);
-                            set_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
-                            set_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
+                            scm_field(&D.strip_offsets,     0x0111, 16, sc, oo);
+                            scm_field(&D.rows_per_strip,    0x0116,  3,  1, rr);
+                            scm_field(&D.strip_byte_counts, 0x0117,  4, sc, lo);
 
                             if (scm_write_ifd(s, &D, o) == 1)
                             {
@@ -315,48 +317,22 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
 
 long long scm_rewind(scm *s)
 {
-    header h;
+    hfd d;
 
     assert(s);
 
-    if (scm_read_header(s, &h) == 1)
+    if (scm_read_hfd(s, &d))
     {
-        if (fseeko(s->fp, (long long) h.first_ifd, SEEK_SET) == 0)
+        if (scm_seek(s, d.next))
         {
-            return (long long) h.first_ifd;
+            return (long long) d.next;
         }
-        else syserr("Failed to seek SCM TIFF");
     }
-    else syserr("Failed to read SCM header");
-
     return 0;
 }
 
 //------------------------------------------------------------------------------
 
-// Read the SCM TIFF IFD at offset o. Return this IFD's page index. If n is not
-// null, store the next IFD offset there. If v is not null, assume it can store
-// four offsets and copy the SubIFDs there.
-#if 0
-long long scm_read_node(scm *s, long long o, long long *n, long long *v)
-{
-    ifd i;
-
-    assert(s);
-
-    if (o)
-    {
-        if (scm_read_ifd(s, &i, o) == 1)
-        {
-            if (n)
-                n[0] = (long long) i.next;
-            return (long long) i.page_index.offset;
-        }
-        else apperr("Failed to read SCM TIFF IFD");
-    }
-    return -1;
-}
-#endif
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
 // data to be stored.
 
@@ -380,10 +356,10 @@ bool scm_read_page(scm *s, long long o, float *p)
 }
 
 //------------------------------------------------------------------------------
-#if 0
-// Compare two index-offset elements. This is the qsort / bsearch callback.
 
-static int _cmp(const void *p, const void *q)
+// Compare two index-offset elements by index.
+
+static int _cmpx(const void *p, const void *q)
 {
     const scm_pair *a = (const scm_pair *) p;
     const scm_pair *b = (const scm_pair *) q;
@@ -393,6 +369,200 @@ static int _cmp(const void *p, const void *q)
     else                      return  0;
 }
 
+// Compare two index-offset elements by offset.
+
+static int _cmpo(const void *p, const void *q)
+{
+    const scm_pair *a = (const scm_pair *) p;
+    const scm_pair *b = (const scm_pair *) q;
+
+    if      (a[0].o < b[0].o) return -1;
+    else if (a[0].o > b[0].o) return +1;
+    else                      return  0;
+}
+
+// Search the catalog for the index of a given offset.
+
+long long scm_find_index(scm *s, long long o)
+{
+    if (o < s->a[       0].o) return -1;
+    if (o > s->a[s->l - 1].o) return -1;
+
+    void *p;
+
+    if ((p = bsearch(&o, s->a, (size_t) s->l, sizeof (scm_pair), _cmpo)))
+        return ((scm_pair *) p)->x;
+
+    return -1;
+}
+
+// Search the catalog for the offset of a given index.
+
+long long scm_find_offset(scm *s, long long x)
+{
+    if (x < s->a[       0].x) return -1;
+    if (x > s->a[s->l - 1].x) return -1;
+
+    void *p;
+
+    if ((p = bsearch(&x, s->a, (size_t) s->l, sizeof (scm_pair), _cmpx)))
+        return ((scm_pair *) p)->o;
+
+    return -1;
+}
+
+// Return the index or offset of a specific catalog element.
+
+long long scm_get_index(scm *s, long long i)
+{
+    return s->a[i].x;
+}
+
+long long scm_get_offset(scm *s, long long i)
+{
+    return s->a[i].o;
+}
+
+//------------------------------------------------------------------------------
+
+// Sort the catalog  to prepare for searching.
+
+void scm_sort_catalog(scm *s)
+{
+    qsort(s->a, (size_t) s->l, sizeof (scm_pair), _cmpx);
+}
+
+// Read the index and offset of all pages in SCM s to a newly-allocated buffer.
+
+bool scm_scan_catalog(scm *s)
+{
+    long long l = 0;
+    long long o;
+
+    ifd d;
+
+    // Release any existing catalog buffer.
+
+    if (s->a) free(s->a);
+
+    // Scan the file to determine the number of pages.
+
+    for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
+        l++;
+
+    // Allocate and populate an array of page indices and offsets.
+
+    if ((s->a = (scm_pair *) malloc((size_t) l * sizeof (scm_pair))))
+    {
+        s->l = 0;
+
+        for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
+        {
+            s->a[l].x = (long long) d.page_number.offset;
+            s->a[l].x = o;
+            s->l++;
+        }
+        return true;
+    }
+    return false;
+}
+
+//------------------------------------------------------------------------------
+
+static uint64_t write_indices(scm *s)
+{
+    long long o;
+    long long i;
+
+    if ((o = (long long) ftello(s->fp)) >= 0)
+    {
+        for (i = 0; i < s->l; ++i)
+        {
+            if (fwrite(&s->a[i].x, sizeof (long long), 1, s->fp) != 1)
+            {
+                syserr("Failed to write SCM index");
+                return 0;
+            }
+        }
+        return (uint64_t) o;
+    }
+    return 0;
+}
+
+static uint64_t write_offsets(scm *s)
+{
+    long long o;
+    long long i;
+
+    if ((o = (long long) ftello(s->fp)) >= 0)
+    {
+        for (i = 0; i < s->l; ++i)
+        {
+            if (fwrite(&s->a[i].x, sizeof (long long), 1, s->fp) != 1)
+            {
+                syserr("Failed to write SCM index");
+                return 0;
+            }
+        }
+        return (uint64_t) o;
+    }
+    return 0;
+}
+
+static uint64_t write_minimum(scm *s)
+{
+    return 0;
+}
+
+static uint64_t write_maximum(scm *s)
+{
+    return 0;
+}
+
+// Append a sorted catalog to the end of SCM s.
+
+bool scm_make_catalog(scm *s)
+{
+    if (scm_scan_catalog(s))
+    {
+        scm_sort_catalog(s);
+
+        if (fseeko(s->fp, 0, SEEK_END) == 0)
+        {
+            uint64_t c = (uint64_t) (s->l * s->c);
+            uint64_t l = (uint64_t) (s->l       );
+            uint16_t t = scm_type(s);
+
+            uint64_t io = write_indices(s);
+            uint64_t oo = write_offsets(s);
+            uint64_t ao = write_minimum(s);
+            uint64_t zo = write_maximum(s);
+
+            hfd h;
+
+            if (scm_read_hfd(s, &h))
+            {
+                scm_field(&h.page_index,   SCM_PAGE_INDEX,  16, l, io);
+                scm_field(&h.page_offset,  SCM_PAGE_OFFSET, 16, l, oo);
+                scm_field(&h.page_minimum, SCM_PAGE_MINIMUM, t, c, ao);
+                scm_field(&h.page_maximum, SCM_PAGE_MAXIMUM, t, c, zo);
+
+                return (scm_write_hfd(s, &h) > 0);
+            }
+        }
+        else syserr("Failed to seek SCM");
+    }
+    return false;
+}
+
+bool scm_make_extrema(scm *s)
+{
+    return true;
+}
+
+//------------------------------------------------------------------------------
+
+#if 0
 // Find the given index in the index-offset array and return the array location.
 // Limit the search to elements between f and l (not including l).
 
@@ -415,7 +585,6 @@ long long scm_seek_catalog(scm_pair *a, long long f, long long l, long long x)
 
 void scm_sort_catalog(scm_pair *a, long long l)
 {
-    qsort(a, (size_t) l, sizeof (scm_pair), _cmp);
 }
 
 // Read the index and offset of all pages in SCM s to a newly-allocated array.

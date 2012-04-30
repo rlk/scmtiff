@@ -94,22 +94,15 @@ static void sampnorm(int f, int i, int j, int n, int c,
 // Recursively traverse the tree at page x, reading input pages from SCM s and
 // computing normal map output pages for SCM t.
 
-static long long divide(scm      *s, long long x,
-                        scm      *t, long long b,
-                        scm_pair *a, long long l,
+static long long divide(scm *s, long long x,
+                        scm *t, long long b,
                         long u, long v, long w,
                         const float *r, float *p, float *q)
 {
-    long long i;
+    long long o;
 
-    if ((i = scm_seek_catalog(a, 0, l, x)) >= 0)
+    if ((o = scm_find_offset(s, x)) > 0)
     {
-        long long x = a[i].x;
-        long long o = a[i].o;
-
-        a = a + i + 1;
-        l = l - i - 1;
-
         // Generate the normal map for page x.
 
         if (scm_read_page(s, o, p))
@@ -138,10 +131,10 @@ static long long divide(scm      *s, long long x,
         long u0 = u * 2, u1 = u0 + 1;
         long v0 = v * 2, v1 = v0 + 1;
 
-        if (x0) b = divide(s, x0, t, b, a, l, u0, v0, 2 * w, r, p, q);
-        if (x1) b = divide(s, x1, t, b, a, l, u0, v1, 2 * w, r, p, q);
-        if (x2) b = divide(s, x2, t, b, a, l, u1, v0, 2 * w, r, p, q);
-        if (x3) b = divide(s, x3, t, b, a, l, u1, v1, 2 * w, r, p, q);
+        if (x0) b = divide(s, x0, t, b, u0, v0, 2 * w, r, p, q);
+        if (x1) b = divide(s, x1, t, b, u0, v1, 2 * w, r, p, q);
+        if (x2) b = divide(s, x2, t, b, u1, v0, 2 * w, r, p, q);
+        if (x3) b = divide(s, x3, t, b, u1, v1, 2 * w, r, p, q);
     }
     return b;
 }
@@ -151,14 +144,12 @@ static long long divide(scm      *s, long long x,
 
 static void process(scm *s, scm *t, const float *r)
 {
-    long long l;
-    scm_pair *a;
-    float    *p;
-    float    *q;
+    float *p;
+    float *q;
 
-    if ((l = scm_scan_catalog(s, &a)))
+    if (scm_scan_catalog(s))
     {
-        scm_sort_catalog(a, l);
+        scm_sort_catalog(s);
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
@@ -167,17 +158,16 @@ static void process(scm *s, scm *t, const float *r)
             memset(q, 0, 3 * (size_t) (scm_get_n(t) + 2) *
                              (size_t) (scm_get_n(t) + 2) * sizeof (float));
 
-            b = divide(s, 0, t, b, a, l, 0, 0, 1, r, p, q);
-            b = divide(s, 1, t, b, a, l, 0, 0, 1, r, p, q);
-            b = divide(s, 2, t, b, a, l, 0, 0, 1, r, p, q);
-            b = divide(s, 3, t, b, a, l, 0, 0, 1, r, p, q);
-            b = divide(s, 4, t, b, a, l, 0, 0, 1, r, p, q);
-            b = divide(s, 5, t, b, a, l, 0, 0, 1, r, p, q);
+            b = divide(s, 0, t, b, 0, 0, 1, r, p, q);
+            b = divide(s, 1, t, b, 0, 0, 1, r, p, q);
+            b = divide(s, 2, t, b, 0, 0, 1, r, p, q);
+            b = divide(s, 3, t, b, 0, 0, 1, r, p, q);
+            b = divide(s, 4, t, b, 0, 0, 1, r, p, q);
+            b = divide(s, 5, t, b, 0, 0, 1, r, p, q);
 
             free(q);
             free(p);
         }
-        free(a);
     }
 }
 

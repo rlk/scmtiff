@@ -13,7 +13,7 @@
 // not an SCM TIFF if it wasn't written by this TIFF writer. Check a TIFF header
 // and IFD to confirm that it provides exactly the expected content.
 
-int is_header(header *hp)
+bool is_header(header *hp)
 {
     return (hp->endianness == 0x4949
         &&  hp->version    == 0x002B
@@ -21,7 +21,7 @@ int is_header(header *hp)
         &&  hp->zero       == 0x0000);
 }
 
-int is_hfd(hfd *hp)
+bool is_hfd(hfd *hp)
 {
     return (hp->count == SCM_HFD_COUNT
 
@@ -38,7 +38,7 @@ int is_hfd(hfd *hp)
         );
 }
 
-int is_ifd(ifd *ip)
+bool is_ifd(ifd *ip)
 {
     return (ip->count == SCM_IFD_COUNT
 

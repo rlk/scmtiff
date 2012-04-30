@@ -1,8 +1,8 @@
 // Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
 
-#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <stdio.h>
 #include <zlib.h>
 
@@ -52,28 +52,43 @@ void scm_free(scm *s)
     }
     free(s->zipv);
     free(s->binv);
+    free(s->a);
 
     s->zipv = NULL;
     s->binv = NULL;
+    s->a    = NULL;
 }
 
 //------------------------------------------------------------------------------
 
-// Read from the SCM file at the given offset, to the given buffer.
+// Move the SCM file pointer to offset o.
 
-int scm_read(scm *s, void *ptr, size_t len, long long o)
+bool scm_seek(scm *s, long long o)
 {
     if (fseeko(s->fp, o, SEEK_SET) == 0)
     {
+        return true;
+    }
+    else syserr("Failed to seek SCM");
+
+    return false;
+}
+
+// Read from the SCM file at the given offset, to the given buffer.
+
+bool scm_read(scm *s, void *ptr, size_t len, long long o)
+{
+    if (scm_seek(s, o) >= 0)
+    {
         if (fread(ptr, 1, len, s->fp) == len)
         {
-            return 1;
+            return true;
         }
         else syserr("Failed to read SCM");
     }
     else syserr("Failed to seek SCM");
 
-    return -1;
+    return false;
 }
 
 // Write the given buffer to the SCM file, returning the offset of the beginning
@@ -123,6 +138,18 @@ long long scm_align(scm *s)
 
 //------------------------------------------------------------------------------
 
+// Initialize an SCM TIFF field.
+
+void scm_field(field *fp, uint16_t t, uint16_t y, uint64_t c, uint64_t o)
+{
+    fp->tag    = t;
+    fp->type   = y;
+    fp->count  = c;
+    fp->offset = o;
+}
+
+//------------------------------------------------------------------------------
+
 // Initialize an SCM TIFF header.
 
 void scm_init_header(header *h)
@@ -136,128 +163,32 @@ void scm_init_header(header *h)
 
 /// Read the SCM TIFF header.
 
-int scm_read_header(scm *s, header *h)
+bool scm_read_header(scm *s, header *h)
 {
     assert(s);
     assert(h);
 
-    if (fseeko(s->fp, 0, SEEK_SET) == 0)
+    if (scm_read(s, h, sizeof (header), 0) >= 0)
     {
-        if (fread(h, sizeof (header), 1, s->fp) == 1)
+        if (is_header(h))
         {
-            if (is_header(h))
-            {
-                return 1;
-            }
-            else apperr("File is not an SCM TIFF");
+            return true;
         }
-        else syserr("Failed to read SCM header");
+        else apperr("File is not an SCM TIFF");
     }
-    else syserr("Failed to seek SCM");
-
-    return -1;
+    return false;
 }
 
 // Write the SCM TIFF header.
 
-int scm_write_header(scm *s, header *h)
+long long scm_write_header(scm *s, header *h)
 {
     assert(s);
     assert(h);
 
-    if (fseeko(s->fp, 0, SEEK_SET) == 0)
+    if (scm_seek(s, 0) >= 0)
     {
-        if (fwrite(h, sizeof (header), 1, s->fp) == 1)
-        {
-            return 1;
-        }
-        else syserr("Failed to write SCM header");
-    }
-    else syserr("Failed to seek SCM");
-
-    return -1;
-}
-
-//------------------------------------------------------------------------------
-
-// Initialize an SCM TIFF field.
-
-void scm_set_field(field *fp, uint16_t t, uint16_t y, uint64_t c, uint64_t o)
-{
-    fp->tag    = t;
-    fp->type   = y;
-    fp->count  = c;
-    fp->offset = o;
-}
-
-// Read the value of an IFD field. The length of buffer p is defined by the type
-// and count of the field f. If the size of the value exceeds the offset size,
-// read the value from the file. The file position should not be trusted upon
-// return.
-
-int scm_read_field(scm *s, field *f, void *p)
-{
-    size_t n = f->count * tifsizeof(f->type);
-
-    if (n <= sizeof (f->offset))
-    {
-        memcpy(p, &f->offset, n);
-        return 1;
-    }
-    else
-    {
-        if (fseeko(s->fp, (long long) f->offset, SEEK_SET) == 0)
-        {
-            if (fread(p, 1, n, s->fp) == n)
-            {
-                return 1;
-            }
-            else syserr("Failed to read field offset");
-        }
-        else syserr("Failed to seek field offset");
-    }
-    return -1;
-}
-
-// Write the given value p to field f. The length of buffer p is defined by the
-// type and count of the field f. If this size exceeds the offset size, write
-// the value to the file. CAVEAT: If the offset is zero, write the value at the
-// current file pointer. If the offset is non-zero, then assume we're updating a
-// prior value, and write to the file at that offset. The file pointer should
-// not be trusted upon return.
-
-int scm_write_field(scm *s, field *f, const void *p)
-{
-    size_t n = f->count * tifsizeof(f->type);
-    long long o;
-
-    if (n <= sizeof (f->offset))
-    {
-        memcpy(&f->offset, p, n);
-        return 1;
-    }
-    else
-    {
-        if (f->offset)
-        {
-            if (fseeko(s->fp, (long long) f->offset, SEEK_SET) == -1)
-            {
-                if (fwrite(p, 1, n, s->fp) == n)
-                {
-                    return 1;
-                }
-                else syserr("Failed to read field offset");
-            }
-            else syserr("Failed to seek field offset");
-        }
-        else
-        {
-            if ((o = scm_write(s, p, n)) > 0)
-            {
-                f->offset = (uint64_t) o;
-                return 1;
-            }
-        }
+        return scm_write(s, &h, sizeof (header));
     }
     return -1;
 }
@@ -266,7 +197,7 @@ int scm_write_field(scm *s, field *f, const void *p)
 
 // Initialize an HFD with defaults for SCM s.
 
-int scm_init_hfd(scm *s, hfd *i)
+bool scm_init_hfd(scm *s, hfd *d)
 {
     if ((size_t) s->c * tifsizeof(scm_type(s)) <= sizeof (uint64_t))
     {
@@ -274,81 +205,73 @@ int scm_init_hfd(scm *s, hfd *i)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        scm_set_field(&i->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
-        scm_set_field(&i->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
-        scm_set_field(&i->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
-        scm_set_field(&i->bits_per_sample,   0x0102, 3, c, 0);
-        scm_set_field(&i->sample_format,     0x0153, 3, c, 0);
-        scm_set_field(&i->description,       0x0116, 0, 0, 0);
-        scm_set_field(&i->rows_per_strip,    0x0116, 0, 0, 0);
+        scm_field(&d->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+        scm_field(&d->bits_per_sample,   0x0102, 3, c, 0);
+        scm_field(&d->sample_format,     0x0153, 3, c, 0);
+        scm_field(&d->description,       0x0116, 0, 0, 0);
+        scm_field(&d->rows_per_strip,    0x0116, 0, 0, 0);
+
+        scm_field(&d->page_index,   SCM_PAGE_INDEX,   0, 0, 0);
+        scm_field(&d->page_offset,  SCM_PAGE_OFFSET,  0, 0, 0);
+        scm_field(&d->page_minimum, SCM_PAGE_MINIMUM, 0, 0, 0);
+        scm_field(&d->page_maximum, SCM_PAGE_MAXIMUM, 0, 0, 0);
 
         for (int k = 0; k < 4; ++k)
         {
-            ((uint16_t *) &i->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
-            ((uint16_t *) &i->sample_format  .offset)[k] = (k < s->c) ? f : 0;
+            ((uint16_t *) &d->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
+            ((uint16_t *) &d->sample_format  .offset)[k] = (k < s->c) ? f : 0;
         }
 
-        i->count = SCM_HFD_COUNT;
-        i->next  = 0;
+        d->count = SCM_HFD_COUNT;
+        d->next  = 0;
 
-        return 1;
+        return true;
     }
     else apperr("Unsupported pixel configuration (more than 64 BPP)");
 
-    return -1;
+    return false;
 }
 
 // Read an IFD at offset o of SCM TIFF s.
 
-int scm_read_hfd(scm *s, hfd *i, long long o)
+bool scm_read_hfd(scm *s, hfd *d)
 {
     assert(s);
-    assert(i);
+    assert(d);
 
-    if (o)
+    if (scm_read(s, d, sizeof (hfd), sizeof (header)) >= 0)
     {
-        if (fseeko(s->fp, o, SEEK_SET) == 0)
+        if (is_hfd(d))
         {
-            if (fread(i, sizeof (hfd), 1, s->fp) == 1)
-            {
-                if (is_hfd(i))
-                {
-                    return 1;
-                }
-                else apperr("File is not an SCM TIFF");
-            }
-            else syserr("Failed to read SCM HFD");
+            return true;
         }
-        else syserr("Failed to seek SCM");
+        else apperr("File is not an SCM TIFF");
     }
-    return -1;
+    return false;
 }
 
-// Write an HFD at offset o of SCM TIFF s.
+// If o is non-zero, Write an HFD at offset o of SCM TIFF s. Otherwise, write
+// the IFD at the current file position and return the offset.
 
-int scm_write_hfd(scm *s, hfd *i, long long o)
+long long scm_write_hfd(scm *s, hfd *d)
 {
     assert(s);
-    assert(i);
+    assert(d);
 
-    if (fseeko(s->fp, o, SEEK_SET) == 0)
+    if (scm_seek(s, sizeof (header)) >= 0)
     {
-        if (fwrite(i, sizeof (hfd), 1, s->fp) == 1)
-        {
-            return 1;
-        }
-        else syserr("Failed to write SCM HFD");
+        return scm_write(s, d, sizeof (hfd));
     }
-    else syserr("Failed to seek SCM");
-
-    return -1;
+    else return -1;
 }
 
 //------------------------------------------------------------------------------
 
 // Initialize an IFD with defaults for SCM s.
 
-int scm_init_ifd(scm *s, ifd *i)
+bool scm_init_ifd(scm *s, ifd *d)
 {
     if ((size_t) s->c * tifsizeof(scm_type(s)) <= sizeof (uint64_t))
     {
@@ -356,215 +279,125 @@ int scm_init_ifd(scm *s, ifd *i)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        scm_set_field(&i->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
-        scm_set_field(&i->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
-        scm_set_field(&i->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
-        scm_set_field(&i->rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
-        scm_set_field(&i->interpretation,    0x0106, 3, 1, scm_pint(s));
-        scm_set_field(&i->predictor,         0x013D, 3, 1, scm_hdif(s));
-        scm_set_field(&i->compression,       0x0103, 3, 1, 8);
-        scm_set_field(&i->orientation,       0x0112, 3, 1, 2);
-        scm_set_field(&i->configuration,     0x011C, 3, 1, 1);
-        scm_set_field(&i->bits_per_sample,   0x0102, 3, c, 0);
-        scm_set_field(&i->sample_format,     0x0153, 3, c, 0);
-        scm_set_field(&i->strip_offsets,     0x0111, 0, 0, 0);
-        scm_set_field(&i->rows_per_strip,    0x0116, 0, 0, 0);
-        scm_set_field(&i->strip_byte_counts, 0x0117, 0, 0, 0);
-        scm_set_field(&i->page_number,       0x0129, 0, 0, 0);
+        scm_field(&d->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
+        scm_field(&d->rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
+        scm_field(&d->interpretation,    0x0106, 3, 1, scm_pint(s));
+        scm_field(&d->predictor,         0x013D, 3, 1, scm_hdif(s));
+        scm_field(&d->compression,       0x0103, 3, 1, 8);
+        scm_field(&d->orientation,       0x0112, 3, 1, 2);
+        scm_field(&d->configuration,     0x011C, 3, 1, 1);
+        scm_field(&d->bits_per_sample,   0x0102, 3, c, 0);
+        scm_field(&d->sample_format,     0x0153, 3, c, 0);
+        scm_field(&d->strip_offsets,     0x0111, 0, 0, 0);
+        scm_field(&d->rows_per_strip,    0x0116, 0, 0, 0);
+        scm_field(&d->strip_byte_counts, 0x0117, 0, 0, 0);
+        scm_field(&d->page_number,       0x0129, 0, 0, 0);
 
         for (int k = 0; k < 4; ++k)
         {
-            ((uint16_t *) &i->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
-            ((uint16_t *) &i->sample_format  .offset)[k] = (k < s->c) ? f : 0;
+            ((uint16_t *) &d->bits_per_sample.offset)[k] = (k < s->c) ? b : 0;
+            ((uint16_t *) &d->sample_format  .offset)[k] = (k < s->c) ? f : 0;
         }
 
-        i->count = SCM_IFD_COUNT;
-        i->next  = 0;
+        d->count = SCM_IFD_COUNT;
+        d->next  = 0;
 
-        return 1;
+        return true;
     }
     else apperr("Unsupported pixel configuration (more than 64 BPP)");
 
-    return -1;
+    return false;
 }
 
 // Read an IFD at offset o of SCM TIFF s.
 
-int scm_read_ifd(scm *s, ifd *i, long long o)
+bool scm_read_ifd(scm *s, ifd *d, long long o)
 {
     assert(s);
-    assert(i);
+    assert(d);
+
+    if (scm_read(s, d, sizeof (ifd), o) >= 0)
+    {
+        if (is_ifd(d))
+        {
+            return true;
+        }
+        else apperr("File is not an SCM TIFF");
+    }
+    return false;
+}
+
+// If o is non-zero, write an IFD at offset o of SCM TIFF s. Otherwise, write
+// the IFD at the current file position and return the offset.
+
+long long scm_write_ifd(scm *s, ifd *d, long long o)
+{
+    assert(s);
+    assert(d);
 
     if (o)
     {
-        if (fseeko(s->fp, o, SEEK_SET) == 0)
+        if (scm_seek(s, o) >= 0)
         {
-            if (fread(i, sizeof (ifd), 1, s->fp) == 1)
-            {
-                if (is_ifd(i))
-                {
-                    return 1;
-                }
-                else apperr("File is not an SCM TIFF");
-            }
-            else syserr("Failed to read SCM IFD");
+            return scm_write(s, d, sizeof (hfd));
         }
-        else syserr("Failed to seek SCM");
+        else return -1;
     }
-    return -1;
-}
-
-// Write an IFD at offset o of SCM TIFF s.
-
-int scm_write_ifd(scm *s, ifd *i, long long o)
-{
-    assert(s);
-    assert(i);
-
-    if (fseeko(s->fp, o, SEEK_SET) == 0)
-    {
-        if (fwrite(i, sizeof (ifd), 1, s->fp) == 1)
-        {
-            return 1;
-        }
-        else syserr("Failed to write SCM IFD");
-    }
-    else syserr("Failed to seek SCM");
-
-    return -1;
+    else return scm_write(s, d, sizeof (hfd));
 }
 
 //------------------------------------------------------------------------------
 
-// Read the first IFD and determine basic image parameters from it, including
+// Read the header and the HFD and determine basic image parameters from it:
 // the image size, channel count, bits-per-sample, and sample format.
 
-int scm_read_preable(scm *s)
+bool scm_read_preamble(scm *s)
 {
     header h;
     hfd    d;
 
-    if (scm_read_header(s, &h) == 1)
+    if (scm_read_header(s, &h))
     {
-        if (scm_read_ifd(s, &s->D, (long long) h.first_ifd) == 1)
+        if (scm_read_hfd(s, &d))
         {
-            if (scm_read_header(s, &h) == 1)
-            {
-                if (scm_read_hfd(s, &d, h.first_ifd) == 1)
-                {
-                    s->n = (int)               d.image_width      .offset - 2;
-                    s->c = (int)               d.samples_per_pixel.offset;
-                    s->r = (int)               d.rows_per_strip   .offset;
-                    s->b = (int) ((uint16_t *) d.bits_per_sample  .offset)[0];
-                    s->g = (2 == ((uint16_t *) d.sample_format    .offset)[0]);
+            s->n = (int)               d.image_width      .offset - 2;
+            s->c = (int)               d.samples_per_pixel.offset;
+            s->r = (int)               d.rows_per_strip   .offset;
+            s->b = (int) ((uint16_t *) d.bits_per_sample  .offset)[0];
+            s->g = (2 == ((uint16_t *) d.sample_format    .offset)[0]);
 
-                    return 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Write the header and the HFD using the parameters of SCM s.
+
+bool scm_write_preamble(scm *s)
+{
+    header h;
+    hfd    d;
+
+    scm_init_header(&h);
+
+    if (scm_init_hfd(s, &d) == 1)
+    {
+        if (scm_write_header(s, &h) == 1)
+        {
+            if ((h.first_ifd = (uint64_t) scm_write(s, &d, sizeof (hfd))))
+            {
+                if (scm_write_header(s, &h) == 1)
+                {
+                    return true;
                 }
             }
         }
     }
-    return -1;
+    return false;
 }
-
-int scm_write_preamble(scm *s, const char *str)
-{
-}
-
-#if 0
-// Read the first IFD and determine basic image parameters from it, including
-// the image size, channel count, bits-per-sample, and sample format.
-
-int scm_read_preface(scm *s)
-{
-    header h;
-
-    if (scm_read_header(s, &h) == 1)
-    {
-        if (scm_read_ifd(s, &s->D, (long long) h.first_ifd) == 1)
-        {
-        	// Image size and channel count.
-
-            s->n = (int) s->D.image_width.offset - 2;
-            s->c = (int) s->D.samples_per_pixel.offset;
-            s->r = (int) s->D.rows_per_strip.offset;
-
-            // Image description string.
-
-            if ((s->str = (char *) malloc(s->D.description.count)))
-                scm_read_field(s, &s->D.description, s->str);
-
-            // Bits-per-sample and sample format.
-
-        	uint16_t bv[s->c];
-        	uint16_t fv[s->c];
-
-            if (scm_read_field(s, &s->D.bits_per_sample, bv) == 1)
-	            s->b = (bv[0]);
-            if (scm_read_field(s, &s->D.sample_format,   fv) == 1)
-	            s->g = (fv[0] == 2) ? 1 : 0;
-
-            return 1;
-        }
-    }
-    return -1;
-}
-
-// Initialize the template IFD with globally uniform values. This may involve
-// file writes for any values that exceed the size of the field offset.
-
-int scm_write_preface(scm *s, const char *str)
-{
-    header h;
-
-    set_header(&h);
-
-    if (scm_write_header(s, &h) == 1)
-    {
-        uint16_t l = (uint16_t) strlen(str) + 1;
-        uint64_t c = (uint64_t) s->c;
-        uint64_t i = scm_pint(s);
-        uint64_t p = scm_hdif(s);
-
-        uint16_t bv[c];
-        uint16_t fv[c];
-
-        for (int k = 0; k < s->c; ++k)
-        {
-            bv[k] = (uint16_t) s->b;
-            fv[k] = scm_form(s);
-        }
-
-        set_field(&s->D.subfile_type,      0x00FE, 4, 1, 2);
-        set_field(&s->D.image_width,       0x0100, 3, 1, (uint64_t) (s->n + 2));
-        set_field(&s->D.image_length,      0x0101, 3, 1, (uint64_t) (s->n + 2));
-        set_field(&s->D.bits_per_sample,   0x0102, 3, c, 0);
-        set_field(&s->D.compression,       0x0103, 3, 1, 8);
-        set_field(&s->D.interpretation,    0x0106, 3, 1, i);
-        set_field(&s->D.description,       0x010E, 2, l, 0);
-        set_field(&s->D.orientation,       0x0112, 3, 1, 2);
-        set_field(&s->D.samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
-        set_field(&s->D.rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
-        set_field(&s->D.configuration,     0x011C, 3, 1, 1);
-        set_field(&s->D.predictor,         0x013D, 3, 1, p);
-        set_field(&s->D.sample_format,     0x0153, 3, c, 0);
-        set_field(&s->D.page_catalog,      0xFFB1, 4, 0, 0);
-        set_field(&s->D.page_minima,       0xFFB2, 4, 0, 0);
-        set_field(&s->D.page_maxima,       0xFFB3, 4, 0, 0);
-
-        scm_write_field(s, &s->D.description,    str);
-        scm_align(s);
-        scm_write_field(s, &s->D.bits_per_sample, bv);
-        scm_align(s);
-        scm_write_field(s, &s->D.sample_format,   fv);
-        scm_align(s);
-
-        s->D.count = SCM_FIELD_COUNT;
-
-        return 1;
-    }
-    return -1;
-}
-#endif
 
 
 //------------------------------------------------------------------------------
@@ -572,23 +405,23 @@ int scm_write_preface(scm *s, const char *str)
 // Read a page of data into the zip caches. Store the strip offsets and lengths
 // in the given arrays. This is the serial part of the parallel input handler.
 
-int scm_read_zips(scm *s, uint8_t **zv,
-                          uint64_t  oo,
-                          uint64_t  lo,
-                          uint16_t  sc, uint64_t *o, uint32_t *l)
+bool scm_read_zips(scm *s, uint8_t **zv,
+                           uint64_t  oo,
+                           uint64_t  lo,
+                           uint16_t  sc, uint64_t *o, uint32_t *l)
 {
     // Read the strip offset and length arrays.
 
-    if (scm_read(s, o, sc * sizeof (uint64_t), (long long) oo) == -1) return -1;
-    if (scm_read(s, l, sc * sizeof (uint32_t), (long long) lo) == -1) return -1;
+    if (!scm_read(s, o, sc * sizeof (uint64_t), (long long) oo)) return false;
+    if (!scm_read(s, l, sc * sizeof (uint32_t), (long long) lo)) return false;
 
     // Read each strip.
 
     for (int i = 0; i < sc; i++)
-        if (scm_read(s, zv[i], (size_t) l[i], (long long) o[i]) == -1)
-            return -1;
+        if (!scm_read(s, zv[i], (size_t) l[i], (long long) o[i]))
+            return false;
 
-    return 1;
+    return true;
 }
 
 // Write a page of data from the zip caches. This is the serial part of the
@@ -596,10 +429,10 @@ int scm_read_zips(scm *s, uint8_t **zv,
 // allows data to be copied from one SCM to another without the computational
 // cost of an unnecessary encode-decode cycle.
 
-int scm_write_zips(scm *s, uint8_t **zv,
-                           uint64_t *oo,
-                           uint64_t *lo,
-                           uint16_t *sc, uint64_t *o, uint32_t *l)
+bool scm_write_zips(scm *s, uint8_t **zv,
+                            uint64_t *oo,
+                            uint64_t *lo,
+                            uint16_t *sc, uint64_t *o, uint32_t *l)
 {
     size_t c = (size_t) (*sc);
     long long t;
@@ -610,30 +443,30 @@ int scm_write_zips(scm *s, uint8_t **zv,
         if ((t = scm_write(s, zv[i], (size_t) l[i])) > 0)
             o[i] = (uint64_t) t;
         else
-            return -1;
+            return false;
 
     // Write the strip offset and length arrays.
 
     if ((t = scm_write(s, o, c * sizeof (uint64_t))) > 0)
         *oo = (uint64_t) t;
     else
-        return -1;
+        return false;
 
     if ((t = scm_write(s, l, c * sizeof (uint32_t))) > 0)
         *lo = (uint64_t) t;
     else
-        return -1;
+        return false;
 
-    return 1;
+    return true;
 }
 
 //------------------------------------------------------------------------------
 
 // Read and decode a page of data to the given float buffer.
 
-int scm_read_data(scm *s, float *p, uint64_t oo,
-                                    uint64_t lo,
-                                    uint16_t sc)
+bool scm_read_data(scm *s, float *p, uint64_t oo,
+                                     uint64_t lo,
+                                     uint16_t sc)
 {
     // Strip count and rows-per-strip are given by the IFD.
 
@@ -652,16 +485,16 @@ int scm_read_data(scm *s, float *p, uint64_t oo,
             fromdif(s, s->binv[i],    i * s->r);
             frombin(s, s->binv[i], p, i * s->r);
         }
-        return 1;
+        return true;
     }
-    return -1;
+    return false;
 }
 
 // Encode and write a page of data from the given float buffer.
 
-int scm_write_data(scm *s, const float *p, uint64_t *oo,
-                                           uint64_t *lo,
-                                           uint16_t *sc)
+bool scm_write_data(scm *s, const float *p, uint64_t *oo,
+                                            uint64_t *lo,
+                                            uint16_t *sc)
 {
     // Strip count is total rows / rows-per-strip rounded up.
 
@@ -687,22 +520,21 @@ int scm_write_data(scm *s, const float *p, uint64_t *oo,
 //------------------------------------------------------------------------------
 
 // Set IFD c to be the "next" of IFD p. If p is zero, set IFD c to be the first
-// IFD linked-to by the header.
+// IFD linked-to by the preamble.
 
-int scm_link_list(scm *s, long long c, long long p)
+bool scm_link_list(scm *s, long long c, long long p)
 {
-    header h;
-    ifd    i;
-
     if (p)
     {
-        if (scm_read_ifd(s, &i, p) == 1)
+        ifd i;
+
+        if (scm_read_ifd(s, &i, p))
         {
             i.next = (uint64_t) c;
 
-            if (scm_write_ifd(s, &i, p) == 1)
+            if (scm_write_ifd(s, &i, p) > 0)
             {
-                return 1;
+                return true;
             }
             else apperr("Failed to write previous IFD");
         }
@@ -710,19 +542,21 @@ int scm_link_list(scm *s, long long c, long long p)
    }
     else
     {
-        if (scm_read_header(s, &h) == 1)
-        {
-            h.first_ifd = (uint64_t) c;
+        hfd h;
 
-            if (scm_write_header(s, &h) == 1)
+        if (scm_read_hfd(s, &h))
+        {
+            h.next = (uint64_t) c;
+
+            if (scm_write_hfd(s, &h) > 0)
             {
-                return 1;
+                return true;
             }
-            else apperr("Failed to write header");
+            else apperr("Failed to write preamble");
         }
-        else apperr("Failed to write header");
+        else apperr("Failed to read preamble");
     }
-    return -1;
+    return false;
 }
 
 //------------------------------------------------------------------------------

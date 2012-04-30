@@ -4,6 +4,7 @@
 #define SCMTIFF_SCMDAT_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 //------------------------------------------------------------------------------
 // The following structures define the format of an SCM TIFF: a BigTIFF with a
@@ -87,6 +88,8 @@ struct ifd
 
 //------------------------------------------------------------------------------
 
+typedef struct { long long x; long long o; } scm_pair;
+
 struct scm
 {
     FILE *fp;                   // I/O file pointer
@@ -98,11 +101,8 @@ struct scm
     int g;                      // Channel signed flag
     int r;                      // Rows per strip
 
-    long long  count;
-    long long *index;
-    long long *offset;
-    float     *minimum;
-    float     *maximum;
+    long long l;               // Catalog length
+    scm_pair *a;               // Catalog pairs
 
     uint8_t **binv;             // Strip bin scratch buffer pointers
     uint8_t **zipv;             // Strip zip scratch buffer pointers
@@ -112,9 +112,9 @@ typedef struct scm scm;
 
 //------------------------------------------------------------------------------
 
-int is_header(header *);
-int is_hfd   (hfd *);
-int is_ifd   (ifd *);
+bool is_header(header *);
+bool is_hfd   (hfd *);
+bool is_ifd   (ifd *);
 
 //------------------------------------------------------------------------------
 
