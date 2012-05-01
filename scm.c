@@ -312,7 +312,7 @@ bool scm_read_page(scm *s, long long o, float *p)
 
     assert(s);
 
-    if (scm_read_ifd(s, &i, o) >= 0)
+    if (scm_read_ifd(s, &i, o))
     {
         uint64_t oo = (uint64_t) i.strip_offsets.offset;
         uint64_t lo = (uint64_t) i.strip_byte_counts.offset;
@@ -428,8 +428,8 @@ bool scm_scan_catalog(scm *s)
 
         for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
         {
-            s->a[l].x = (long long) d.page_number.offset;
-            s->a[l].x = o;
+            s->a[s->l].x = (long long) d.page_number.offset;
+            s->a[s->l].o = o;
             s->l++;
         }
         return true;

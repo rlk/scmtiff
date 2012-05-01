@@ -332,7 +332,7 @@ bool scm_read_ifd(scm *s, ifd *d, long long o)
     assert(s);
     assert(d);
 
-    if (scm_read(s, d, sizeof (ifd), o) >= 0)
+    if (o && scm_read(s, d, sizeof (ifd), o) >= 0)
     {
         if (is_ifd(d))
         {
@@ -376,11 +376,11 @@ bool scm_read_preamble(scm *s)
     {
         if (scm_read_hfd(s, &d))
         {
-            s->n = (int)               d.image_width      .offset - 2;
-            s->c = (int)               d.samples_per_pixel.offset;
-            s->r = (int)               d.rows_per_strip   .offset;
-            s->b = (int) ((uint16_t *) d.bits_per_sample  .offset)[0];
-            s->g = (2 == ((uint16_t *) d.sample_format    .offset)[0]);
+            s->n = (int)                 d.image_width      .offset - 2;
+            s->c = (int)                 d.samples_per_pixel.offset;
+            s->r = (int)                 d.rows_per_strip   .offset;
+            s->b = (int) ((uint16_t *) (&d.bits_per_sample  .offset))[0];
+            s->g = (2 == ((uint16_t *) (&d.sample_format    .offset))[0]);
 
             return true;
         }
