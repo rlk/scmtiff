@@ -23,6 +23,7 @@
 \newsubfloat{figure}
 \makepagenote
 
+\sisetup{group-minimum-digits={4},group-separator={,}}
 %-------------------------------------------------------------------------------
 
 \newcommand{\twod}    {2D}
@@ -46,6 +47,7 @@
 
 \newcommand{\B}{\bigstrut[b]}
 \newcommand{\T}{\bigstrut[t]}
+\newcommand{\X}[1]{\smash{#1}\phantom{o}}
 
 \newcommand{\Pos}[1]{\phantom{-}{#1}}
 \newcommand{\Neg}[1]{        {-}{#1}}
@@ -360,7 +362,7 @@ This completes the set of mathematical tools needed to immediately determine all
 
 As a multi-page raster image, An \scm\ tree is naturally amenable to storage in the form of a \tiff\ image file. In this form, \scm\ data is accessible to a variety of existing applications and tools, most notably the \libtiff\ image library.
 
-\section{SCMTIFF Usage}
+\section{SCMTIFF}
 
 Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ files by the \scmtiff\ utility. Given the variety of source data preparations, this conversion involves multiple steps, and is often directed by a script or build system. \scmtiff\ is a multi-tool that implements all of the different processes needed when traversing the path from raw data to usable \scm. It takes three global options followed by a list of per-process options and a list of input files.
 
@@ -374,7 +376,7 @@ Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ 
 \item[\texttt{-T}] Requests that process timing be collected and printed to the terminal upon completion.
 \end{optionlist}
 
-An \scm\ \tiff\ file produced by the \scmtiff\ tool is a standard \bigtiff\ image, suitable for processing using any \bigtiff-compatible tool. Notably, this includes \libtiff\ version 4 or later, and its related utilities.\pagenote{It should be noted that a number of the \scm\ \tiff\ fields reference embedded data by offset. Whenever possible, this data is embedded exactly once, despite being referred-to by fields in all directories. Applications that copy \tiff\ data should be careful not to replicate this data, as one such field, the page catalog \texttt{0xFFB1}, can be several megabytes in size. Indeed, directory extractions and other heavy modifications to a \tiff\ file structure will invalidate the page catalog anyway.}
+An \scm\ \tiff\ file produced by the \scmtiff\ tool is a standard \bigtiff\ image, suitable for processing using any \bigtiff-compatible tool, including \libtiff\ version 4 or later, and its related utilities.\pagenote{It should be noted that a number of the \scm\ \tiff\ fields reference embedded data by offset. Whenever possible, this data is embedded exactly once, despite being referred-to by fields in all directories. Applications that copy \tiff\ data should be careful not to replicate this data, as one such field, the page catalog \texttt{0xFFB1}, can be several megabytes in size. Indeed, directory extractions and other heavy modifications to a \tiff\ file structure will invalidate the page catalog anyway.}
 
 \subsection{Convert}
 
@@ -448,7 +450,7 @@ Regardless of whether the input height map was bordered or cataloged, the output
 \item[\texttt{-R} \inangles{$r_0$}\texttt{,}\inangles{$r_1$}] Specifies the true range of radii represented by the normalized height map input. This allows the true magnitude of the \emph{change} in height to be computed, which gives slope, which gives the normal vector.
 \end{optionlist}
 
-\section{SCMVIEW Usage}
+\section{SCMVIEW}
 
 The \scmview\ utility enables interactive inspection and side-by-side comparison of individual pages of \scm\ \tiff\ files. Figure~\ref{fig:scmview} shows a screenshot of \scmview\ in action. There, four \scm\ files are displayed together, with their pan, zoom, and page number in sync. The user has focused upon Clavius, a region of interest on a lunar height map. The first frame shows a converted equirectangular projection of the map, the second shows a polar projection, and the third demonstrates their seamless merger. This output is taken from the usage example of Section~\ref{sec:planet}. The fourth frame shows a normal map derived from the merged height map, discussed in Section~\ref{sec:normal}.
 
@@ -471,11 +473,24 @@ The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line.
 \item[Return] \ldots\ Reset the pan and zoom.
 \item[Page Up] \ldots\ Go to the next page.
 \item[Page Down] \ldots\ Go to the previous page.
-\item[Shift Page Up] \ldots\ Skip ahead 10 pages.
-\item[Shift Page Down] \ldots\ Skip back 10 pages.
-\item[Control Page Up] \ldots\ Scan for the next present page.
-\item[Control Page Down] \ldots\ Scan for the previous present page.
-\item[0--9] \ldots\ Skip to the first page of level 0--9.
+\item[Shift Page Up] \ldots\ Scan for the next present page.
+\item[Shift Page Down] \ldots\ Scan for the previous present page.
+\item[{\setlength{\arraycolsep}{0pt}
+$\begin{array}{ccc}
+\X{7} & \X{ }      & \X{9} \\[-5pt]
+\X{ } & \X{\times} & \X{ } \\[-5pt]
+\X{1} & \X{ }      & \X{3} \\
+\end{array}$
+}] \ldots\ Go to one of the four child pages.
+\item[{\setlength{\arraycolsep}{0pt}
+$\begin{array}{ccc}
+\X{ } & \X{8} & \X{ } \\[-2pt]
+\X{4} & \X{+} & \X{6} \\[-2pt]
+\X{ } & \X{2} & \X{ } \\
+\end{array}$
+}] \ldots\ Go to one of the four neighbor pages.
+\item[5] \dots\ Go to the parent page.
+\item[0] \dots\ Go to page zero.
 \item[F1] \ldots\ Normal view mode.
 \item[F2] \ldots\ False color view mode.
 \item[Escape] \ldots\ Exit.
@@ -487,7 +502,7 @@ The \scmview\ utility takes a list of \scm\ \tiff\ files on the command line.
 \item[\texttt{-geometry} \inangles{$w$}\texttt{x}\inangles{$h$}] Display a window with size $(w, h)$.
 \end{optionlist}
 
-\section{SCMTIFF Examples}
+\section{Examples}
 
 \subsection{A Basic Panorama}
 \label{sec:panorama}
@@ -600,7 +615,7 @@ We need to select a page size and tree depth appropriate for this data set. Ther
 
 \item Large $n$ incurs high I/O latency. RAM-to-VRAM data transfers take time, and if a page upload consumes a significant fraction of a frame period then the frame rate is likely to break up during high I/O load. Given 2012 era hardware, we'll want $n$ around $512$.
 
-\item For a given $w$, small $n$ requires large $d$. This increases the total number of pages in flight at any given moment, as well as the number of texture image units consumed by the renderer. This is usually not a problem, but there are limits.
+\item For a given $w$, small $n$ requires large $d$. This increases the total number of pages in flight at any given moment, as well as the number of texture image units consumed by the renderer. This is usually not a problem, but depending upon the hardware, one may encounter a limit.\pagenote{The real limit is the total depth of all simultaneously loaded data sets, which must be less than \verb|GL_MAX_TEXTURE_IMAGE_UNITS|. On a 2012-era Mac, this limit is 16. On a 2012-era NVIDIA-equiped Linux or Windows PC, this limit is 56 or 64.}
 
 \item The page granularity of a height map impacts the effectiveness of visibility testing, as small pages allow tighter bounding volumes than large pages. This consideration does not apply to color maps or normal maps.
 
