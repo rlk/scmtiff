@@ -27,7 +27,6 @@ void scm_close(scm *s)
     {
         fclose(s->fp);
         scm_free(s);
-        free(s->str);
         free(s);
     }
 }
@@ -61,7 +60,7 @@ scm *scm_ifile(const char *name)
 // Open an SCM TIFF output file. Initialize and return an SCM structure with the
 // given parameters. Write the TIFF header and SCM TIFF preface.
 
-scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
+scm *scm_ofile(const char *name, int n, int c, int b, int g)
 {
     scm *s = NULL;
 
@@ -69,16 +68,14 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g, const char *str)
     assert(n > 0);
     assert(c > 0);
     assert(b > 0);
-    assert(str);
 
     if ((s = (scm *) calloc(sizeof (scm), 1)))
     {
-        s->str = strcpy((char *) malloc(strlen(str) + 1), str);
-        s->n   = n;
-        s->c   = c;
-        s->b   = b;
-        s->g   = g;
-        s->r   = 16;
+        s->n =  n;
+        s->c =  c;
+        s->b =  b;
+        s->g =  g;
+        s->r = 16;
 
         if ((s->fp = fopen(name, "w+b")))
         {
@@ -112,12 +109,6 @@ float *scm_alloc_buffer(scm *s)
 }
 
 // Query the parameters of SCM s.
-
-char *scm_get_description(scm *s)
-{
-    assert(s);
-    return s->str;
-}
 
 int scm_get_n(scm *s)
 {
@@ -238,7 +229,7 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
 
     ifd d;
 
-    if (scm_read_ifd(t, &d, o) == 1)
+    if (scm_read_ifd(t, &d, o))
     {
         uint64_t oo = (uint64_t) d.strip_offsets.offset;
         uint64_t lo = (uint64_t) d.strip_byte_counts.offset;
@@ -249,7 +240,7 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
 
         d.next = 0;
 
-        if (scm_read_zips(t, t->zipv, oo, lo, sc, O, L) > 0)
+        if (scm_read_zips(t, t->zipv, oo, lo, sc, O, L))
         {
             if ((o = scm_write_ifd(s, &d, 0)) >= 0)
             {
@@ -439,6 +430,139 @@ bool scm_scan_catalog(scm *s)
 
 //------------------------------------------------------------------------------
 
+// Determine whether page i of SCM s is a leaf page... that it does NOT have
+// any children represented by real data.
+
+static bool is_leaf(scm *s, long long x)
+{
+    if (scm_find_offset(s, scm_page_child(x, 0)) > 0) return false;
+    if (scm_find_offset(s, scm_page_child(x, 1)) > 0) return false;
+    if (scm_find_offset(s, scm_page_child(x, 2)) > 0) return false;
+    if (scm_find_offset(s, scm_page_child(x, 3)) > 0) return false;
+
+    return true;
+}
+
+
+    for (int i = 0; i < l; ++i)
+        if (is_leaf(s, a[i].x))
+            c++;
+
+// Scan a page of data, noting its sample minima and maxima.
+
+static void scm_scan_page(scm *s, float *p, float *min, float *max)
+{
+    int i;
+    int j;
+
+    for (i = 0; i < (s->n + 2) * (s->n + 2); i++)
+        for (j = 0; j < s->c; ++j)
+        {
+            if (min[j] > p[i * s->c + j])
+                min[j] = p[i * s->c + j];
+            if (max[j] < p[i * s->c + j])
+                max[j] = p[i * s->c + j];
+        }
+}
+
+bool scm_scan_extrema(scm *s, int d)
+{
+    void  *ab;
+    void  *zb;
+    float *af;
+    float *zf;
+    float *p;
+    long long c = 0;
+
+    // Count the leaves.
+
+    // Allocate temporary storage for page data and extrema.
+
+    size_t sz = (size_t) l * s->c * s->b / 8;
+
+    if ((ab = malloc(sz)) &&
+        (zb = malloc(sz)) &&
+
+        (af = (float *) malloc(s->c * (c << d) * sizeof (float))) &&
+        (zf = (float *) malloc(s->c * (c << d) * sizeof (float))) &&
+
+        (p = scm_alloc_buffer(s)))
+    {
+        scm_page_extrema(s, p, af, zf);
+
+
+
+        // Initialize the extrema.
+
+        for (int i = 0; i < s->c * l; ++i)
+        {
+            af[i] =  FLT_MAX;
+            zf[i] = -FLT_MAX;
+        }
+
+        // Determine the min and max samples for each page.
+
+        for (int i = l - 1; i >= 0; i--)
+        {
+            long long x0 = scm_page_child(a[i].x, 0);
+            long long x1 = scm_page_child(a[i].x, 1);
+            long long x2 = scm_page_child(a[i].x, 2);
+            long long x3 = scm_page_child(a[i].x, 3);
+
+            // Check if this page's children have been scaned.
+
+            long long i0 = scm_seek_catalog(a, i  + 1, l, x0);
+            long long i1 = scm_seek_catalog(a, i0 + 1, l, x1);
+            long long i2 = scm_seek_catalog(a, i1 + 1, l, x2);
+            long long i3 = scm_seek_catalog(a, i2 + 1, l, x3);
+
+            // If not, scan them. Else merge their extrema.
+
+            if (i0 < 0 || i1 < 0 || i2 < 0 || i3 < 0)
+            {
+                if (scm_read_page(s, a[i].o, p))
+                    scm_scan_extrema(s, p, af + i * s->c, zf + i * s->c);
+            }
+            else
+            {
+                for (int j = 0; j < s->c; j++)
+                {
+                    const int k = i * s->c + j;
+
+                    if (i0 >= 0)
+                    {
+                        af[k] = min(af[k], af[i0 * s->c + j]);
+                        zf[k] = max(zf[k], zf[i0 * s->c + j]);
+                    }
+                    if (i1 >= 0)
+                    {
+                        af[k] = min(af[k], af[i1 * s->c + j]);
+                        zf[k] = max(zf[k], zf[i1 * s->c + j]);
+                    }
+                    if (i2 >= 0)
+                    {
+                        af[k] = min(af[k], af[i2 * s->c + j]);
+                        zf[k] = max(zf[k], zf[i2 * s->c + j]);
+                    }
+                    if (i3 >= 0)
+                    {
+                        af[k] = min(af[k], af[i3 * s->c + j]);
+                        zf[k] = max(zf[k], zf[i3 * s->c + j]);
+                    }
+                }
+            }
+        }
+        // Convert the sample values to binary.
+
+        ftob(ab, af, s->c * l, s->b, s->g);
+        ftob(zb, zf, s->c * l, s->b, s->g);
+    }
+
+    return true;
+}
+
+//------------------------------------------------------------------------------
+
 static uint64_t write_indices(scm *s)
 {
     long long o;
@@ -468,7 +592,7 @@ static uint64_t write_offsets(scm *s)
     {
         for (i = 0; i < s->l; ++i)
         {
-            if (fwrite(&s->a[i].x, sizeof (long long), 1, s->fp) != 1)
+            if (fwrite(&s->a[i].o, sizeof (long long), 1, s->fp) != 1)
             {
                 syserr("Failed to write SCM index");
                 return 0;
@@ -496,6 +620,7 @@ bool scm_make_catalog(scm *s)
     if (scm_scan_catalog(s))
     {
         scm_sort_catalog(s);
+        scm_scan_extrema(s, 2);
 
         if (fseeko(s->fp, 0, SEEK_END) == 0)
         {
@@ -525,145 +650,8 @@ bool scm_make_catalog(scm *s)
     return false;
 }
 
-bool scm_make_extrema(scm *s)
-{
-    return true;
-}
-
 //------------------------------------------------------------------------------
-
 #if 0
-// Find the given index in the index-offset array and return the array location.
-// Limit the search to elements between f and l (not including l).
-
-long long scm_seek_catalog(scm_pair *a, long long f, long long l, long long x)
-{
-    // (glibc bsearch omits this O(1) bounds check and goes O(log n) instead.)
-
-    if (x < a[f    ].x) return -1;
-    if (x > a[l - 1].x) return -1;
-
-    void *p;
-
-    if ((p = bsearch(&x, a + f, (size_t) (l - f), sizeof (scm_pair), _cmp)))
-        return (scm_pair *) p - a;
-
-    return -1;
-}
-
-// Sort the given index-offset array by index.
-
-void scm_sort_catalog(scm_pair *a, long long l)
-{
-}
-
-// Read the index and offset of all pages in SCM s to a newly-allocated array.
-
-long long scm_scan_catalog(scm *s, scm_pair **a)
-{
-    long long l = 0;
-    long long o;
-
-    ifd i;
-
-    // Scan the file to determine the number of pages.
-
-    for (o = scm_rewind(s); scm_read_ifd(s, &i, o) > 0; o = ifd_next(&i))
-        l++;
-
-    // Allocate and populate an array of page indices and offsets.
-
-    if ((a[0] = (scm_pair *) malloc((size_t) l * sizeof (scm_pair))))
-    {
-        l = 0;
-        for (o = scm_rewind(s); scm_read_ifd(s, &i, o) > 0; o = ifd_next(&i))
-        {
-            a[0][l].x = ifd_index(&i);
-            a[0][l].o = o;
-            l++;
-        }
-        return l;
-    }
-    return 0;
-}
-
-// Rewrite all IFDs to refer to the page catalog at offset o with length l.
-
-void scm_link_catalog(scm *s, long long o, long long l)
-{
-    long long p;
-
-    ifd i;
-
-    for (p = scm_rewind(s); scm_read_ifd(s, &i, p) > 0; p = ifd_next(&i))
-    {
-        set_field(&i.page_catalog, 0xFFB1, 16, 2 * l, o);
-        scm_write_ifd(s, &i, p);
-    }
-}
-
-// Append a sorted catalog to the end of SCM s.
-
-void scm_make_catalog(scm *s)
-{
-    scm_pair *a;
-    long long l;
-    long long o;
-
-    if ((l = scm_scan_catalog(s, &a)))
-    {
-        scm_sort_catalog(a, l);
-
-        if (fseeko(s->fp, 0, SEEK_END) == 0)
-        {
-            if ((o = scm_write(s, a, (size_t) l * sizeof (scm_pair))) > 0)
-            {
-                scm_link_catalog(s, o, l);
-            }
-            else syserr("Failed to write SCM catalog");
-        }
-        else syserr("Failed to seek SCM");
-
-        free(a);
-    }
-}
-
-// Read the catalog from SCM s. If none is found, scan and sort a new one.
-
-long long scm_read_catalog(scm *s, scm_pair **a)
-{
-    long long o;
-    long long l;
-    ifd i;
-
-    assert(s);
-
-    if ((o = scm_rewind(s)))
-    {
-        if (scm_read_ifd(s, &i, o) == 1)
-        {
-            l = (long long) (i.page_catalog.count / 2);
-
-            if ((a[0] = malloc((size_t) l * sizeof (scm_pair))))
-            {
-                if (scm_read_field(s, &i.page_catalog, a[0]) == 1)
-                    return l;
-
-                if ((l = scm_scan_catalog(s, a)))
-                {
-                    scm_sort_catalog(a[0], l);
-                    return l;
-                }
-                free(a[0]);
-            }
-        }
-        else apperr("Failed to read SCM TIFF IFD");
-    }
-    return 0;
-}
-
-//------------------------------------------------------------------------------
-
 // Rewrite all IFDs to refer to the page extrema at o0 and o1 with count c.
 
 void scm_link_extrema(scm *s, long long o0, long long o1, long long c)
@@ -678,23 +666,6 @@ void scm_link_extrema(scm *s, long long o0, long long o1, long long c)
         set_field(&i.page_maxima, 0xFFB3, scm_type(s), c, o1);
         scm_write_ifd(s, &i, p);
     }
-}
-
-// Scan a page of data, noting its sample minima and maxima.
-
-static void scm_scan_extrema(scm *s, float *p, float *min, float *max)
-{
-    int i;
-    int j;
-
-    for (i = 0; i < (s->n + 2) * (s->n + 2); i++)
-        for (j = 0; j < s->c; ++j)
-        {
-            if (min[j] > p[i * s->c + j])
-                min[j] = p[i * s->c + j];
-            if (max[j] < p[i * s->c + j])
-                max[j] = p[i * s->c + j];
-        }
 }
 
 // Append page extrema to the end of SCM s.
@@ -821,5 +792,4 @@ void scm_make_extrema(scm *s)
     }
 }
 #endif
-
 //------------------------------------------------------------------------------

@@ -12,14 +12,12 @@
 void scm_close(scm *);
 
 scm *scm_ifile(const char *);
-scm *scm_ofile(const char *, int, int, int, int, const char *);
+scm *scm_ofile(const char *, int, int, int, int);
 
 //------------------------------------------------------------------------------
 // SCM TIFF parameter queries
 
 float *scm_alloc_buffer(scm *);
-
-char *scm_get_description(scm *);
 
 int scm_get_n(scm *);
 int scm_get_c(scm *);

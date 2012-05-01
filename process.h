@@ -10,7 +10,7 @@ int catalog (int, char **);
 int border (int, char **, const char *);
 int mipmap (int, char **, const char *);
 int combine(int, char **, const char *, const char *);
-int convert(int, char **, const char *, const char *,
+int convert(int, char **, const char *,
             int, int, int, int, int, const double *, const double *, const float *);
 
 //------------------------------------------------------------------------------

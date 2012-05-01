@@ -184,10 +184,7 @@ int normal(int argc, char **argv, const char *o, const float *R)
 
         if ((s = scm_ifile(argv[0])))
         {
-            char *T = scm_get_description(s);
-            int   n = scm_get_n(s);
-
-            if ((t = scm_ofile(out, n, 3, 8, 0, T)))
+            if ((t = scm_ofile(out, scm_get_n(s), 3, 8, 0)))
             {
                 process(s, t, R);
                 scm_close(t);

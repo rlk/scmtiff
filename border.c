@@ -128,6 +128,8 @@ static void process(scm *s, scm *t)
 
     if (scm_scan_catalog(s))
     {
+        scm_sort_catalog(s);
+
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             for (long long i = 0; i < scm_get_l(s); ++i)
@@ -224,13 +226,12 @@ int border(int argc, char **argv, const char *o)
 
         if ((s = scm_ifile(argv[0])))
         {
-            int   n = scm_get_n(s);
-            int   c = scm_get_c(s);
-            int   b = scm_get_b(s);
-            int   g = scm_get_g(s);
-            char *T = scm_get_description(s);
+            int n = scm_get_n(s);
+            int c = scm_get_c(s);
+            int b = scm_get_b(s);
+            int g = scm_get_g(s);
 
-            if ((t = scm_ofile(out, n, c, b, g, T)))
+            if ((t = scm_ofile(out, n, c, b, g)))
             {
                 process(s, t);
                 scm_close(t);

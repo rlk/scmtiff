@@ -95,7 +95,6 @@ typedef struct { long long x; long long o; } scm_pair;
 struct scm
 {
     FILE *fp;                   // I/O file pointer
-    char *str;                  // Description text
 
     int n;                      // Page sample count
     int c;                      // Sample channel count
@@ -103,8 +102,8 @@ struct scm
     int g;                      // Channel signed flag
     int r;                      // Rows per strip
 
-    long long l;               // Catalog length
-    scm_pair *a;               // Catalog pairs
+    long long l;                // Catalog length
+    scm_pair *a;                // Catalog pairs
 
     uint8_t **binv;             // Strip bin scratch buffer pointers
     uint8_t **zipv;             // Strip zip scratch buffer pointers

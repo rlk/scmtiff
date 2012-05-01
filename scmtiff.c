@@ -113,7 +113,6 @@ int main(int argc, char **argv)
                 "\t\t-o output  . . Output file\n"
                 "\t\t-T . . . . . . Emit timing information\n\n"
                 "\t%s -p convert [options]\n"
-                "\t\t-t text  . . . Image description text file\n"
                 "\t\t-n n . . . . . Page size\n"
                 "\t\t-d d . . . . . Tree depth\n"
                 "\t\t-b b . . . . . Channel depth override\n"
@@ -127,14 +126,15 @@ int main(int argc, char **argv)
                 "\t\t-m avg . . . . Combine by average\n\n"
                 "\t%s -p mipmap\n\n"
                 "\t%s -p border\n\n"
-                "\t%s -p catalog\n\n"
+                "\t%s -p catalog [options]\n"
+                "\t\t-t text  . . . Image description text file\n\n"
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
 
                 exe, exe, exe, exe, exe, exe, exe);
 
     else if (strcmp(p, "convert") == 0)
-        r = convert(argc, argv, o, t, n, d, b, g, x, L, P, N);
+        r = convert(argc, argv, o, n, d, b, g, x, L, P, N);
 
     else if (strcmp(p, "combine") == 0)
         r = combine(argc, argv, o, m);

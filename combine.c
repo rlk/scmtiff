@@ -99,7 +99,7 @@ static void process(scm *s, scm **V, int C, int O)
 
             for (int f = 0; f < C; ++f)
 
-                if ((o[f] = scm_find_offset(V[f], x) >= 0))
+                if ((o[f] = scm_find_offset(V[f], x)) >= 0)
                 {
                     g = f;
                     k++;
@@ -169,15 +169,14 @@ int combine(int argc, char **argv, const char *o, const char *m)
 
         if (C)
         {
-            int   n = scm_get_n(V[0]);
-            int   c = scm_get_c(V[0]);
-            int   b = scm_get_b(V[0]);
-            int   g = scm_get_g(V[0]);
-            char *T = scm_get_description(V[0]);
+            int n = scm_get_n(V[0]);
+            int c = scm_get_c(V[0]);
+            int b = scm_get_b(V[0]);
+            int g = scm_get_g(V[0]);
 
             scm *s;
 
-            if ((s = scm_ofile(out, n, c, b, g, T)))
+            if ((s = scm_ofile(out, n, c, b, g)))
             {
                 process(s, V, C, O);
                 scm_close(s);

@@ -15,7 +15,7 @@
 #include "process.h"
 
 //------------------------------------------------------------------------------
-
+#if 0
 static char *load_txt(const char *name)
 {
     // Load the named file into a newly-allocated buffer.
@@ -53,7 +53,7 @@ static char *load_txt(const char *name)
     fclose(fp);
     return p;
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 // Given the four corner vectors of a sample, compute the five internal vectors
@@ -212,7 +212,6 @@ static int process(scm *s, int d, img *p)
 //------------------------------------------------------------------------------
 
 int convert(int argc, char **argv, const char *o,
-                                   const char *t,
                                            int n,
                                            int d,
                                            int b,
@@ -224,15 +223,9 @@ int convert(int argc, char **argv, const char *o,
 {
     img  *p = NULL;
     scm  *s = NULL;
-    char *T = NULL;
     char *e = NULL;
 
     char out[256];
-
-    // Load the description text, if any.
-
-    if (t == NULL || (T = load_txt(t)) == NULL)
-        T = "Copyright (C) 2011 Robert Kooima";
 
     // Iterate over all input file arguments.
 
@@ -308,7 +301,7 @@ int convert(int argc, char **argv, const char *o,
 
             // Process the output.
 
-            if ((s = scm_ofile(out, n, p->c, b, g, T)))
+            if ((s = scm_ofile(out, n, p->c, b, g)))
             {
                 process(s, d, p);
                 scm_close(s);
