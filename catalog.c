@@ -19,7 +19,7 @@ int catalog(int argc, char **argv)
         if ((s = scm_ifile(argv[i])))
         {
             scm_make_catalog(s);
-            scm_make_extrema(s);
+            // scm_make_extrema(s);
             scm_close(s);
         }
     }

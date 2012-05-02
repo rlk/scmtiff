@@ -102,8 +102,13 @@ struct scm
     int g;                      // Channel signed flag
     int r;                      // Rows per strip
 
-    long long l;                // Catalog length
-    scm_pair *a;                // Catalog pairs
+    long long l;
+    scm_pair *a;
+
+    long long  xc;
+    long long *xv;
+    long long  oc;
+    long long *ov;
 
     uint8_t **binv;             // Strip bin scratch buffer pointers
     uint8_t **zipv;             // Strip zip scratch buffer pointers

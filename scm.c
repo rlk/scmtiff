@@ -343,7 +343,7 @@ static int _cmpo(const void *p, const void *q)
 }
 
 // Search the catalog for the index of a given offset.
-
+#if 0
 long long scm_find_index(scm *s, long long o)
 {
     if (o < s->a[       0].o) return -1;
@@ -356,7 +356,7 @@ long long scm_find_index(scm *s, long long o)
 
     return -1;
 }
-
+#endif
 // Search the catalog for the offset of a given index.
 
 long long scm_find_offset(scm *s, long long x)
@@ -372,8 +372,13 @@ long long scm_find_offset(scm *s, long long x)
     return -1;
 }
 
-// Return the index or offset of a specific catalog element.
+// Map index onto offset
+// Return the largest page index. (after sort)
+// Return the last page offset (before sort)
+// Enumerate all index/offset pairs in increasing index order.
 
+// Return the index or offset of a specific catalog element.
+#if 0
 long long scm_get_index(scm *s, long long i)
 {
     return s->a[i].x;
@@ -383,7 +388,7 @@ long long scm_get_offset(scm *s, long long i)
 {
     return s->a[i].o;
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 // Sort the catalog  to prepare for searching.
@@ -430,9 +435,22 @@ bool scm_scan_catalog(scm *s)
 
 //------------------------------------------------------------------------------
 
+// 1. Scan the file noting all present page indices.
+//    Sort them.
+// 2. Scan the file noting all present page offsets.
+//    Search the indices and store offsets in the same order.
+// 3. Count the leaves
+// 4. For each leaf
+//    Append overdraw pages to the page list.
+//    Traverse the overdraw pages
+//    Determine the range of each sub-image
+// 5. For each present page (working backward)
+//    Determine the range of the child pages.
+
+
 // Determine whether page i of SCM s is a leaf page... that it does NOT have
 // any children represented by real data.
-
+#if 0
 static bool is_leaf(scm *s, long long x)
 {
     if (scm_find_offset(s, scm_page_child(x, 0)) > 0) return false;
@@ -560,7 +578,7 @@ bool scm_scan_extrema(scm *s, int d)
 
     return true;
 }
-
+#endif
 //------------------------------------------------------------------------------
 
 static uint64_t write_indices(scm *s)
@@ -620,7 +638,7 @@ bool scm_make_catalog(scm *s)
     if (scm_scan_catalog(s))
     {
         scm_sort_catalog(s);
-        scm_scan_extrema(s, 2);
+//      scm_scan_extrema(s, 2);
 
         if (fseeko(s->fp, 0, SEEK_END) == 0)
         {
