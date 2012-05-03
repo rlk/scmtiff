@@ -173,6 +173,15 @@ static long long llsearch(long long x, long long c, const long long *v)
     return p ? (long long *) p - v : -1;
 }
 
+static bool isleaf(long long x, long long c, const long long *v)
+{
+    if (llsearch(scm_page_child(x, 0), c, v) >= 0) return false;
+    if (llsearch(scm_page_child(x, 1), c, v) >= 0) return false;
+    if (llsearch(scm_page_child(x, 2), c, v) >= 0) return false;
+    if (llsearch(scm_page_child(x, 3), c, v) >= 0) return false;
+    return true;
+}
+
 // Allocate and initialize a sorted array with the indices of all present pages.
 
 static long long scm_scan_indices(scm *s, long long **v)
@@ -228,6 +237,61 @@ static long long scm_scan_offsets(scm *s, long long **v,
             v[0][i] = o;
 
     return xc;
+}
+
+static long long scm_grow_leaves(scm *s, long long **v,
+                     long long xc, const long long *xv, int d)
+{
+    return 0;
+}
+
+static void scm_bound_leaf(scm *s, long long x, const float     *pp,
+                                   long long c, const long long *yv,
+                                   float *av,
+                                   float *zv,
+                                   int l, int r, int t, int b, int d)
+{
+    long long i;
+
+    // Subdivide as far as needed.
+
+    if (d > 0)
+    {
+        long long x0 = scm_page_child(x, 0);
+        long long x1 = scm_page_child(x, 1);
+        long long x2 = scm_page_child(x, 2);
+        long long x3 = scm_page_child(x, 3);
+
+        int x = (l + r) / 2;
+        int y = (b + t) / 2;
+
+        scm_bound_leaf(s, x0, pp, c, yv, av, zv, l, x, t, y, d - 1);
+        scm_bound_leaf(s, x1, pp, c, yv, av, zv, l, x, y, b, d - 1);
+        scm_bound_leaf(s, x2, pp, c, yv, av, zv, x, r, t, y, d - 1);
+        scm_bound_leaf(s, x3, pp, c, yv, av, zv, x, r, y, b, d - 1);
+    }
+
+    // Sample the leaf subdivision and note the extrema.
+
+    else if ((i = llsearch(x, c, yv)) >= 0)
+    {
+        for (int k = 0; k < s->c; ++k)
+        {
+            const int di = i * s->c + k;
+
+            av[di] =  FLT_MAX;
+            zv[di] = -FLT_MAX;
+
+            for     (int y = t; y < b; ++y)
+                for (int x = l; x < r; ++x)
+                {
+                    const int si = ((y + 1) * (s->n + 2) + (x + 1)) * s->c + k;
+
+                    if (av[di] > pp[si]) av[di] = pp[si];
+                    if (zv[di] < pp[si]) zv[di] = pp[si];
+                }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -370,8 +434,52 @@ long long scm_rewind(scm *s)
 
 // Calculate and write all metadata to SCM s.
 
-bool scm_finish(scm *s)
+bool scm_finish(scm *s, int d)
 {
+    assert(s);
+
+    const int n = s->n;
+    const int c = s->c;
+
+    long long  xc =    0;
+    long long *xv = NULL;
+    long long  oc =    0;
+    long long *ov = NULL;
+    long long  yc =    0;
+    long long *yv = NULL;
+    float     *av = NULL;
+    float     *zv = NULL;
+    float     *pp = NULL;
+
+    if ((xc = scm_scan_indices(s, &xv)))
+    {
+        if ((oc = scm_scan_offsets(s, &ov, xc, xv)))
+        {
+            if ((yc = scm_grow_leaves(s, &yv, xc, xv, d)))
+            {
+                if ((av = (float *) malloc((yc * c) * sizeof (float))) &&
+                    (zv = (float *) malloc((yc * c) * sizeof (float))) &&
+
+                    (pp = scm_alloc_buffer(s)))
+                {
+                    for (long long i = xc - 1; i > 0; --i)
+                        if (isleaf(xv[i], xc, xv))
+                        {
+                            if (scm_read_page (s, ov[i], pp))
+                                scm_bound_leaf(s, xv[i], pp, yc, yv, av, zv, 0, n, 0, n, d);
+                        }
+                        else scm_bound_node(s, xv[i], yc, yv, av, zv);
+                }
+            }
+        }
+    }
+    free(pp);
+    free(av);
+    free(zv);
+    free(yv);
+    free(ov);
+    free(xv);
+
     return true;
 }
 
