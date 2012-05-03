@@ -40,26 +40,14 @@ bool scm_read_page(scm *, long long, float *);
 //------------------------------------------------------------------------------
 // SCM TIFF metadata search.
 
-long long scm_scan_catalog(scm *);
+bool scm_scan_catalog(scm *);
 
+long long scm_get_length(scm *);
 long long scm_get_index (scm *, long long);
 long long scm_get_offset(scm *, long long);
 
 long long scm_search(scm *, long long);
 
-//------------------------------------------------------------------------------
-#if 0
-void scm_sort_catalog(scm *);
-bool scm_scan_catalog(scm *);
-bool scm_make_catalog(scm *);
-bool scm_make_extrema(scm *);
-
-long long scm_find_index (scm *, long long);
-long long scm_find_offset(scm *, long long);
-
-long long scm_get_index  (scm *, long long);
-long long scm_get_offset (scm *, long long);
-#endif
 //------------------------------------------------------------------------------
 
 #endif

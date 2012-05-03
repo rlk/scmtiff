@@ -128,11 +128,9 @@ static void process(scm *s, scm *t)
 
     if (scm_scan_catalog(s))
     {
-        scm_sort_catalog(s);
-
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
-            for (long long i = 0; i < scm_get_l(s); ++i)
+            for (long long i = 0; i < scm_get_length(s); ++i)
             {
                 if (scm_read_page(s, scm_get_offset(s, i), p))
                 {
@@ -166,24 +164,35 @@ static void process(scm *s, scm *t)
 
                     // Seek the page catalog locations of all neighbors.
 
-                    long long on  = scm_find_offset(s, xn);
-                    long long os  = scm_find_offset(s, xs);
-                    long long ow  = scm_find_offset(s, xw);
-                    long long oe  = scm_find_offset(s, xe);
-                    long long onw = scm_find_offset(s, xnw);
-                    long long one = scm_find_offset(s, xne);
-                    long long osw = scm_find_offset(s, xsw);
-                    long long ose = scm_find_offset(s, xse);
+                    long long in  = scm_search(s, xn);
+                    long long is  = scm_search(s, xs);
+                    long long iw  = scm_search(s, xw);
+                    long long ie  = scm_search(s, xe);
+                    long long inw = scm_search(s, xnw);
+                    long long ine = scm_search(s, xne);
+                    long long isw = scm_search(s, xsw);
+                    long long ise = scm_search(s, xse);
+
+                    // Get the file offset of all pages.
+
+                    long long on  = (in  < 0) ? 0 : scm_get_offset(s, in);
+                    long long os  = (is  < 0) ? 0 : scm_get_offset(s, is);
+                    long long ow  = (iw  < 0) ? 0 : scm_get_offset(s, iw);
+                    long long oe  = (ie  < 0) ? 0 : scm_get_offset(s, ie);
+                    long long onw = (inw < 0) ? 0 : scm_get_offset(s, inw);
+                    long long one = (ine < 0) ? 0 : scm_get_offset(s, ine);
+                    long long osw = (isw < 0) ? 0 : scm_get_offset(s, isw);
+                    long long ose = (ise < 0) ? 0 : scm_get_offset(s, ise);
 
                     // Copy the borders of all adjacent pages into this one.
 
-                    if (on > 0 && scm_read_page(s, on, q))
+                    if (on && scm_read_page(s, on, q))
                         copyn(p, f, q, fn, o, c);
-                    if (os > 0 && scm_read_page(s, os, q))
+                    if (os && scm_read_page(s, os, q))
                         copys(p, f, q, fs, o, c);
-                    if (ow > 0 && scm_read_page(s, ow, q))
+                    if (ow && scm_read_page(s, ow, q))
                         copyw(p, f, q, fw, o, c);
-                    if (oe > 0 && scm_read_page(s, oe, q))
+                    if (oe && scm_read_page(s, oe, q))
                         copye(p, f, q, fe, o, c);
 
                     // Copy the corners of all diagonal pages into this one.
@@ -193,13 +202,13 @@ static void process(scm *s, scm *t)
                     long long fsw = scm_page_root(xsw);
                     long long fse = scm_page_root(xse);
 
-                    if (onw > 0 && scm_read_page(s, onw, q))
+                    if (onw && scm_read_page(s, onw, q))
                         copynw(p, f, q, fnw, o, c);
-                    if (one > 0 && scm_read_page(s, one, q))
+                    if (one && scm_read_page(s, one, q))
                         copyne(p, f, q, fne, o, c);
-                    if (osw > 0 && scm_read_page(s, osw, q))
+                    if (osw && scm_read_page(s, osw, q))
                         copysw(p, f, q, fsw, o, c);
-                    if (ose > 0 && scm_read_page(s, ose, q))
+                    if (ose && scm_read_page(s, ose, q))
                         copyse(p, f, q, fse, o, c);
 
                     // Write the resulting page to the output.

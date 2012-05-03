@@ -45,7 +45,6 @@ static int addfile(scm **V, int C, const char *name)
 
             if ((scm_scan_catalog(s)))
             {
-                scm_sort_catalog(s);
                 V[C] = s;
                 return ++C;
             }
@@ -76,14 +75,15 @@ static void process(scm *s, scm **V, int C, int O)
     {
         long long b = 0;
         long long m = 0;
+        long long i = 0;
         long long o[C];
 
         // Determine the highest page index in the input.
 
         for (int f = 0; f < C; ++f)
         {
-            if (m < scm_get_index(V[f], scm_get_l(V[f]) - 1))
-                m = scm_get_index(V[f], scm_get_l(V[f]) - 1);
+            if (m < scm_get_index(V[f], scm_get_length(V[f]) - 1))
+                m = scm_get_index(V[f], scm_get_length(V[f]) - 1);
 
             o[f] = 0;
         }
@@ -99,8 +99,9 @@ static void process(scm *s, scm **V, int C, int O)
 
             for (int f = 0; f < C; ++f)
 
-                if ((o[f] = scm_find_offset(V[f], x)) >= 0)
+                if ((i = scm_search(V[f], x)) >= 0)
                 {
+                    o[f] = scm_get_offset(V[f], i);
                     g = f;
                     k++;
                 }

@@ -99,10 +99,12 @@ static long long divide(scm *s, long long x,
                         long u, long v, long w,
                         const float *r, float *p, float *q)
 {
-    long long o;
+    long long i;
 
-    if ((o = scm_find_offset(s, x)) > 0)
+    if ((i = scm_search(s, x)) > 0)
     {
+        long long o = scm_get_offset(s, i);
+
         // Generate the normal map for page x.
 
         if (scm_read_page(s, o, p))
@@ -149,8 +151,6 @@ static void process(scm *s, scm *t, const float *r)
 
     if (scm_scan_catalog(s))
     {
-        scm_sort_catalog(s);
-
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             long long b = 0;

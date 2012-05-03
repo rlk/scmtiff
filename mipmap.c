@@ -60,12 +60,19 @@ static long long sample(scm *s)
 
     if (scm_scan_catalog(s))
     {
-        long long b = scm_get_offset(s, scm_get_l(s) - 1);
+        // Determine the offset of the last page in the file.
+
+        long long l = scm_get_length(s);
+        long long b = 0;
+
+        for (long long i = 0; i < l; ++i)
+            if (b < scm_get_offset(s, i))
+                b = scm_get_offset(s, i);
+
+        // Allocate image buffers.
 
         float *p;
         float *q;
-
-        scm_sort_catalog(s);
 
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(s)))
         {
@@ -80,14 +87,21 @@ static long long sample(scm *s)
 
                 // Seek the catalog location of each page index.
 
-                long long o1 = scm_find_offset(s, x1);
-                long long o2 = scm_find_offset(s, x2);
-                long long o3 = scm_find_offset(s, x3);
-                long long o0 = scm_find_offset(s, x0);
+                long long i1 = scm_search(s, x1);
+                long long i2 = scm_search(s, x2);
+                long long i3 = scm_search(s, x3);
+                long long i0 = scm_search(s, x0);
+
+                // Determine the file offset of each page.
+
+                long long o0 = (i0 < 0) ? 0 : scm_get_offset(s, i0);
+                long long o1 = (i1 < 0) ? 0 : scm_get_offset(s, i1);
+                long long o2 = (i2 < 0) ? 0 : scm_get_offset(s, i2);
+                long long o3 = (i3 < 0) ? 0 : scm_get_offset(s, i3);
 
                 // Contribute any found offsets to the output.
 
-                if (o0 > 0 || o1 > 0 || o2 > 0 || o3 > 0)
+                if (o0 || o1 || o2 || o3)
                 {
                     const int o = scm_get_n(s) + 2;
                     const int n = scm_get_n(s);
@@ -95,10 +109,10 @@ static long long sample(scm *s)
 
                     memset(p, 0, (size_t) (o * o * c) * sizeof (float));
 
-                    if (o0 > 0 && scm_read_page(s, o0, q)) box(p, 0, 0, c, n, q);
-                    if (o1 > 0 && scm_read_page(s, o1, q)) box(p, 0, 1, c, n, q);
-                    if (o2 > 0 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, q);
-                    if (o3 > 0 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, q);
+                    if (o0 && scm_read_page(s, o0, q)) box(p, 0, 0, c, n, q);
+                    if (o1 && scm_read_page(s, o1, q)) box(p, 0, 1, c, n, q);
+                    if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, q);
+                    if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, q);
 
                     b = scm_append(s, b, x, p);
                     t++;

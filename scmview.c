@@ -90,14 +90,14 @@ static int data_load(long long x)
 
     for (int i = 0; i < filec; ++i)
     {
-        const int       n = scm_get_n(filev[i].s) + 2;
-        const int       c = scm_get_c(filev[i].s);
-        const long long o = scm_find_offset(filev[i].s, x);
+        int       n = scm_get_n (filev[i].s) + 2;
+        int       c = scm_get_c (filev[i].s);
+        long long j = scm_search(filev[i].s, x);
 
-        if (o >= 0)
-            scm_read_page(filev[i].s, o, buf);
-        else
+        if (j < 0)
             data_null(n, c);
+        else
+            scm_read_page(filev[i].s, scm_get_offset(filev[i].s, j), buf);
 
         glBindTexture(GL_TEXTURE_2D, filev[i].texture);
         glTexImage2D (GL_TEXTURE_2D, 0, f[c], n, n, 0, e[c], GL_FLOAT, buf);
@@ -110,7 +110,7 @@ static int data_load(long long x)
 static bool data_test(long long x)
 {
     for (int i = 0; i < filec; ++i)
-        if (scm_find_offset(filev[i].s, x) >= 0)
+        if (scm_search(filev[i].s, x) >= 0)
             return true;
 
     return false;
@@ -147,8 +147,8 @@ static int data_init(int argc, char **argv)
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
                 scm_scan_catalog(filev[i].s);
-                scm_sort_catalog(filev[i].s);
-                pagem = max(pagem, scm_get_index(filev[i].s, scm_get_l(filev[i].s) - 1));
+
+                pagem = max(pagem, scm_get_index(filev[i].s, scm_get_length(filev[i].s) - 1));
 
                 i++;
             }

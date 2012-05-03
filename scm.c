@@ -154,6 +154,82 @@ void scm_get_sample_center(int f, long i, long j, long n, double *v)
 {
     scm_vector(f, (i + 0.5) / n, (j + 0.5) / n, v);
 }
+
+//------------------------------------------------------------------------------
+
+static int llcompare(const void *p, const void *q)
+{
+    const long long *a = (const long long *) p;
+    const long long *b = (const long long *) q;
+
+    if      (a[0] < b[0]) return -1;
+    else if (a[0] > b[0]) return +1;
+    else                  return  0;
+}
+
+static long long llsearch(long long x, long long c, const long long *v)
+{
+    void  *p = bsearch(&x, v, (size_t) c, sizeof (long long), llcompare);
+    return p ? (long long *) p - v : -1;
+}
+
+// Allocate and initialize a sorted array with the indices of all present pages.
+
+static long long scm_scan_indices(scm *s, long long **v)
+{
+    ifd d;
+
+    long long n = 0;
+    long long c = 0;
+    long long o;
+
+    // Scan the file to count the pages.
+
+    for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
+        n++;
+
+    // Allocate storage for all indices.
+
+    if ((v[0] = (long long *) malloc((size_t) n * sizeof (long long))) == NULL)
+        return 0;
+
+    // Scan the file to read the indices.
+
+    for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
+        v[0][c++] = (long long) d.page_number.offset;
+
+    // Sort the array.
+
+    qsort(v, (size_t) c, sizeof (long long), llcompare);
+
+    return c;
+}
+
+// Allocate and initialize an array giving the file offsets of all present pages
+// in index-sorted order. O(n log n).
+
+static long long scm_scan_offsets(scm *s, long long **v,
+                      long long xc, const long long *xv)
+{
+    ifd d;
+
+    long long o;
+    long long i;
+
+    // Allocate storage for all offsets.
+
+    if ((v[0] = (long long *) malloc((size_t) xc * sizeof (long long))) == NULL)
+        return 0;
+
+    // Scan the file to read the offsets.
+
+    for (o = scm_rewind(s); scm_read_ifd(s, &d, 0); o = (long long) d.next)
+        if ((i = llsearch((long long) d.page_number.offset, xc, xv)) >= 0)
+            v[0][i] = o;
+
+    return xc;
+}
+
 //------------------------------------------------------------------------------
 
 // Append a page at the current SCM TIFF file pointer. Offset b is the previous
@@ -292,6 +368,13 @@ long long scm_rewind(scm *s)
     return 0;
 }
 
+// Calculate and write all metadata to SCM s.
+
+bool scm_finish(scm *s)
+{
+    return true;
+}
+
 //------------------------------------------------------------------------------
 
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of
@@ -318,119 +401,71 @@ bool scm_read_page(scm *s, long long o, float *p)
 
 //------------------------------------------------------------------------------
 
-// Compare two index-offset elements by index.
-
-static int _cmpx(const void *p, const void *q)
-{
-    const scm_pair *a = (const scm_pair *) p;
-    const scm_pair *b = (const scm_pair *) q;
-
-    if      (a[0].x < b[0].x) return -1;
-    else if (a[0].x > b[0].x) return +1;
-    else                      return  0;
-}
-
-// Compare two index-offset elements by offset.
-
-static int _cmpo(const void *p, const void *q)
-{
-    const scm_pair *a = (const scm_pair *) p;
-    const scm_pair *b = (const scm_pair *) q;
-
-    if      (a[0].o < b[0].o) return -1;
-    else if (a[0].o > b[0].o) return +1;
-    else                      return  0;
-}
-
-// Search the catalog for the index of a given offset.
-#if 0
-long long scm_find_index(scm *s, long long o)
-{
-    if (o < s->a[       0].o) return -1;
-    if (o > s->a[s->l - 1].o) return -1;
-
-    void *p;
-
-    if ((p = bsearch(&o, s->a, (size_t) s->l, sizeof (scm_pair), _cmpo)))
-        return ((scm_pair *) p)->x;
-
-    return -1;
-}
-#endif
-// Search the catalog for the offset of a given index.
-
-long long scm_find_offset(scm *s, long long x)
-{
-    if (x < s->a[       0].x) return -1;
-    if (x > s->a[s->l - 1].x) return -1;
-
-    void *p;
-
-    if ((p = bsearch(&x, s->a, (size_t) s->l, sizeof (scm_pair), _cmpx)))
-        return ((scm_pair *) p)->o;
-
-    return -1;
-}
-
-// Map index onto offset
-// Return the largest page index. (after sort)
-// Return the last page offset (before sort)
-// Enumerate all index/offset pairs in increasing index order.
-
-// Return the index or offset of a specific catalog element.
-#if 0
-long long scm_get_index(scm *s, long long i)
-{
-    return s->a[i].x;
-}
-
-long long scm_get_offset(scm *s, long long i)
-{
-    return s->a[i].o;
-}
-#endif
-//------------------------------------------------------------------------------
-
-// Sort the catalog  to prepare for searching.
-
-void scm_sort_catalog(scm *s)
-{
-    qsort(s->a, (size_t) s->l, sizeof (scm_pair), _cmpx);
-}
-
-// Read the index and offset of all pages in SCM s to a newly-allocated buffer.
+// Scan the file and catalog the index and offset of oll pages.
 
 bool scm_scan_catalog(scm *s)
 {
-    long long l = 0;
-    long long o;
+    assert(s);
 
-    ifd d;
+    // Release any existing catalog buffers.
 
-    // Release any existing catalog buffer.
+    if (s->xv) free(s->xv);
+    if (s->ov) free(s->ov);
 
-    if (s->a) free(s->a);
+    // Scan the indices and offsets.
 
-    // Scan the file to determine the number of pages.
-
-    for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
-        l++;
-
-    // Allocate and populate an array of page indices and offsets.
-
-    if ((s->a = (scm_pair *) malloc((size_t) l * sizeof (scm_pair))))
+    if ((s->xc = scm_scan_indices(s, &s->xv)))
     {
-        s->l = 0;
-
-        for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
+        if ((s->oc = scm_scan_offsets(s, &s->ov, s->xc, s->xv)))
         {
-            s->a[s->l].x = (long long) d.page_number.offset;
-            s->a[s->l].o = o;
-            s->l++;
+            return true;
         }
-        return true;
     }
     return false;
+}
+
+// Return the number of catalog entries.
+
+long long scm_get_length(scm *s)
+{
+    assert(s);
+    return s->xc;
+}
+
+// Return the index of the i'th catalog entry.
+
+long long scm_get_index(scm *s, long long i)
+{
+    assert(s);
+    assert(s->xc);
+    assert(s->xv);
+    assert(0 <= i && i < s->xc);
+    return s->xv[i];
+}
+
+// Return the offset of the i'th catalog entry.
+
+long long scm_get_offset(scm *s, long long i)
+{
+    assert(s);
+    assert(s->oc);
+    assert(s->ov);
+    assert(0 <= i && i < s->oc);
+    return s->ov[i];
+}
+
+// Search for the catalog entry of a given page index.
+
+long long scm_search(scm *s, long long x)
+{
+    assert(s);
+    assert(s->xc);
+    assert(s->xv);
+
+    if (x < s->xv[        0]) return -1;
+    if (x > s->xv[s->xc - 1]) return -1;
+
+    return llsearch(x, s->xc, s->xv);
 }
 
 //------------------------------------------------------------------------------
@@ -580,7 +615,7 @@ bool scm_scan_extrema(scm *s, int d)
 }
 #endif
 //------------------------------------------------------------------------------
-
+#if 0
 static uint64_t write_indices(scm *s)
 {
     long long o;
@@ -667,7 +702,7 @@ bool scm_make_catalog(scm *s)
     }
     return false;
 }
-
+#endif
 //------------------------------------------------------------------------------
 #if 0
 // Rewrite all IFDs to refer to the page extrema at o0 and o1 with count c.
