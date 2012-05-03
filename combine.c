@@ -99,13 +99,14 @@ static void process(scm *s, scm **V, int C, int O)
 
             for (int f = 0; f < C; ++f)
 
-                if ((i = scm_search(V[f], x)) >= 0)
+                if ((i = scm_search(V[f], x)) < 0)
+                    o[f] = 0;
+                else
                 {
                     o[f] = scm_get_offset(V[f], i);
                     g = f;
                     k++;
                 }
-                else o[f] = 0;
 
             // If there is exactly one contributor, repeat its page.
 

@@ -200,7 +200,7 @@ static long long scm_scan_indices(scm *s, long long **v)
 
     // Sort the array.
 
-    qsort(v, (size_t) c, sizeof (long long), llcompare);
+    qsort(v[0], (size_t) c, sizeof (long long), llcompare);
 
     return c;
 }
@@ -223,7 +223,7 @@ static long long scm_scan_offsets(scm *s, long long **v,
 
     // Scan the file to read the offsets.
 
-    for (o = scm_rewind(s); scm_read_ifd(s, &d, 0); o = (long long) d.next)
+    for (o = scm_rewind(s); scm_read_ifd(s, &d, o); o = (long long) d.next)
         if ((i = llsearch((long long) d.page_number.offset, xc, xv)) >= 0)
             v[0][i] = o;
 
