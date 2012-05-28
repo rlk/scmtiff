@@ -102,9 +102,6 @@ struct scm
     int g;                      // Channel signed flag
     int r;                      // Rows per strip
 
-    long long l;
-    scm_pair *a;
-
     long long  xc;
     long long *xv;
     long long  oc;

@@ -18,7 +18,7 @@ int catalog(int argc, char **argv)
 
         if ((s = scm_ifile(argv[i])))
         {
-            scm_finish(s);
+            scm_finish(s, 2);
             scm_close(s);
         }
     }

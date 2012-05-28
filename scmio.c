@@ -52,11 +52,9 @@ void scm_free(scm *s)
     }
     free(s->zipv);
     free(s->binv);
-    free(s->a);
 
     s->zipv = NULL;
     s->binv = NULL;
-    s->a    = NULL;
 }
 
 //------------------------------------------------------------------------------

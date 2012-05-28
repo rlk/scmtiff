@@ -134,12 +134,6 @@ int scm_get_g(scm *s)
     return s->g;
 }
 
-int scm_get_l(scm *s)
-{
-    assert(s);
-    return s->l;
-}
-
 //------------------------------------------------------------------------------
 
 void scm_get_sample_corners(int f, long i, long j, long n, double *v)
@@ -262,13 +256,13 @@ static void scm_bound_leaf(scm *s, long long x, const float     *pp,
         long long x2 = scm_page_child(x, 2);
         long long x3 = scm_page_child(x, 3);
 
-        int x = (l + r) / 2;
-        int y = (b + t) / 2;
+        int h = (l + r) / 2;
+        int v = (b + t) / 2;
 
-        scm_bound_leaf(s, x0, pp, c, yv, av, zv, l, x, t, y, d - 1);
-        scm_bound_leaf(s, x1, pp, c, yv, av, zv, l, x, y, b, d - 1);
-        scm_bound_leaf(s, x2, pp, c, yv, av, zv, x, r, t, y, d - 1);
-        scm_bound_leaf(s, x3, pp, c, yv, av, zv, x, r, y, b, d - 1);
+        scm_bound_leaf(s, x0, pp, c, yv, av, zv, l, h, t, v, d - 1);
+        scm_bound_leaf(s, x1, pp, c, yv, av, zv, l, h, v, b, d - 1);
+        scm_bound_leaf(s, x2, pp, c, yv, av, zv, h, r, t, v, d - 1);
+        scm_bound_leaf(s, x3, pp, c, yv, av, zv, h, r, v, b, d - 1);
     }
 
     // Sample the leaf subdivision and note the extrema.
@@ -447,6 +441,7 @@ bool scm_finish(scm *s, int d)
     long long *ov = NULL;
     long long  yc =    0;
     long long *yv = NULL;
+
     float     *av = NULL;
     float     *zv = NULL;
     float     *pp = NULL;
@@ -457,12 +452,13 @@ bool scm_finish(scm *s, int d)
         {
             if ((yc = scm_grow_leaves(s, &yv, xc, xv, d)))
             {
-                if ((av = (float *) malloc((yc * c) * sizeof (float))) &&
-                    (zv = (float *) malloc((yc * c) * sizeof (float))) &&
+                if ((av = (float *) malloc(yc * c * sizeof (float))) &&
+                    (zv = (float *) malloc(yc * c * sizeof (float))) &&
 
                     (pp = scm_alloc_buffer(s)))
                 {
                     for (long long i = xc - 1; i > 0; --i)
+
                         if (isleaf(xv[i], xc, xv))
                         {
                             if (scm_read_page (s, ov[i], pp))
@@ -473,6 +469,7 @@ bool scm_finish(scm *s, int d)
             }
         }
     }
+
     free(pp);
     free(av);
     free(zv);
