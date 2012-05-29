@@ -542,8 +542,9 @@ bool scm_finish(scm *s, int d)
 {
     assert(s);
 
-    const int n = s->n;
-    const int c = s->c;
+    const size_t sz = tifsizeof(scm_type(s));
+    const int     n = s->n;
+    const int     c = s->c;
 
     long long  xc =    0;
     long long *xv = NULL;
@@ -555,6 +556,11 @@ bool scm_finish(scm *s, int d)
     float     *av = NULL;
     float     *zv = NULL;
     float     *pp = NULL;
+    void      *bv = NULL;
+
+    bool r = false;
+
+    // Allocate and initialize buffers for all catalog data.
 
     if ((xc = scm_scan_indices(s, &xv)))
     {
@@ -565,8 +571,14 @@ bool scm_finish(scm *s, int d)
                 if ((av = (float *) malloc(yc * c * sizeof (float))) &&
                     (zv = (float *) malloc(yc * c * sizeof (float))) &&
 
+                    (bv = malloc(yc * c * sz)) &&
+
                     (pp = scm_alloc_buffer(s)))
                 {
+                    hfd h;
+
+                    // Calculate bounds for all pages.
+
                     for (long long i = xc - 1; i > 0; --i)
                     {
                         if (isleaf(xv[i], xc, xv))
@@ -577,19 +589,46 @@ bool scm_finish(scm *s, int d)
                         }
                         else scm_bound_node(s, xv[i], yc, yv, av, zv);
                     }
+
+                    // Append all metadata.
+
+                    uint64_t bc = (uint64_t) (yc * c);
+                    uint16_t t  = scm_type(s);
+
+                    uint64_t yo = scm_write(s, yv, yc * sizeof (long long));
+                    uint64_t oo = scm_write(s, ov, xc * sizeof (long long));
+
+                    ftob(bv, av, bc, s->b, s->g);
+                    uint64_t ao = scm_write(s, bv, bc * sz);
+
+                    ftob(bv, zv, bc, s->b, s->g);
+                    uint64_t zo = scm_write(s, bv, bc * sz);
+
+                    // Update the header file directory.
+
+                    if (scm_read_hfd(s, &h))
+                    {
+                        scm_field(&h.page_index,   SCM_PAGE_INDEX,  16, yc, yo);
+                        scm_field(&h.page_offset,  SCM_PAGE_OFFSET, 16, xc, oo);
+                        scm_field(&h.page_minimum, SCM_PAGE_MINIMUM, t, bc, ao);
+                        scm_field(&h.page_maximum, SCM_PAGE_MAXIMUM, t, bc, zo);
+
+                        r = (scm_write_hfd(s, &h) > 0);
+                    }
                 }
             }
         }
     }
 
     free(pp);
+    free(bv);
     free(av);
     free(zv);
     free(yv);
     free(ov);
     free(xv);
 
-    return true;
+    return r;
 }
 
 //------------------------------------------------------------------------------
