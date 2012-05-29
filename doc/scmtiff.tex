@@ -616,7 +616,7 @@ We need to select a page size and tree depth appropriate for this data set. Ther
 
 \item Large $n$ incurs high I/O latency. RAM-to-VRAM data transfers take time, and if a page upload consumes a significant fraction of a frame period then the frame rate is likely to break up during high I/O load. Given 2012 era hardware, we'll want $n$ around $512$.
 
-\item For a given $w$, small $n$ requires large $d$. This increases the total number of pages in flight at any given moment, as well as the number of texture image units consumed by the renderer. This is usually not a problem, but depending upon the hardware, one may encounter a limit.\pagenote{The real limit is the total depth of all simultaneously loaded data sets, which must be less than \verb|GL_MAX_TEXTURE_IMAGE_UNITS|. On a 2012-era Mac, this limit is 16. On a 2012-era NVIDIA-equiped Linux or Windows PC, this limit is 56 or 64.}
+\item For a given $w$, small $n$ requires large $d$. This increases the total number of pages in flight at any given moment, as well as the number of texture image units consumed by the renderer. This is usually not a problem, but depending upon the hardware, one may encounter a limit.\pagenote{The real limit is the total depth of all simultaneously loaded data sets, which must be less than GL\_MAX\_TEXTURE\_IMAGE\_UNITS. On a 2012-era Mac, this limit is 16. On a 2012-era NVIDIA-equipped Linux or Windows PC, this limit is 56 or 64.}
 
 \item The page granularity of a height map impacts the effectiveness of visibility testing, as small pages allow tighter bounding volumes than large pages. This consideration does not apply to color maps or normal maps.
 

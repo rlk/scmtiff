@@ -285,7 +285,7 @@ static long long scm_grow_leaves(scm *s, long long **v,
 
     // Extend the catalog.
 
-    for (i = 0; i < xc; ++i)
+    for (i = 0; d && i < xc; ++i)
         if (isleaf(xv[i], xc, xv))
         {
             c = scm_grow_leaf(scm_page_child(xv[i], 0), v, c, d - 1);
