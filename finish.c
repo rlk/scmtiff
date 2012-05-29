@@ -10,7 +10,7 @@
 
 //------------------------------------------------------------------------------
 
-int catalog(int argc, char **argv)
+int finish(int argc, char **argv)
 {
     for (int i = 0; i < argc; i++)
     {

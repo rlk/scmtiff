@@ -126,7 +126,7 @@ int main(int argc, char **argv)
                 "\t\t-m avg . . . . Combine by average\n\n"
                 "\t%s -p mipmap\n\n"
                 "\t%s -p border\n\n"
-                "\t%s -p catalog [options]\n"
+                "\t%s -p finish [options]\n"
                 "\t\t-t text  . . . Image description text file\n\n"
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
@@ -145,8 +145,8 @@ int main(int argc, char **argv)
     else if (strcmp(p, "border") == 0)
         r = border (argc, argv, o);
 
-    else if (strcmp(p, "catalog") == 0)
-        r = catalog (argc, argv);
+    else if (strcmp(p, "finish") == 0)
+        r = finish (argc, argv);
 
     else if (strcmp(p, "normal") == 0)
         r = normal (argc, argv, o, R);

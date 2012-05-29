@@ -151,6 +151,8 @@ void scm_get_sample_center(int f, long i, long j, long n, double *v)
 
 //------------------------------------------------------------------------------
 
+// Standard-library-compatible long long compare function for bsearch and qsort.
+
 static int llcompare(const void *p, const void *q)
 {
     const long long *a = (const long long *) p;
@@ -161,19 +163,25 @@ static int llcompare(const void *p, const void *q)
     else                  return  0;
 }
 
+// Adapt the standard library bsearch to an array of long longs. Return the
+// index of key x in array v of length c
+
 static long long llsearch(long long x, long long c, const long long *v)
 {
     void  *p = bsearch(&x, v, (size_t) c, sizeof (long long), llcompare);
     return p ? (long long *) p - v : -1;
 }
 
+// Page x is a leaf if none of its children appear in the array.
+
 static bool isleaf(long long x, long long c, const long long *v)
 {
-    if (llsearch(scm_page_child(x, 0), c, v) >= 0) return false;
-    if (llsearch(scm_page_child(x, 1), c, v) >= 0) return false;
-    if (llsearch(scm_page_child(x, 2), c, v) >= 0) return false;
-    if (llsearch(scm_page_child(x, 3), c, v) >= 0) return false;
-    return true;
+    if      (llsearch(scm_page_child(x, 0), c, v) >= 0) return false;
+    else if (llsearch(scm_page_child(x, 1), c, v) >= 0) return false;
+    else if (llsearch(scm_page_child(x, 2), c, v) >= 0) return false;
+    else if (llsearch(scm_page_child(x, 3), c, v) >= 0) return false;
+
+    else return true;
 }
 
 // Allocate and initialize a sorted array with the indices of all present pages.
@@ -233,11 +241,68 @@ static long long scm_scan_offsets(scm *s, long long **v,
     return xc;
 }
 
+// Append page x to the index array v of length c. Recursively add all children
+// to depth d. Return the new array length.
+
+static long long scm_grow_leaf(long long x, long long **v, long long c, int d)
+{
+    v[0][c++] = x;
+
+    if (d > 0)
+    {
+        c = scm_grow_leaf(scm_page_child(x, 0), v, c, d - 1);
+        c = scm_grow_leaf(scm_page_child(x, 1), v, c, d - 1);
+        c = scm_grow_leaf(scm_page_child(x, 2), v, c, d - 1);
+        c = scm_grow_leaf(scm_page_child(x, 3), v, c, d - 1);
+    }
+    return c;
+}
+
+// Given index array xv with length xc, extend the page hierarchy adding d
+// levels to each leaf. Allocate a new index array to receive its indices.
+
 static long long scm_grow_leaves(scm *s, long long **v,
                      long long xc, const long long *xv, int d)
 {
-    return 0;
+    // Count the number of pages in the extended catalog.
+
+    long long m = xc;
+    long long c = xc;
+    long long i;
+
+    for (i = 0; i < xc; ++i)
+        if (isleaf(xv[i], xc, xv))
+            m += scm_page_count(d);
+
+    // Allocate storage for the extended catalog.
+
+    if ((v[0] = (long long *) malloc((size_t) m * sizeof (long long))) == NULL)
+        return 0;
+
+    // Copy the basic catalog.
+
+    memcpy(v[0], xv, (size_t) xc * sizeof (long long));
+
+    // Extend the catalog.
+
+    for (i = 0; i < xc; ++i)
+        if (isleaf(xv[i], xc, xv))
+        {
+            c = scm_grow_leaf(scm_page_child(xv[i], 0), v, c, d - 1);
+            c = scm_grow_leaf(scm_page_child(xv[i], 1), v, c, d - 1);
+            c = scm_grow_leaf(scm_page_child(xv[i], 2), v, c, d - 1);
+            c = scm_grow_leaf(scm_page_child(xv[i], 3), v, c, d - 1);
+        }
+
+    // Sort the extended catalog.
+
+    qsort(v[0], (size_t) c, sizeof (long long), llcompare);
+
+    return c;
 }
+
+// Recursively subdivide a leaf node to a depth of d. Determine the extrema of
+// each new leaf by scanning the pixel buffer pp.
 
 static void scm_bound_leaf(scm *s, long long x, const float     *pp,
                                    long long c, const long long *yv,
@@ -271,7 +336,7 @@ static void scm_bound_leaf(scm *s, long long x, const float     *pp,
     {
         for (int k = 0; k < s->c; ++k)
         {
-            const int di = i * s->c + k;
+            const long long di = i * s->c + k;
 
             av[di] =  FLT_MAX;
             zv[di] = -FLT_MAX;
@@ -284,6 +349,51 @@ static void scm_bound_leaf(scm *s, long long x, const float     *pp,
                     if (av[di] > pp[si]) av[di] = pp[si];
                     if (zv[di] < pp[si]) zv[di] = pp[si];
                 }
+        }
+    }
+}
+
+// Compute the extrema of an internal node. This is trivially defined in terms
+// of the extrema of its children.
+
+static void scm_bound_node(scm *s, long long x,
+                                   long long c, const long long *v, float *av,
+                                                                    float *zv)
+{
+    long long i  = llsearch(x, c, v);
+
+    long long i0 = llsearch(scm_page_child(x, 0), c, v);
+    long long i1 = llsearch(scm_page_child(x, 1), c, v);
+    long long i2 = llsearch(scm_page_child(x, 2), c, v);
+    long long i3 = llsearch(scm_page_child(x, 3), c, v);
+
+    for (int k = 0; k < s->c; ++k)
+    {
+        const long long di = i * s->c + k;
+
+        if (i0 >= 0)
+        {
+            const long long si = i0 * s->c + k;
+            if (av[di] > av[si]) av[di] = av[si];
+            if (zv[di] < zv[si]) zv[di] = zv[si];
+        }
+        if (i1 >= 0)
+        {
+            const long long si = i1 * s->c + k;
+            if (av[di] > av[si]) av[di] = av[si];
+            if (zv[di] < zv[si]) zv[di] = zv[si];
+        }
+        if (i2 >= 0)
+        {
+            const long long si = i2 * s->c + k;
+            if (av[di] > av[si]) av[di] = av[si];
+            if (zv[di] < zv[si]) zv[di] = zv[si];
+        }
+        if (i3 >= 0)
+        {
+            const long long si = i3 * s->c + k;
+            if (av[di] > av[si]) av[di] = av[si];
+            if (zv[di] < zv[si]) zv[di] = zv[si];
         }
     }
 }
@@ -458,13 +568,15 @@ bool scm_finish(scm *s, int d)
                     (pp = scm_alloc_buffer(s)))
                 {
                     for (long long i = xc - 1; i > 0; --i)
-
+                    {
                         if (isleaf(xv[i], xc, xv))
                         {
                             if (scm_read_page (s, ov[i], pp))
-                                scm_bound_leaf(s, xv[i], pp, yc, yv, av, zv, 0, n, 0, n, d);
+                                scm_bound_leaf(s, xv[i], pp,
+                                               yc, yv, av, zv, 0, n, 0, n, d);
                         }
                         else scm_bound_node(s, xv[i], yc, yv, av, zv);
+                    }
                 }
             }
         }
