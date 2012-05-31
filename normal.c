@@ -101,7 +101,7 @@ static long long divide(scm *s, long long x,
 {
     long long i;
 
-    if ((i = scm_search(s, x)) > 0)
+    if ((i = scm_search(s, x)) >= 0)
     {
         long long o = scm_get_offset(s, i);
 
