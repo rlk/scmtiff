@@ -373,8 +373,8 @@ static void scm_bound_leaf(scm *s, long long x,  const float     *pp,
         int v = (b + t) / 2;
 
         scm_bound_leaf(s, x0, pp, yc, yv, av, zv, l, h, t, v, d - 1);
-        scm_bound_leaf(s, x1, pp, yc, yv, av, zv, l, h, v, b, d - 1);
-        scm_bound_leaf(s, x2, pp, yc, yv, av, zv, h, r, t, v, d - 1);
+        scm_bound_leaf(s, x1, pp, yc, yv, av, zv, h, r, t, v, d - 1);
+        scm_bound_leaf(s, x2, pp, yc, yv, av, zv, l, h, v, b, d - 1);
         scm_bound_leaf(s, x3, pp, yc, yv, av, zv, h, r, v, b, d - 1);
 
         scm_bound_node(s, x, yc, yv, av, zv);
@@ -599,7 +599,7 @@ long long scm_rewind(scm *s)
 
 // Calculate and write all metadata to SCM s.
 
-bool scm_finish(scm *s, int d)
+bool scm_finish(scm *s, const char *txt, int d)
 {
     assert(s);
 
@@ -630,10 +630,12 @@ bool scm_finish(scm *s, int d)
 
                     uint16_t t  = (uint16_t) scm_type(s);
                     uint64_t bc = (uint64_t) (yc * s->c);
+                    uint64_t tc = (uint64_t) strlen(txt) + 1;
                     uint64_t yo = 0;
                     uint64_t oo = 0;
                     uint64_t ao = 0;
                     uint64_t zo = 0;
+                    uint64_t to = 0;
 
                     if (scm_ffwd(s))
                     {
@@ -641,6 +643,7 @@ bool scm_finish(scm *s, int d)
                         oo = scm_write(s,   ov, oc * sizeof (long long));
                         ao = scm_write(s, minv, bc * sz);
                         zo = scm_write(s, maxv, bc * sz);
+                        to = scm_write(s,  txt, tc);
                     }
 
                     // Update the header file directory.
@@ -653,6 +656,7 @@ bool scm_finish(scm *s, int d)
                         scm_field(&h.page_offset,  SCM_PAGE_OFFSET, 16, oc, oo);
                         scm_field(&h.page_minimum, SCM_PAGE_MINIMUM, t, bc, ao);
                         scm_field(&h.page_maximum, SCM_PAGE_MAXIMUM, t, bc, zo);
+                        scm_field(&h.description,  0x010E,           2, tc, to);
 
                         st = (scm_write_hfd(s, &h) > 0);
                     }

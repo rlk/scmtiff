@@ -21,7 +21,6 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
 {
     int qi;
     int qj;
-    int k;
 
     #pragma omp parallel for private(qj)
     for     (qi = 0; qi < n; qi += 2)
@@ -35,6 +34,8 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
             float *q2 = q + ((n + 2) * (qi + 2) + (qj + 1)) * c;
             float *q3 = q + ((n + 2) * (qi + 2) + (qj + 2)) * c;
             float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;
+
+            int k;
 
             for (k = 0; k < c; ++k)
             {

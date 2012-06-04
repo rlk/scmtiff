@@ -67,6 +67,7 @@ int main(int argc, char **argv)
     int         b    =  -1;
     int         g    =  -1;
     int         h    =   0;
+    int         l    =   0;
     int         T    =   0;
     int         x    =  -1;
     double      L[3] = { 0.f, 0.f, 0.f };
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "b:d:g:hL:m:n:N:o:p:P:Tt:R:x:")) != -1)
+    while ((c = getopt(argc, argv, "b:d:g:hL:l:m:n:N:o:p:P:Tt:R:x:")) != -1)
         switch (c)
         {
             case 'p': p = optarg;                                         break;
@@ -94,6 +95,7 @@ int main(int argc, char **argv)
             case 'd': sscanf(optarg, "%d", &d);                           break;
             case 'b': sscanf(optarg, "%d", &b);                           break;
             case 'g': sscanf(optarg, "%d", &g);                           break;
+            case 'l': sscanf(optarg, "%d", &l);                           break;
             case 'x': sscanf(optarg, "%d", &x);                           break;
             case 'L': sscanf(optarg, "%lf,%lf,%lf", L + 0, L + 1, L + 2); break;
             case 'P': sscanf(optarg, "%lf,%lf,%lf", P + 0, P + 1, P + 2); break;
@@ -127,7 +129,8 @@ int main(int argc, char **argv)
                 "\t%s -p mipmap\n\n"
                 "\t%s -p border\n\n"
                 "\t%s -p finish [options]\n"
-                "\t\t-t text  . . . Image description text file\n\n"
+                "\t\t-t text  . . . Image description text file\n"
+                "\t\t-l l . . . . . Bounding volume oversample level\n\n"
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
 
@@ -146,7 +149,7 @@ int main(int argc, char **argv)
         r = border (argc, argv, o);
 
     else if (strcmp(p, "finish") == 0)
-        r = finish (argc, argv);
+        r = finish (argc, argv, t, l);
 
     else if (strcmp(p, "normal") == 0)
         r = normal (argc, argv, o, R);

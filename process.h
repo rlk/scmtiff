@@ -6,7 +6,7 @@
 //------------------------------------------------------------------------------
 
 int normal (int, char **, const char *, const float *);
-int finish (int, char **);
+int finish (int, char **, const char *, int);
 int border (int, char **, const char *);
 int mipmap (int, char **, const char *);
 int combine(int, char **, const char *, const char *);
