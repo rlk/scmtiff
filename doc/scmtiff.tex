@@ -23,7 +23,7 @@
 \newsubfloat{figure}
 \makepagenote
 
-%\sisetup{group-minimum-digits={4},group-separator={,}}
+\sisetup{group-minimum-digits={4},group-separator={,}}
 
 %-------------------------------------------------------------------------------
 
@@ -370,14 +370,14 @@ Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ 
 \bigskip\noindent\scmtiff\ \texttt{-p} \inangles{\textit{process}} [\texttt{-o} \inangles{\textit{output}}] [\textit{options}] \inangles{\textit{input}} [\ldots]
 
 \begin{optionlist}
-\item[\texttt{-p} \inangles{\textit{process}}] Selects the \scm\ process. Alternatives include \texttt{convert}, \texttt{combine}, \texttt{mipmap}, \texttt{border}, \texttt{catalog}, and \texttt{normal}. Each of these processes is described here, and examples of complete conversions are given below.
+\item[\texttt{-p} \inangles{\textit{process}}] Selects the \scm\ process. Alternatives include \texttt{convert}, \texttt{combine}, \texttt{mipmap}, \texttt{border}, \texttt{finish}, and \texttt{normal}. Each of these processes is described here, and examples of complete conversions are given below.
 
 \item[\texttt{-o} \inangles{\textit{output}}] Gives the name of the output file. If left unspecified, the default is \texttt{out.tif}, unless otherwise noted.
 
 \item[\texttt{-T}] Requests that process timing be collected and printed to the terminal upon completion.
 \end{optionlist}
 
-An \scm\ \tiff\ file produced by the \scmtiff\ tool is a standard \bigtiff\ image, suitable for processing using any \bigtiff-compatible tool, including \libtiff\ version 4 or later, and its related utilities.\pagenote{It should be noted that a number of the \scm\ \tiff\ fields reference embedded data by offset. Whenever possible, this data is embedded exactly once, despite being referred-to by fields in all directories. Applications that copy \tiff\ data should be careful not to replicate this data, as one such field, the page catalog \texttt{0xFFB1}, can be several megabytes in size. Indeed, directory extractions and other heavy modifications to a \tiff\ file structure will invalidate the page catalog anyway.}
+An \scm\ \tiff\ file produced by the \scmtiff\ tool is a standard \bigtiff\ image, suitable for processing using any \bigtiff-compatible software, including \libtiff\ version 4 or later, and its related utilities.
 
 \subsection{Convert}
 
@@ -397,8 +397,6 @@ If the output file name is not specified using the \texttt{-o} option to \scmtif
 \item[\texttt{-b} \inangles{$b$}] Overrides the number of bits per channel. By default, \scmtiff\ uses the bit depth specified by the input image file. If a change in bit depth is desired, this value $b$ is used instead. Values of $8$ and $16$ select integer samples and $32$ selects floating point samples.
 
 \item[\texttt{-g} \inangles{$g$}] Overrides the signedness of integer data. By default, \scmtiff\ uses the type specified by the input file, but if a change is desired, $0$ specifies unsigned and $1$ signed. This option has no effect if floating point samples are selected.
-
-\item[\texttt{-t} \inangles{\textit{file}}] Specifies a text file containing an image description. The contents of this file are read and embedded in the generated \tiff\ file. Subsequent \scmtiff\ processes do retain this text and do not take a separate description option. Thus, any description of the final data product should be fully specified in the initial \texttt{convert} process.
 
 \item[\texttt{-N} \inangles{$n_0$}\texttt{,}\inangles{$n_1$}] Specifies a normalization range. Unsigned integer samples have a natural normalized range of $(0, 1)$, signed integer samples have the normalized range of $(-1,1)$, and floating point samples have the full range of a 32-bit float. This option remaps each sample onto the range $(n_0,n_1)$. The choice of normalization depends largely on the character of the input and the type of the output. The default normalization retains the natural range of the data.
 
@@ -431,13 +429,27 @@ The \texttt{mipmap} process takes no parameters. In the interest of efficiency, 
 
 \bigskip In truth, an \scm\ with page size $n$ is stored in a \tiff\ file with image width and height $n+2$. The \texttt{border} process fills these extra pixels in the outermost rows and columns of each page with pixels from the adjacent rows or columns of the four neighboring pages. This provides each page with the context needed by the graphics hardware to perform linear magnification filtering across page boundaries, effectively allowing many small images to appear as a single very large image.\pagenote{The replicated borders provide only a single pixel of context. This enables linear magnification filtering, but does \emph{not} enable anisotropic filtering.} If this step is not performed, artifacts will appear in the output. In practice, the \texttt{border} process is expensive, as it must decompress and recompress every page of the \scm.
 
-\subsection{Catalog}
+\subsection{Finish}
 
-\noindent\scmtiff\ \texttt{-p catalog} \inangles{\textit{input}}
+\noindent\scmtiff\ \texttt{-p finish} [\textit{options}] \inangles{\textit{input}}
 
-\bigskip The \texttt{catalog} process generates a sorted array of index-offset pairs that allow an \scm\ rendering application to immediately determine exactly where each page appears in the \scm\ \tiff\ file. Such applications are usually aware of how points on the sphere map onto indices, and thus the page catalog generated by the \texttt{catalog} process allows applications to straightforwardly locate the unique \scm\ \tiff\ data that maps onto any point on the sphere at any resolution. In the absence of this catalog, an \scm\ application must scan the file for indices, noting offsets as it goes. This heavily I/O-bound process often incurs significant delays and impedes real-time, interactive display.
+\bigskip The \texttt{finish} process calculates and appends \scm\ metadata for the given \scm\ \tiff\ file. This metadata is three-fold: offsets, bounds, and description.
 
-Like mipmapping, the \texttt{catalog} process takes no parameters and occurs \emph{in place}. The output file name option is ignored and the catalog data is appended to the input file.
+\begin{enumerate}
+\item A sorted array of page indices and file offsets allows an \scm\ rendering application to immediately determine exactly where each page appears in the \scm\ \tiff\ file. Given an awareness of how points on the sphere map onto indices, the page catalog generated by the \texttt{finish} process allows applications to straightforwardly locate the unique \scm\ \tiff\ data that maps onto any point on the sphere at any resolution.
+
+\item The minimum and maximum values of each channel of each page allow a displacement-mapping application to determine a tight \threed\ bounding volume for each page. This enables efficient visibility determination and view culling.
+
+\item An image description documents the provenance of an image, noting its source and copyright holder.
+\end{enumerate}
+
+Like mipmapping, the \texttt{finish} process occurs \emph{in place}. The output file name option is ignored and the generated data is appended to the input file.
+
+\begin{optionlist}
+\item[\texttt{-t} \inangles{\textit{file}}] Specifies a text file containing an image description. The contents of this file are read and embedded in the generated \tiff\ file.
+
+\item[\texttt{-l} \inangles{$\ell$}] Specifies a \emph{leaf subdivision depth}. This argument allows the depth of the bounding value cache hierarchy to exceed the depth of the actual page hierarchy. The rationale for this feature is complex, but as we will see in Section~\ref{sec:scmxml}, there is a mismatch between the resolution of a displacement map and the mesh geometry that it displaces. Leaf subdivision accounts for this mismatch. As a rule of thumb, $\ell$ should give the base-two logarithm of the mesh's down-sampling factor. For example, when finishing a $512\times 512$ displacement map for display on a $128\times 128$ mesh, $\log_2\, 512 / 128=2$, so specify $\ell=2$. For most imagery, leaf subdivision is not beneficial, and the default value of zero should be used.
+\end{optionlist}
 
 \subsection{Normal}
 
@@ -445,7 +457,7 @@ Like mipmapping, the \texttt{catalog} process takes no parameters and occurs \em
 
 \bigskip The \texttt{normal} process computes a normal map for a given height map. The input may have any number of channels and any format, but only the first channel is used, and the normalization of that channel is modified by the range of radii specified by the command line option. The output will always have 3 channels of 8-bit unsigned samples, scaled and biased to $(0,1)$ as is standard practice in normal mapping, though the normals are given in \emph{object} space rather than \emph{tangent} space.
 
-Regardless of whether the input height map was bordered or cataloged, the output normal map will be neither bordered nor cataloged. In contrast, a mipmapped input height map \emph{will} produce a mipmapped normal map output, and indeed one should \emph{always} normalize mipmaps instead of mipmapping normals, as a mipmapped normal is not guaranteed to have unit length.
+Regardless of whether the input height map was bordered or finished, the output normal map will be neither bordered nor finished. In contrast, a mipmapped input height map \emph{will} produce a mipmapped normal map output, and indeed one should \emph{always} normalize mipmaps instead of mipmapping normals, as a mipmapped normal is not guaranteed to have unit length.
 
 \begin{optionlist}
 \item[\texttt{-R} \inangles{$r_0$}\texttt{,}\inangles{$r_1$}] Specifies the true range of radii represented by the normalized height map input. This allows the true magnitude of the \emph{change} in height to be computed, which gives slope, which gives the normal vector.
@@ -517,18 +529,11 @@ The most straightforward \scm\ \tiff\ process uses a single image file giving an
   \label{fig:bluebonnet}
 \end{figure}
 
-A brief description is added to an ASCII text file named \texttt{desc.txt}.
-
-\begin{Verbatim}
-Bluebonnet Swamp Nature Center - 9 October 2011
-Copyright (c) 2011 Robert Kooima
-\end{Verbatim}
-
 Table~\ref{tab:resolution} indicates that an image with this resolution is well-represented by an \scm\ with page size $n=512$ and depth $d=4$. When finished, the \scm\ tree will have $2046$ pages. The first step is to run the \texttt{convert} process to generate the leaves of this tree. The output file name is chosen to reflect the parameters of the \scm\ as well as the state of its processing. This convention is optional.
 
 \begin{Verbatim}
-scmtiff -p convert -n 512 -d 4 -t desc.txt \
-        -o Bluebonnet-0-L-512-4-M.tif Bluebonnet-0-L.tif
+scmtiff -p convert -n 512 -d 4 -o Bluebonnet-0-L-512-4-M.tif \
+                                  Bluebonnet-0-L.tif
 \end{Verbatim}
 
 If the output is examined using \scmview, pages $510$ through $2045$ will be present with a resolution of $514\times 514$. Image detail will closely reflect that of the input. There will be mild projection distortion apparent in some pages, though the degree of distortion will be far less than that at the top and bottom of the equirectangular input. All pages will have a border of black pixels around the outside.
@@ -568,10 +573,17 @@ The output is a complete \scm\ tree. Figure~\ref{fig:sixfaces} shows the first s
   \label{fig:sixfaces}
 \end{figure}
 
-The remaining fourth step scans the file noting the location of each page and appends this information to the end of the file. With this catalog, a real-time interactive application, such as the one described in the next chapter, can instantly locate, load, and display any page.
-
+The fourth and final step scans the file, noting the location and bounds of each page, and appending this information to the end of the file. With this, a real-time interactive application, such as the one described in the next chapter, can instantly locate, load, and display any page. A brief description is added to an ASCII text file named \texttt{desc.txt},
+%
 \begin{Verbatim}
-scmtiff -p catalog Bluebonnet-0-L-512-4.tif
+Bluebonnet Swamp Nature Center - 9 October 2011
+Copyright (c) 2011 Robert Kooima
+\end{Verbatim}
+%
+and the \scm\ \tiff\ is finished.
+%
+\begin{Verbatim}
+scmtiff -p finish -t desc.txt Bluebonnet-0-L-512-4.tif
 \end{Verbatim}
 
 \subsection{A Merged Planetary Dataset}
@@ -676,12 +688,12 @@ To complete the merger of the inputs, it remains only to combine the equirectang
 scmtiff -p combine -m max -o DTM-M.tif DTM-E.tif DTM-P.tif
 \end{Verbatim}
 
-And with that, the leaves of the \scm\ are in place. We mipmap, border, and catalog just as before to arrive at a finished, usable data product.
+And with that, the leaves of the \scm\ are in place. We mipmap, border, and finish just as before to arrive at a usable data product.
 
 \begin{Verbatim}
 scmtiff -p mipmap DTM-M.tif
 scmtiff -p border -o DTM.tif DTM-M.tif
-scmtiff -p catalog DTM.tif
+scmtiff -p finish DTM.tif
 \end{Verbatim}
 
 The six root pages of this \scm\ are shown in Figure~\ref{fig:dtmh}. Note, in particular, the top and bottom pages, both of which seamlessly combine interpolations of different data sets as well as mergers of distinct projections.
@@ -715,11 +727,11 @@ The moon has an average radius of \SI{1737400}{\meter}. \texttt{DTM.tif} was pre
 scmtiff -p normal -o DTM-O.tif -R 1728240,1748170 DTM.tif
 \end{Verbatim}
 
-The output of the normal process is neither bordered nor cataloged, so it is written to a temporary file. By convention, an unfinished normal map has the suffix \texttt{O}. Bordering and cataloging produce the usable normal map, given the suffix \texttt{N}.
+The output of the normal process is neither bordered nor finished, so it is written to a temporary file. By convention, an unbordered normal map has the suffix \texttt{O}. Bordering and finishing produce the usable normal map, given the suffix \texttt{N}.
 
 \begin{Verbatim}
 scmtiff -p border -o DTM-N.tif DTM-O.tif
-scmtiff -p catalog DTM-N.tif
+scmtiff -p finish DTM-N.tif
 \end{Verbatim}
 
 The six root faces of this \scm\ are shown in Figure~\ref{fig:dtmn}. In normal maps, positive $X$-facing surfaces appear red, positive $Y$ appears green, positive $Z$ appears blue.
@@ -747,7 +759,7 @@ The six root faces of this \scm\ are shown in Figure~\ref{fig:dtmn}. In normal m
 
 For input images larger than a gigapixel or two, the \scm\ conversion process will take time. Because this is a multi-step process, it is convenient to automate it and allow it to run in a batch-oriented mode. The most basic way to do so is to write a shell script that issues each of the above command lines in turn. This approach can be modularized using shell variables and loops, and works well in simple cases. However, a more sophisticated approach uses the \texttt{make} utility to define the relationships between the inputs and outputs of each step of the conversion and adaptively determine the necessary order of operations automatically. The primary advantages to the use of \texttt{make} in this context are that it correctly handles interrupted conversion processes without expending redundant effort, and it intelligently exploits opportunities for process-level parallelism.
 
-The following is an example \texttt{Makefile} that converts the equirectangular portion of the WAC GLD100 data set to a bordered, cataloged height map, and derives from this a bordered, cataloged normal map.
+The following is an example \texttt{Makefile} that converts the equirectangular portion of the WAC GLD100 data set to a bordered, finished height map, and derives from this a bordered, finished normal map.
 
 \begin{Verbatim}
 N    = 426
@@ -766,7 +778,7 @@ TIFS =  WAC_GLD100_E300N0450_100M.tif \
 all: $(NAME)-N.tif
 
 %.tif: %.IMG
-        scmtiff -p convert -n$(N) -d$(D) -t desc.txt -N-9160,10770 -o $@ $<
+        scmtiff -p convert -n$(N) -d$(D) -N-9160,10770 -o $@ $<
 
 $(NAME)-M.tif: $(TIFS)
         scmtiff -p combine -o $@ $<
@@ -774,14 +786,14 @@ $(NAME)-M.tif: $(TIFS)
 
 $(NAME).tif: $(NAME)-M.tif
         scmtiff -p border -o$@ $<
-        scmtiff -p catalog $@
+        scmtiff -p finish -t desc.txt $@
 
 $(NAME)-O.tif: $(NAME).tif
         scmtiff -p normal -R1728240,1748170 -o$@ $<
 
 $(NAME)-N.tif: $(NAME)-O.tif
         scmtiff -p border -o $@ $<
-        scmtiff -p catalog $@
+        scmtiff -p finish -t desc.txt $@
 \end{Verbatim}
 
 The variables \texttt{N} and \texttt{D} set the page size and tree depth (lines 1--2), which are carried throughout the process, making it easy to reprocess a single input at different resolutions. The variable \texttt{NAME} is defined in terms of these values (line 3), as per the \scm\ naming convention. Following this, the variable \texttt{TIFS} gives a list of constituent \scm\ \tiff\ files generated by the initial conversion (lines 5--12).
@@ -790,9 +802,9 @@ The \texttt{Makefile} lists the \tiff s instead of the \img s to enable the magi
 
 The \texttt{combine} recipe (lines 19--21) produces a single output given the eight inputs, and automatically executes the \texttt{mipmap} process on it in-place. By convention, this combined, mipmapped output is identified by the suffix \texttt{M}.
 
-The \texttt{border} recipe (lines 23--25) re-encodes this \texttt{M} file with bordered pages, and catalogs it, giving the finished height map output \texttt{GLD-426-6.tif}.
+The \texttt{border} recipe (lines 23--25) re-encodes this \texttt{M} file with bordered pages, and finishes it, giving the height map output \texttt{GLD-426-6.tif}.
 
-The \texttt{normal} recipes (lines 27--32) convert the finished height map to an intermediate normal map with the suffix \texttt{O}, which is bordered and cataloged giving a finished normal map \texttt{GLD-426-6-N.tif}.
+The \texttt{normal} recipes (lines 27--32) convert the finished height map to an intermediate normal map with the suffix \texttt{O}, which is bordered and finished giving a normal map \texttt{GLD-426-6-N.tif}.
 
 In all cases, an output is defined in terms of its input and is annotated with the process necessary to perform the conversion. The build is invoked with a single command.
 
@@ -908,6 +920,7 @@ For cluster-driven display systems, try to replicate all \scm\ \tiff s to local 
 Two example \scm\ rendering applications have been implemented using the Thumb framework, which enables cross-platform portability and scalability from laptops to cluster-driven virtual reality environments. The first of these applications, \panoview, renders \scm files inside-out and is suitable for high-resolution spherical panorama rendering. The second, \orbiter, renders \scm\ files outside-in and is suitable for planetary rendering. While the previous chapter on \scm\ handling applies to any embedding of the \scm\ renderer, this chapter specifically describes the configuration and usage of \panoview\ and \orbiter.
 
 \section{Sphere Definition File}
+\label{sec:scmxml}
 
 The sphere definition is an \xml\ file that organizes \scm\ images into visualization and gathers all of the information required by the renderer.
 
@@ -1095,22 +1108,22 @@ LOLA =\
         ldem_45n_100m.tif \
         ldem_45s_100m.tif
 
-# Convert a raw normal map to a bordered and cataloged normal map.
+# Convert a raw normal map to a bordered and finished normal map.
 
 $(NAME)-N.tif: $(NAME)-O.tif
         scmtiff -T -p border -o $@ $<
-        scmtiff -T -p catalog $@
+        scmtiff -T -p finish $(TEXT) $@
 
 # Convert a height map into a raw normal map.
 
 $(NAME)-O.tif: $(NAME).tif
         scmtiff -T -p normal $(RADI) -o $@ $<
 
-# Border and catalog.
+# Border and finish.
 
 $(NAME).tif: $(NAME)-M.tif
         scmtiff -T -p border -o $@ $<
-        scmtiff -T -p catalog $@
+        scmtiff -T -p finish $(TEXT) $@
 
 # Combine the two projections and mipmap the result.
 
@@ -1131,19 +1144,19 @@ $(NAME)-P.tif: $(GLDP) $(LOLA)
 # Convert all PDS files to TIFF.
 
 WAC_GLD100_E%.tif: WAC_GLD100_E%.IMG
-        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ $<
+        scmtiff -T -p convert $(FORM) $(NORM) -o $@ $<
 
 WAC_GLD100_P900N0000_100M.tif: WAC_GLD100_P900N0000_100M.IMG
-        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,12,11 $<
+        scmtiff -T -p convert $(FORM) $(NORM) -o $@ -P  90,12,11 $<
 
 WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
-        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,12,11 $<
+        scmtiff -T -p convert $(FORM) $(NORM) -o $@ -P -90,12,11 $<
 
 ldem_45n_100m.tif: ldem_45n_100m.lbl
-        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P  90,11,12 $<
+        scmtiff -T -p convert $(FORM) $(NORM) -o $@ -P  90,11,12 $<
 
 ldem_45s_100m.tif: ldem_45s_100m.lbl
-        scmtiff -T -p convert $(TEXT) $(FORM) $(NORM) -o $@ -P -90,11,12 $<
+        scmtiff -T -p convert $(FORM) $(NORM) -o $@ -P -90,11,12 $<
 
 clean:
         rm -f $(NAME).tif $(GLDE) $(GLDP) $(LOLA)
