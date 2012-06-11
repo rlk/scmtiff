@@ -336,8 +336,8 @@ void img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 
 void img_default(img *p, const double *v, double lon, double lat, double *t)
 {
-    t[0] = (p->h - 1) * ((M_PI / 4.0) - 0.5 * lat) / (M_PI / 2.0);
-    t[1] = (p->w    ) * (               0.5 * lon) / (M_PI);
+    t[0] = (p->h - 1) * (M_PI / 2.0 - lat) / M_PI;
+    t[1] = (p->w    ) * (1.0 - lon / (M_PI * 2.0));
 }
 
 // Panoramas are spheres viewed from the inside while planets are spheres
