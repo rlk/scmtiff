@@ -12,7 +12,7 @@ void  normalize(double *);
 
 void  mid2(double *, const double *, const double *);
 void  mid4(double *, const double *, const double *,
-                    const double *, const double *);
+                     const double *, const double *);
 
 float lerp1(float, float, float);
 float lerp2(float, float, float, float, float, float);

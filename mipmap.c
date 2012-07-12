@@ -55,7 +55,7 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
 // child present. Fill such pages using down-sampled child data and append them.
 // Return the number of pages added, so we can stop when there are none.
 
-static long long sample(scm *s)
+static long long process(scm *s)
 {
     long long t = 0;
 
@@ -138,7 +138,7 @@ int mipmap(int argc, char **argv, const char *o)
         {
             long long c;
 
-            while ((c = sample(s)))
+            while ((c = process(s)))
                 ;
 
             scm_close(s);

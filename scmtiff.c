@@ -154,6 +154,9 @@ int main(int argc, char **argv)
     else if (strcmp(p, "normal") == 0)
         r = normal (argc, argv, o, R);
 
+    else if (strcmp(p, "sample") == 0)
+        r = sample (argc, argv, N, d);
+
     else apperr("Unknown process '%s'", p);
 
     gettimeofday(&t1, NULL);

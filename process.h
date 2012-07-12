@@ -5,6 +5,7 @@
 
 //------------------------------------------------------------------------------
 
+int sample (int, char **, const float *, int);
 int normal (int, char **, const char *, const float *);
 int finish (int, char **, const char *, int);
 int border (int, char **, const char *);

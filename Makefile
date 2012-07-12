@@ -44,7 +44,7 @@ clean :
 
 #-------------------------------------------------------------------------------
 
-scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o finish.o normal.o scmtiff.o
+scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -ljpeg -ltiff -lpng -lz
 
 scmview : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmview.o

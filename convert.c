@@ -33,7 +33,7 @@ static void quincunx(double *q, const double *v)
 // that pixel by projection into image p using a quincunx filtering pattern.
 // This do-it-all function forms the kernel of the OpenMP parallelization.
 
-static int sample(img *p, int  f, int  i, int  j, int n,
+static int corner(img *p, int  f, int  i, int  j, int n,
                           long u, long v, long w, float *q)
 {
     double c[12];
@@ -122,7 +122,7 @@ static long long divide(scm *s, long long b, int  d, long long x,
             #pragma omp parallel for private(j) reduction(+:h)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
-                    h += sample(p, f, i, j, n, u, v, w,
+                    h += corner(p, f, i, j, n, u, v, w,
                                 q + c * (o * (i + 1) + (j + 1)));
 
             if (h) a = scm_append(s, a, x, q);
