@@ -11,8 +11,8 @@
 
 //------------------------------------------------------------------------------
 
-static bool search(scm *s, double a, double b, long long x, int d,
-                   int *h, float *p, float *q)
+static bool traverse(scm *s, double a, double b, long long x, int d,
+                     int *h, float *p, float *q)
 {
     long long i;
 
@@ -36,12 +36,12 @@ static bool search(scm *s, double a, double b, long long x, int d,
             {
                 if (a < 0.5)
                 {
-                    if (search(s, a0, b0, x0, d - 1, h, p, q))
+                    if (traverse(s, a0, b0, x0, d - 1, h, p, q))
                         return true;
                 }
                 else
                 {
-                    if (search(s, a1, b0, x1, d - 1, h, p, q))
+                    if (traverse(s, a1, b0, x1, d - 1, h, p, q))
                         return true;
                 }
             }
@@ -49,12 +49,12 @@ static bool search(scm *s, double a, double b, long long x, int d,
             {
                 if (a < 0.5)
                 {
-                    if (search(s, a0, b1, x2, d - 1, h, p, q))
+                    if (traverse(s, a0, b1, x2, d - 1, h, p, q))
                         return true;
                 }
                 else
                 {
-                    if (search(s, a1, b1, x3, d - 1, h, p, q))
+                    if (traverse(s, a1, b1, x3, d - 1, h, p, q))
                         return true;
                 }
             }
@@ -93,7 +93,45 @@ static bool search(scm *s, double a, double b, long long x, int d,
     return false;
 }
 
-static void process(scm *s, int d)
+static bool locate(scm *s, double lat, double lon, int d,
+                   int *h, float *p, float *q)
+{
+    int i = 4;
+
+    double X, x = sin(lon) * cos(lat);
+    double Y, y =            sin(lat);
+    double Z, z = cos(lon) * cos(lat);
+
+    double xx = fabs(x);
+    double yy = fabs(y);
+    double zz = fabs(z);
+
+    if      (xx > yy && xx > zz)
+    {
+        if (x < 0) { X =  z; Y = -y; Z = -x; i = 1; }
+        else       { X = -z; Y = -y; Z =  x; i = 0; }
+    }
+    else if (yy > xx && yy > zz)
+    {
+        if (y < 0) { X =  x; Y = -z; Z = -y; i = 3; }
+        else       { X =  x; Y =  z; Z =  y; i = 2; }
+    }
+    else
+    {
+        if (z < 0) { X = -x; Y = -y; Z = -z; i = 5; }
+        else       { X =  x; Y = -y; Z =  z; i = 4; }
+    }
+
+    double a = -atan2(X, Z);
+    double b = -atan2(Y, Z);
+
+    double A = (-a + M_PI / 4.0) / (M_PI / 2.0);
+    double B = (-b + M_PI / 4.0) / (M_PI / 2.0);
+
+    return traverse(s, A, B, i, d, h, p, q);
+}
+
+static void process(scm *s, const float *R, int d)
 {
     float *p;
 
@@ -103,62 +141,58 @@ static void process(scm *s, int d)
         double lat;
         int h = -1;
 
-        while (scanf("%lf %lf", &lon, &lat) == 2)
+        while (scanf("%lf %lf", &lat, &lon) == 2)
         {
-            lon *= M_PI / 180.0;
+            int c = scm_get_c(s);
+
             lat *= M_PI / 180.0;
+            lon *= M_PI / 180.0;
 
-            int i = 4;
+            float q[4];
 
-            double X, x = sin(lon) * cos(lat);
-            double Y, y =            sin(lat);
-            double Z, z = cos(lon) * cos(lat);
-
-            double xx = fabs(x);
-            double yy = fabs(y);
-            double zz = fabs(z);
-
-            if      (xx > yy && xx > zz)
+            if (locate(s, lat, lon, d, &h, p, q))
             {
-                if (x < 0) { Z = -x; Y =  y; X =  z; i = 1; }
-                else       { Z =  x; Y =  y; X = -z; i = 0; }
-            }
-            else if (yy > xx && yy > zz)
-            {
-                if (y < 0) { X =  x; Z = -y; Y =  z; i = 3; }
-                else       { X =  x; Z =  y; Y = -z; i = 2; }
-            }
-            else
-            {
-                if (z < 0) { X = -x; Y =  y; Z = -z; i = 5; }
-                else       { X =  x; Y =  y; Z =  z; i = 4; }
-            }
-
-            double a = -atan2(X, Z);
-            double b = -atan2(Y, Z);
-
-            double A = (-a + M_PI / 4.0) / (M_PI / 2.0);
-            double B = (-b + M_PI / 4.0) / (M_PI / 2.0);
-
-            const int c = scm_get_c(s);
-
-            float q[4] = { 0.0, 0.0, 0.0, 0.0 };
-
-            if (search(s, A, B, i, d, &h, p, q))
-
                 for (int i = 0; i < c; i++)
-                    printf("%f%c", q[i], (i == c - 1) ? '\n' : ' ');
-            else
-                for (int i = 0; i < c; i++)
-                    printf("%f%c", 0.0f, (i == c - 1) ? '\n' : ' ');
+                    printf("%f ", q[i] * (R[1] - R[0]) + R[0]);
+                printf("\n");
+            }
         }
         free(p);
     }
 }
 
+#if 0
+static void image(scm *s, const float *R, int d)
+{
+    float *p;
+    float q[4];
+
+    if ((p = scm_alloc_buffer(s)))
+    {
+        int h = -1;
+        int i;
+        int j;
+
+        for     (i =   90; i > -90; i -= 1)
+            for (j = -180; j < 180; j += 1)
+            {
+                double lon = ((double) j + 0.5) * M_PI / 180.0;
+                double lat = ((double) i - 0.5) * M_PI / 180.0;
+
+                locate(s, lat, lon, d, &h, p, q);
+
+                unsigned char c = (unsigned char) (q[0] * 255);
+
+                fwrite(&c, 1, 1, stdout);
+            }
+
+        free(p);
+    }
+}
+#endif
 //------------------------------------------------------------------------------
 
-int sample(int argc, char **argv, const float *N, int d)
+int sample(int argc, char **argv, const float *R, int d)
 {
     if (argc > 0)
     {
@@ -168,7 +202,8 @@ int sample(int argc, char **argv, const float *N, int d)
         {
             if (scm_scan_catalog(s))
             {
-                process(s, d);
+                process(s, R, d);
+                // image(s, R, d);
             }
             scm_close(s);
         }

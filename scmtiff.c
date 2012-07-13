@@ -155,7 +155,7 @@ int main(int argc, char **argv)
         r = normal (argc, argv, o, R);
 
     else if (strcmp(p, "sample") == 0)
-        r = sample (argc, argv, N, d);
+        r = sample (argc, argv, R, d);
 
     else apperr("Unknown process '%s'", p);
 
