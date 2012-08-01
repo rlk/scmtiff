@@ -371,7 +371,7 @@ Spherical data sets in a variety of image formats are converted to \scm\ \tiff\ 
 \bigskip\noindent\scmtiff\ \texttt{-p} \inangles{\textit{process}} [\texttt{-o} \inangles{\textit{output}}] [\textit{options}] \inangles{\textit{input}} [\ldots]
 
 \begin{optionlist}
-\item[\texttt{-p} \inangles{\textit{process}}] Selects the \scm\ process. Alternatives include \texttt{convert}, \texttt{combine}, \texttt{mipmap}, \texttt{border}, \texttt{finish}, and \texttt{normal}. Each of these processes is described here, and examples of complete conversions are given below.
+\item[\texttt{-p} \inangles{\textit{process}}] Selects the \scm\ process. Alternatives include \texttt{convert}, \texttt{combine}, \texttt{mipmap}, \texttt{border}, \texttt{finish}, \texttt{normal}, and \texttt{sample}. Each of these processes is described here, and examples of complete conversions are given below.
 
 \item[\texttt{-o} \inangles{\textit{output}}] Gives the name of the output file. If left unspecified, the default is \texttt{out.tif}, unless otherwise noted.
 
@@ -463,6 +463,25 @@ Regardless of whether the input height map was bordered or finished, the output 
 \begin{optionlist}
 \item[\texttt{-R} \inangles{$r_0$}\texttt{,}\inangles{$r_1$}] Specifies the true range of radii represented by the normalized height map input. This allows the true magnitude of the \emph{change} in height to be computed, which gives slope, which gives the normal vector.
 \end{optionlist}
+
+\subsection{Sample}
+
+\noindent\scmtiff\ \texttt{-p sample} [\textit{options}] \inangles{\textit{input}}
+
+\bigskip The \texttt{sample} process is not a tool for preprocessing \scm\ data, but for working with already-processed data. It queries the contents of the \scm\ \tiff\ file named on the command line, and produces no new \scm\ \tiff\ output. The \texttt{sample} process receives queries as latitude-longitude pairs, in degrees, on \texttt{stdin}. It reports the results on \texttt{stdout}.
+
+\begin{optionlist}
+\item[\texttt{-R} \inangles{$r_0$}\texttt{,}\inangles{$r_1$}] Specifies the true range of radii represented by the input. This allows the magnitude of the query to be correctly reported, even if the data has been renormalized during the \texttt{convert} process.
+\end{optionlist}
+
+For example, to query the radius in meters of the landing point of Apollo 16, as given by the merged lunar heightmap prepared in the example of Section~\ref{sec:planet}:
+
+\begin{Verbatim}
+echo "-8.973 15.500" | scmtiff -p sample -R 1728240,1748170 DTM.tif
+1737382.875000
+\end{Verbatim}
+
+The \texttt{sample} process does \emph{not} expect a finished \scm\ and will perform a scan of the \scm\ \tiff\ file prior to responding to queries. Thus the very first query may take a few moments to process, while subsequent queries will process immediately. If many queries are to be made, the best practice is to concatenate them in a file.
 
 \section{SCMVIEW}
 
