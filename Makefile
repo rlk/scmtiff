@@ -12,20 +12,61 @@ RM = rm -f
 
 CFLAGS =
 
-ifneq ($(wildcard /usr/local),)
-	CFLAGS += -I/usr/local/include
-	LFLAGS += -L/usr/local/lib
-endif
-
-ifneq ($(wildcard /opt/local),)
-	CFLAGS += -I/opt/local/include
-	LFLAGS += -L/opt/local/lib
-endif
+#-------------------------------------------------------------------------------
 
 ifeq ($(shell uname), Darwin)
-	LFLAGS += -lGLEW -framework OpenGL -framework GLUT
-else
-	LFLAGS += -lGLEW -lglut -lGL
+	LIBOGL  = -framework GLUT -framework OpenGL
+	LIBEXT  = -framework Cocoa -framework ApplicationServices -framework Carbon
+endif
+
+ifeq ($(shell uname), MINGW32_NT-6.1)
+	LIBOGL  = -lopengl32
+	LIBEXT  = -mwindows -lws2_32 -luser32 -lgdi32 -lwinmm
+	LIBSDL  = -lmingw32
+	CC     += -static
+	CFLAGS += -DGLEW_STATIC
+endif
+
+ifeq ($(shell uname), Linux)
+	LIBOGL  = -lglut -lGL
+	LIBEXT  = -lpthread
+endif
+
+#-------------------------------------------------------------------------------
+
+LIBTIF  = $(firstword $(wildcard /usr/local/lib/libtiff*.a \
+				 /opt/local/lib/libtiff*.a \
+				   C:/MinGW/lib/libtiff*.a \
+				    $(HOME)/lib/libtiff*.a \
+				       /usr/lib/libtiff*.a \
+				   C:/MinGW/lib/libtiff*.a) -ltiff)
+
+LIBGLEW = $(firstword $(wildcard /usr/local/lib/libGLEW*.a \
+				 /opt/local/lib/libGLEW*.a \
+				    $(HOME)/lib/libGLEW*.a \
+				       /usr/lib/libGLEW*.a) -lglew32)
+
+LIBJPG  = $(firstword $(wildcard /usr/local/lib/libjpeg*.a \
+				 /opt/local/lib/libjpeg*.a \
+				    $(HOME)/lib/libjpeg*.a \
+				       /usr/lib/libjpeg*.a \
+				   C:/MinGW/lib/libjpeg*.a) -ljpeg)
+
+LIBPNG  = $(firstword $(wildcard /usr/local/lib/libpng*.a \
+				 /opt/local/lib/libpng*.a \
+				    $(HOME)/lib/libpng*.a \
+				       /usr/lib/libpng*.a \
+				   C:/MinGW/lib/libpng*.a) -lpng)
+
+LIBZ    = $(firstword $(wildcard /usr/local/lib/libz*.a \
+				 /opt/local/lib/libz*.a \
+				    $(HOME)/lib/libz*.a \
+				       /usr/lib/libz*.a \
+				   C:/MinGW/lib/libz*.a) -lz)
+
+#-------------------------------------------------------------------------------
+
+ifneq ($(shell uname), Darwin)
 	CFLAGS += -D_FILE_OFFSET_BITS=64 -DM_PI=3.14159265358979323846
 endif
 
@@ -42,13 +83,19 @@ install : $(EXES)
 clean :
 	$(RM) $(EXES) *.o
 
+dist : all
+	mkdir -p scm
+	$(CP) scmtiff         scm
+	$(CP) scmview         scm
+	$(CP) doc/scmtiff.pdf scm
+
 #-------------------------------------------------------------------------------
 
 scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -ljpeg -ltiff -lpng -lz
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
 
 scmview : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmview.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ -lz
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT)
 
 #-------------------------------------------------------------------------------
 
