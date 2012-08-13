@@ -4,6 +4,7 @@ EXES= scmtiff scmview
 #-------------------------------------------------------------------------------
 
 #CC = gcc -std=c99 -Wall -m64 -g
+#CC = gcc -arch i386 -std=c99 -Wall -O3
 CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = clang -m64 -Weverything -Wno-unused-parameter
 
@@ -83,11 +84,15 @@ install : $(EXES)
 clean :
 	$(RM) $(EXES) *.o
 
+#-------------------------------------------------------------------------------
+
+DSTDIR= dist/scmtiff
+
 dist : all
-	mkdir -p scm
-	$(CP) scmtiff         scm
-	$(CP) scmview         scm
-	$(CP) doc/scmtiff.pdf scm
+	mkdir -p $(DSTDIR)
+	$(CP) scmtiff         $(DSTDIR)
+	$(CP) scmview         $(DSTDIR)
+	$(CP) doc/scmtiff.pdf $(DSTDIR)
 
 #-------------------------------------------------------------------------------
 
