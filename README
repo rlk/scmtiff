@@ -1,9 +1,0 @@
-SCM TIFF
-
-scmtiff is a multi-tool for generating and processing SCM TIFF image files.
-
-scmtiff -convert ... Convert a PDS, PNG, TIFF, or JPG file to a leafy SCM TIFF.
-scmtiff -combine ... Combine multiple SCM TIFF files into one.
-scmtiff -mipmap  ... Sample parent pages for an SCM TIFF wherever possible.
-scmtiff -border  ... Fill the borders of an SCM TIFF wherever possible.
-scmtiff -normal  ... Generate a normal SCM TIFF from a height SCM TIFF.

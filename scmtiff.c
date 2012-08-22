@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "b:d:g:hL:l:m:n:N:o:p:P:Tt:R:x:")) != -1)
+    while ((c = getopt(argc, argv, "b:d:g:hL:l:m:n:N:o:p:P:Tt:R:x:w:")) != -1)
         switch (c)
         {
             case 'p': p = optarg;                                         break;
@@ -138,6 +138,9 @@ int main(int argc, char **argv)
 
     else if (strcmp(p, "convert") == 0)
         r = convert(argc, argv, o, n, d, b, g, x, L, P, N);
+
+    else if (strcmp(p, "rectify") == 0)
+        r = rectify(argc, argv, o, n,             L, P, N);
 
     else if (strcmp(p, "combine") == 0)
         r = combine(argc, argv, o, m);

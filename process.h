@@ -11,8 +11,10 @@ int finish (int, char **, const char *, int);
 int border (int, char **, const char *);
 int mipmap (int, char **, const char *);
 int combine(int, char **, const char *, const char *);
-int convert(int, char **, const char *,
-            int, int, int, int, int, const double *, const double *, const float *);
+int rectify(int, char **, const char *, int,
+            const double *, const double *, const float *);
+int convert(int, char **, const char *, int, int, int, int, int,
+            const double *, const double *, const float *);
 
 //------------------------------------------------------------------------------
 

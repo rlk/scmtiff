@@ -4,7 +4,6 @@ EXES= scmtiff scmview
 #-------------------------------------------------------------------------------
 
 #CC = gcc -std=c99 -Wall -m64 -g
-#CC = gcc -arch i386 -std=c99 -Wall -O3
 CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = clang -m64 -Weverything -Wno-unused-parameter
 
@@ -96,7 +95,7 @@ dist : all
 
 #-------------------------------------------------------------------------------
 
-scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
+scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o rectify.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
 
 scmview : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmview.o
