@@ -22,6 +22,9 @@ static double lerp(double a, double b, double t)
     return b * t + a * (1.0 - t);
 }
 
+// Sample the image at the given latitude and longitude. If it's a hit, add
+// the value to the pixel at b.
+
 static int accumulate(img *p, double lat, double lon, float *b, int c)
 {
     double v[3];
@@ -44,6 +47,10 @@ static int accumulate(img *p, double lat, double lon, float *b, int c)
     }
     return 0;
 }
+
+// Perform a quincunx multisampling of the image at pixel (i, j) in the given
+// range of latitude and longitude. This function forms the kernel of an OpenMP
+// parallelization of the sampling of an entire TIFF tile.
 
 static void dosamp(img *p, double lat0, double lat1,
                            double lon0, double lon1,
@@ -74,6 +81,9 @@ static void dosamp(img *p, double lat0, double lat1,
     }
 }
 
+// Sample the image across an entire TIFF tile covering the given range of
+// latitude and longitude.
+
 static void dotile(img *p, double lat0, double lat1,
                            double lon0, double lon1,
                            float *b, int s, int c)
@@ -86,6 +96,9 @@ static void dotile(img *p, double lat0, double lat1,
         for (j = 0; j < s; ++j)
             dosamp(p, lat0, lat1, lon0, lon1, b, i, j, s, c);
 }
+
+// Sample the image across the entire sphere, storing the results to a tiled
+// TIFF file with image size 2n x n, tile size s x s, and c channels.
 
 static void process(const char *out, img *p, int n, int s, int c)
 {
