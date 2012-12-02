@@ -116,7 +116,6 @@ dist-src:
 	$(CP) png.c      $(SRCDIR)
 	$(CP) process.h  $(SRCDIR)
 	$(CP) rectify.c  $(SRCDIR)
-	$(CP) relink.c   $(SRCDIR)
 	$(CP) sample.c   $(SRCDIR)
 	$(CP) scm.c      $(SRCDIR)
 	$(CP) scm.h      $(SRCDIR)
