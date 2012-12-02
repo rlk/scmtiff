@@ -86,13 +86,54 @@ clean :
 
 #-------------------------------------------------------------------------------
 
-DSTDIR= dist/scmtiff
+BINDIR= scmtiff-bin-$(shell svnversion)
+SRCDIR= scmtiff-src-$(shell svnversion)
 
 dist : all
-	mkdir -p $(DSTDIR)
-	$(CP) scmtiff         $(DSTDIR)
-	$(CP) scmview         $(DSTDIR)
-	$(CP) doc/scmtiff.pdf $(DSTDIR)
+	mkdir -p         $(BINDIR)
+
+	$(CP) scmtiff    $(BINDIR)
+	$(CP) scmview    $(BINDIR)
+
+	zip -r $(BINDIR) $(BINDIR)
+
+dist-src:
+	mkdir -p         $(SRCDIR)
+
+	$(CP) Makefile   $(SRCDIR)
+	$(CP) border.c   $(SRCDIR)
+	$(CP) combine.c  $(SRCDIR)
+	$(CP) convert.c  $(SRCDIR)
+	$(CP) err.c      $(SRCDIR)
+	$(CP) err.h      $(SRCDIR)
+	$(CP) finish.c   $(SRCDIR)
+	$(CP) img.c      $(SRCDIR)
+	$(CP) img.h      $(SRCDIR)
+	$(CP) jpg.c      $(SRCDIR)
+	$(CP) mipmap.c   $(SRCDIR)
+	$(CP) normal.c   $(SRCDIR)
+	$(CP) pds.c      $(SRCDIR)
+	$(CP) png.c      $(SRCDIR)
+	$(CP) process.h  $(SRCDIR)
+	$(CP) rectify.c  $(SRCDIR)
+	$(CP) relink.c   $(SRCDIR)
+	$(CP) sample.c   $(SRCDIR)
+	$(CP) scm.c      $(SRCDIR)
+	$(CP) scm.h      $(SRCDIR)
+	$(CP) scmdat.c   $(SRCDIR)
+	$(CP) scmdat.h   $(SRCDIR)
+	$(CP) scmdef.c   $(SRCDIR)
+	$(CP) scmdef.h   $(SRCDIR)
+	$(CP) scmio.c    $(SRCDIR)
+	$(CP) scmio.h    $(SRCDIR)
+	$(CP) scmtiff.c  $(SRCDIR)
+	$(CP) scmview.c  $(SRCDIR)
+	$(CP) tif.c      $(SRCDIR)
+	$(CP) util.c     $(SRCDIR)
+	$(CP) util.h     $(SRCDIR)
+	$(CP) COPYING    $(SRCDIR)
+
+	zip -r $(SRCDIR) $(SRCDIR)
 
 #-------------------------------------------------------------------------------
 

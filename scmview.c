@@ -1,5 +1,17 @@
-// Copyright (c) 2011 Robert Kooima.  All Rights Reserved.
+// SCMVIEW Copyright (C) 2012 Robert Kooima
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITH-
+// OUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
 
+
+//------------------------------------------------------------------------------
 // SCMVIEW is a light-weight OpenGL-based viewer for SCMTIFF format image files.
 // It enables panning, zooming, and false-color rendering of individual pages,
 // as well as side-by-side comparison of multiple SCMTIFF data files. SCMVIEW is
