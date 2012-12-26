@@ -136,7 +136,9 @@ int main(int argc, char **argv)
                 "\t\t-m sum . . . . Combine by sum\n\n"
                 "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m avg . . . . Combine by average\n\n"
-                "\t%s -p mipmap\n\n"
+                "\t%s -p mipmap [-m mode]\n\n"
+                "\t\t-m max . . . . Combine by maximum\n"
+                "\t\t-m avg . . . . Combine by average\n\n"
                 "\t%s -p border\n\n"
                 "\t%s -p finish [options]\n"
                 "\t\t-t text  . . . Image description text file\n"
@@ -156,7 +158,7 @@ int main(int argc, char **argv)
         r = combine(argc, argv, o, m);
 
     else if (strcmp(p, "mipmap") == 0)
-        r = mipmap (argc, argv, o);
+        r = mipmap (argc, argv, o, m);
 
     else if (strcmp(p, "border") == 0)
         r = border (argc, argv, o);

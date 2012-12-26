@@ -23,11 +23,46 @@
 
 //------------------------------------------------------------------------------
 
-// Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
-// the c-channel n-by-n image buffer p, downsampling 2-to-1. Don't factor in
-// zeros.
+static void sum_pixel(float *p, const float *q0, const float *q1,
+                                const float *q2, const float *q3, int c)
+{
+    switch (c)
+    {
+        case 4: p[3] = q0[3] + q1[3] + q2[3] + q3[3];
+        case 3: p[2] = q0[2] + q1[2] + q2[2] + q3[2];
+        case 2: p[1] = q0[1] + q1[1] + q2[1] + q3[1];
+        case 1: p[0] = q0[0] + q1[0] + q2[0] + q3[0];
+    }
+}
 
-static void box(float *p, int ki, int kj, int c, int n, float *q)
+static void max_pixel(float *p, const float *q0, const float *q1,
+                                const float *q2, const float *q3, int c)
+{
+    switch (c)
+    {
+        case 4: p[3] = max(max(q0[3], q1[3]), max(q2[3], q3[3]));
+        case 3: p[2] = max(max(q0[2], q1[2]), max(q2[2], q3[2]));
+        case 2: p[1] = max(max(q0[1], q1[1]), max(q2[1], q3[1]));
+        case 1: p[0] = max(max(q0[0], q1[1]), max(q2[0], q3[0]));
+    }
+}
+
+static void avg_pixel(float *p, const float *q0, const float *q1,
+                                const float *q2, const float *q3, int c)
+{
+    switch (c)
+    {
+        case 4: p[3] = (q0[3] + q1[3] + q2[3] + q3[3]) / 4.f;
+        case 3: p[2] = (q0[2] + q1[2] + q2[2] + q3[2]) / 4.f;
+        case 2: p[1] = (q0[1] + q1[1] + q2[1] + q3[1]) / 4.f;
+        case 1: p[0] = (q0[0] + q1[0] + q2[0] + q3[0]) / 4.f;
+    }
+}
+
+// Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
+// the c-channel n-by-n image buffer p, downsampling 2-to-1.
+
+static void box(float *p, int ki, int kj, int c, int n, int O, float *q)
 {
     int qi;
     int qj;
@@ -45,18 +80,11 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
             float *q3 = q + ((n + 2) * (qi + 2) + (qj + 2)) * c;
             float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;
 
-            int k;
-
-            for (k = 0; k < c; ++k)
+            switch (O)
             {
-                int s = 0;
-
-                if (q0[k] > 0) s++;
-                if (q1[k] > 0) s++;
-                if (q2[k] > 0) s++;
-                if (q3[k] > 0) s++;
-
-                pp[k] = s ? (q0[k] + q1[k] + q2[k] + q3[k]) / s : 0;
+                case 0: sum_pixel(pp, q0, q1, q2, q3, c); break;
+                case 1: max_pixel(pp, q0, q1, q2, q3, c); break;
+                case 2: avg_pixel(pp, q0, q1, q2, q3, c); break;
             }
         }
 }
@@ -65,7 +93,7 @@ static void box(float *p, int ki, int kj, int c, int n, float *q)
 // child present. Fill such pages using down-sampled child data and append them.
 // Return the number of pages added, so we can stop when there are none.
 
-static long long process(scm *s)
+static long long process(scm *s, int O)
 {
     long long t = 0;
 
@@ -120,10 +148,10 @@ static long long process(scm *s)
 
                     memset(p, 0, (size_t) (o * o * c) * sizeof (float));
 
-                    if (o0 && scm_read_page(s, o0, q)) box(p, 0, 0, c, n, q);
-                    if (o1 && scm_read_page(s, o1, q)) box(p, 0, 1, c, n, q);
-                    if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, q);
-                    if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, q);
+                    if (o0 && scm_read_page(s, o0, q)) box(p, 0, 0, c, n, O, q);
+                    if (o1 && scm_read_page(s, o1, q)) box(p, 0, 1, c, n, O, q);
+                    if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, O, q);
+                    if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, O, q);
 
                     b = scm_append(s, b, x, p);
                     t++;
@@ -138,8 +166,17 @@ static long long process(scm *s)
 
 //------------------------------------------------------------------------------
 
-int mipmap(int argc, char **argv, const char *o)
+int mipmap(int argc, char **argv, const char *o, const char *m)
 {
+    int O = 2;
+
+    if (m)
+    {  
+        if      (strcmp(m, "sum") == 0) O = 0;
+        else if (strcmp(m, "max") == 0) O = 1;
+        else if (strcmp(m, "avg") == 0) O = 2;
+    }
+
     if (argc > 0)
     {
         scm *s = NULL;
@@ -148,7 +185,7 @@ int mipmap(int argc, char **argv, const char *o)
         {
             long long c;
 
-            while ((c = process(s)))
+            while ((c = process(s, O)))
                 ;
 
             scm_close(s);
