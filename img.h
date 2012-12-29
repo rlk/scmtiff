@@ -21,15 +21,15 @@ struct img
 {
     // Data buffer and parameters
 
-    void  *p;
-    void  *q;
-    int    w;
-    int    h;
-    int    c;
-    int    b;
-    int    g;
-    int    d;
-    size_t n;
+    void  *p;  // Pixel buffer pointer
+    int    w;  // Image width
+    int    h;  // Image height
+    int    c;  // Image channel count
+    int    b;  // Image bits per channel
+    int    g;  // Image channel signedness
+    int    d;  // Memory-mapped file descriptor
+    size_t n;  // Memory-mapped size
+    void  *q;  // Memory-mapped pointer
 
     // Sample level parameters
 
@@ -75,7 +75,7 @@ void img_set_defaults(img *);
 //------------------------------------------------------------------------------
 
 void *img_scanline(img *, int);
-int   img_sample  (img *, const double *, float *);
+float img_sample  (img *, const double *, float *);
 int   img_locate  (img *, const double *);
 
 void  img_equirectangular (img *, const double *, double, double, double *);

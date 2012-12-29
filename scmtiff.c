@@ -69,13 +69,14 @@ int main(int argc, char **argv)
     struct timeval t1;
 
     const char *p    = NULL;
-    const char *m    = "sum";
+    const char *m    = NULL;
     const char *o    = NULL;
     const char *t    = NULL;
     int         n    = 512;
     int         d    =   0;
     int         b    =  -1;
     int         g    =  -1;
+    int         A    =   0;
     int         h    =   0;
     int         l    =   0;
     int         T    =   0;
@@ -94,7 +95,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "b:d:g:hL:l:m:n:N:o:p:P:Tt:R:x:w:")) != -1)
+    while ((c = getopt(argc, argv, "Ab:d:g:hL:l:m:n:N:o:p:P:Tt:R:x:w:")) != -1)
         switch (c)
         {
             case 'p': p = optarg;                                         break;
@@ -111,6 +112,7 @@ int main(int argc, char **argv)
             case 'P': sscanf(optarg, "%lf,%lf,%lf", P + 0, P + 1, P + 2); break;
             case 'N': sscanf(optarg, "%f,%f",       N + 0, N + 1);        break;
             case 'R': sscanf(optarg, "%f,%f",       R + 0, R + 1);        break;
+            case 'A': A = 1;                                              break;
             case 'h': h = 1;                                              break;
             case 'T': T = 1;                                              break;
             case '?': apperr("Bad option -%c", optopt);                   break;
@@ -131,12 +133,14 @@ int main(int argc, char **argv)
                 "\t\t-g g . . . . . Channel sign override\n"
                 "\t\t-L c,d0,d1 . . Longitude blend range\n"
                 "\t\t-P c,d0,d1 . . Latitude blend range\n"
-                "\t\t-N n0,n1 . . . Normalization range\n\n"
+                "\t\t-N n0,n1 . . . Normalization range\n"
+                "\t\t-A . . . . . . Coverage alpha\n\n"
                 "\t%s -p combine [-m mode]\n"
                 "\t\t-m sum . . . . Combine by sum\n\n"
                 "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m avg . . . . Combine by average\n\n"
                 "\t%s -p mipmap [-m mode]\n\n"
+                "\t\t-m sum . . . . Combine by sum\n\n"
                 "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m avg . . . . Combine by average\n\n"
                 "\t%s -p border\n\n"
@@ -149,7 +153,7 @@ int main(int argc, char **argv)
                 exe, exe, exe, exe, exe, exe, exe);
 
     else if (strcmp(p, "convert") == 0)
-        r = convert(argc, argv, o, n, d, b, g, x, L, P, N);
+        r = convert(argc, argv, o, n, d, b, g, x, L, P, N, A);
 
     else if (strcmp(p, "rectify") == 0)
         r = rectify(argc, argv, o, n,             L, P, N);

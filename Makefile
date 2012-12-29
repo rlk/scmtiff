@@ -67,9 +67,15 @@ LIBZ    = $(firstword $(wildcard /usr/local/lib/libz*.a \
 
 #-------------------------------------------------------------------------------
 
+ifneq ($(wildcard /opt/local/include),)
+        CFLAGS += -I/opt/local/include
+endif
+
 ifneq ($(shell uname), Darwin)
 	CFLAGS += -D_FILE_OFFSET_BITS=64 -DM_PI=3.14159265358979323846
 endif
+
+#-------------------------------------------------------------------------------
 
 %.o : %.c Makefile
 	$(CC) $(CFLAGS) -c $<

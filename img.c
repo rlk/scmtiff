@@ -90,7 +90,7 @@ void *img_scanline(img *p, int r)
 }
 
 //------------------------------------------------------------------------------
-
+#if 0
 static int normu8(const img *p, uint8_t d, float *f)
 {
     *f = ((float) d * p->scaling_factor - p->norm0)
@@ -114,7 +114,7 @@ static int normu16(const img *p, uint16_t d, float *f)
 
 static int norms16(const img *p, int16_t d, float *f)
 {
-    if      (d == -32768) return 0.f;  // Core null
+    if      (d == -32768) return 0;    // Core null
     else if (d == -32767) *f =   0.f;  // Representation saturation low
     else if (d == -32766) *f =   0.f;  // Instrumentation saturation low
     else if (d == -32764) *f =   1.f;  // Representation saturation high
@@ -130,7 +130,7 @@ static int normf(const img *p, float d, float *f)
 {
     unsigned int *w = (unsigned int *) (&d);
 
-    if      (*w == 0xFF7FFFFB) return 0.f;  // Core null
+    if      (*w == 0xFF7FFFFB) return 0;    // Core null
     else if (*w == 0xFF7FFFFC) *f =   0.f;  // Representation saturation low
     else if (*w == 0xFF7FFFFD) *f =   0.f;  // Instrumentation saturation low
     else if (*w == 0xFF7FFFFE) *f =   1.f;  // Representation saturation high
@@ -142,9 +142,69 @@ static int normf(const img *p, float d, float *f)
 
     return 1;
 }
-
+#endif
 //------------------------------------------------------------------------------
 
+static int normu8(const img *p, const uint8_t *u, float *f)
+{
+    *f = ((float) (*u) * p->scaling_factor - p->norm0)
+                               / (p->norm1 - p->norm0);
+    return 1;
+}
+
+static int norms8(const img *p, const int8_t *s, float *f)
+{
+    *f = ((float) (*s) * p->scaling_factor - p->norm0)
+                               / (p->norm1 - p->norm0);
+    return 1;
+}
+
+static int normu16(const img *p, const uint16_t *u, float *f)
+{
+    *f = ((float) (*u) * p->scaling_factor - p->norm0)
+                               / (p->norm1 - p->norm0);
+    return 1;
+}
+
+static int norms16(const img *p, const int16_t *s, float *f)
+{
+    float d = 1;
+    float k = 0;
+
+    if      (*s == -32768) d =   0;  // Null
+    else if (*s == -32767) k = 0.f;  // Representation  saturation low
+    else if (*s == -32766) k = 0.f;  // Instrumentation saturation low
+    else if (*s == -32764) k = 1.f;  // Representation  saturation high
+    else if (*s == -32765) k = 1.f;  // Instrumentation saturation high
+    else                   k =  *s;  // Good
+
+    *f = (k * p->scaling_factor - p->norm0)
+                    / (p->norm1 - p->norm0);
+    return d;
+}
+
+static int normf(const img *p, const float *e, float *f)
+{
+    unsigned int *w = (unsigned int *) e;
+
+    float d = 1;
+    float k = 0;
+
+    if      (*w == 0xFF7FFFFB) d =   0;  // Null
+    else if (*w == 0xFF7FFFFC) k = 0.f;  // Representation  saturation low
+    else if (*w == 0xFF7FFFFD) k = 0.f;  // Instrumentation saturation low
+    else if (*w == 0xFF7FFFFE) k = 1.f;  // Representation  saturation high
+    else if (*w == 0xFF7FFFFF) k = 1.f;  // Instrumentation saturation high
+    else if (isnormal(*e))     k =  *e;  // Good
+    else                       d =   0;  // Punt
+
+    *f = (k * p->scaling_factor - p->norm0)
+                    / (p->norm1 - p->norm0);
+    return d;
+}
+
+//------------------------------------------------------------------------------
+#if 0
 static int getchan(const img *p, int i, int j, int k, float *f)
 {
     const size_t s = (size_t) p->c * ((size_t) p->w * i + j);
@@ -182,11 +242,54 @@ static int getsamp(img *p, int i, int j, float *c)
     }
     return d;
 }
+#else
+static int getchan(const img *p, int i, int j, int k, float *f)
+{
+    const size_t s = ((size_t) p->w * i + j) * ((size_t) p->c) + k;
+
+    if (p->b == 32)
+    {
+        return normf(p, (float *) p->p + s, f);
+    }
+    else if (p->b == 16)
+    {
+        if (p->g)
+            return norms16(p, ( int16_t *) p->p + s, f);
+        else
+            return normu16(p, (uint16_t *) p->p + s, f);
+    }
+    else if (p->b ==  8)
+    {
+        if (p->g)
+            return norms8(p, ( int8_t *) p->p + s, f);
+        else
+            return normu8(p, (uint8_t *) p->p + s, f);
+    }
+    return 0;
+}
+
+static int getsamp(img *p, int i, int j, float *c)
+{
+    int d = 0;
+
+    if (0 <= i && i < p->h && 0 <= j && j < p->w)
+    {
+        switch (p->c)
+        {
+            case 4: d |= getchan(p, i, j, 3, c + 3);
+            case 3: d |= getchan(p, i, j, 2, c + 2);
+            case 2: d |= getchan(p, i, j, 1, c + 1);
+            case 1: d |= getchan(p, i, j, 0, c + 0);
+        }
+    }
+    return d;
+}
+#endif
 
 // Perform a linearly-filtered sampling of the image p. The filter position
 // is smoothly-varying in the range [0, w), [0, h).
 
-static int img_linear(img *p, const double *t, float *c)
+static float img_linear(img *p, const double *t, float *c)
 {
     const int ia = (int) floor(t[0]);
     const int ib = (int)  ceil(t[0]);
@@ -196,12 +299,12 @@ static int img_linear(img *p, const double *t, float *c)
     float aa[4], ab[4];
     float ba[4], bb[4];
 
-    int kaa = getsamp(p, ia, ja, aa);
-    int kab = getsamp(p, ia, jb, ab);
-    int kba = getsamp(p, ib, ja, ba);
-    int kbb = getsamp(p, ib, jb, bb);
+    int daa = getsamp(p, ia, ja, aa);
+    int dab = getsamp(p, ia, jb, ab);
+    int dba = getsamp(p, ib, ja, ba);
+    int dbb = getsamp(p, ib, jb, bb);
 
-    if (kaa && kab && kba && kbb)
+    if (daa && dab && dba && dbb)
     {
         const float u = (float) (t[0] - floor(t[0]));
         const float v = (float) (t[1] - floor(t[1]));
@@ -213,9 +316,8 @@ static int img_linear(img *p, const double *t, float *c)
             case 2: c[1] = lerp2(aa[1], ab[1], ba[1], bb[1], u, v);
             case 1: c[0] = lerp2(aa[0], ab[0], ba[0], bb[0], u, v);
         }
-        return 1;
     }
-    else if (kaa)
+    else if (daa)
     {
         switch (p->c)
         {
@@ -224,9 +326,8 @@ static int img_linear(img *p, const double *t, float *c)
             case 2: c[1] = aa[1];
             case 1: c[0] = aa[0];
         }
-        return 1;
     }
-    else if (kab)
+    else if (dab)
     {
         switch (p->c)
         {
@@ -235,9 +336,8 @@ static int img_linear(img *p, const double *t, float *c)
             case 2: c[1] = ab[1];
             case 1: c[0] = ab[0];
         }
-        return 1;
     }
-    else if (kba)
+    else if (dba)
     {
         switch (p->c)
         {
@@ -246,9 +346,8 @@ static int img_linear(img *p, const double *t, float *c)
             case 2: c[1] = ba[1];
             case 1: c[0] = ba[0];
         }
-        return 1;
     }
-    else if (kbb)
+    else if (dbb)
     {
         switch (p->c)
         {
@@ -257,9 +356,8 @@ static int img_linear(img *p, const double *t, float *c)
             case 2: c[1] = bb[1];
             case 1: c[0] = bb[0];
         }
-        return 1;
     }
-    return 0;
+    return (daa || dab || dba || dbb) ? 1.f : 0.f;
 }
 
 //------------------------------------------------------------------------------
@@ -403,7 +501,7 @@ static double angle(double a, double b)
     }
 }
 
-int img_sample(img *p, const double *v, float *c)
+float img_sample(img *p, const double *v, float *c)
 {
     const double lon = tolon(atan2(v[0], v[2])), lat = asin(v[1]);
 
@@ -416,6 +514,7 @@ int img_sample(img *p, const double *v, float *c)
         klon = (float) blend(p->lon0, p->lon1, angle(lon, p->lonc));
 
     float k;
+    float a;
 
     if ((k = klat * klon))
     {
@@ -423,7 +522,7 @@ int img_sample(img *p, const double *v, float *c)
 
         p->project(p, v, lon, lat, t);
 
-        if (img_linear(p, t, c))
+        if ((a = img_linear(p, t, c)))
         {
             switch (p->c)
             {
@@ -432,10 +531,10 @@ int img_sample(img *p, const double *v, float *c)
                 case 2: c[1] *= k;
                 case 1: c[0] *= k;
             }
-            return 1;
+            return a;
         }
     }
-    return 0;
+    return 0.f;
 }
 
 int img_locate(img *p, const double *v)

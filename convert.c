@@ -38,50 +38,70 @@ static void quincunx(double *q, const double *v)
     mid2(q +  0, q + 12, v +  0);
 }
 
-// Compute the corner vectors of the pixel at row i column j of the n-by-n page
-// found at row u column v of the w-by-w page array on face f. (yow!) Sample
+// Compute the corner vectors of the pixel at row i column j of the n-by-n
+// page found at row u column v of the w-by-w page array on face f. Sample
 // that pixel by projection into image p using a quincunx filtering pattern.
-// This do-it-all function forms the kernel of the OpenMP parallelization.
 
-static int corner(img *p, int  f, int  i, int  j, int n,
-                          long u, long v, long w, float *q)
+static float multisample(img *p, int  f, int  i, int  j, int n,
+                                 long u, long v, long w, float *d)
 {
     double c[12];
     double C[15];
-    int    D = 0;
+    int    N = 0;
+    float  A = 0.f;
 
     scm_get_sample_corners(f, n * u + i, n * v + j, n * w, c);
+
     quincunx(C, c);
 
     for (int l = 4; l >= 0; --l)
     {
         float t[4];
-        int d;
+        float a;
 
-        if ((d = img_sample(p, C + l * 3, t)))
+        if ((a = img_sample(p, C + l * 3, t)))
         {
             switch (p->c)
             {
-                case 4: q[3] += t[3];
-                case 3: q[2] += t[2];
-                case 2: q[1] += t[1];
-                case 1: q[0] += t[0];
+                case 4: d[3] += t[3];
+                case 3: d[2] += t[2];
+                case 2: d[1] += t[1];
+                case 1: d[0] += t[0];
             }
-            D += d;
+            A += a;
+            N += 1;
         }
     }
-    if (D)
+    if (N)
     {
         switch (p->c)
         {
-            case 4: q[3] /= D;
-            case 3: q[2] /= D;
-            case 2: q[1] /= D;
-            case 1: q[0] /= D;
+            case 4: d[3] /= N;
+            case 3: d[2] /= N;
+            case 2: d[1] /= N;
+            case 1: d[0] /= N;
         }
-        return 1;
+        return A / N;
     }
-    return 0;
+    return 0.f;
+}
+
+// Determine the value of the pixel at row i column j of the page found at row
+// u column v of the w-by-w page array on face f. Set the coverage if needed.
+// Return true if data was added.
+
+static int pixel(scm *s, img *p, int  f, int  i, int  j,
+                                 long u, long v, long w, float *q)
+{
+    const int n = scm_get_n(s);
+    const int c = scm_get_c(s);
+
+    float *d = q + c * ((n + 2) * (i + 1) + (j + 1));
+    float  a = multisample(p, f, i, j, n, u, v, w, d);
+
+    if (p->c < c) d[p->c] = a;
+
+    return (a > 0.f);
 }
 
 // Determine whether the image intersects with the page at row u column v of the
@@ -109,8 +129,8 @@ static bool overlap(img *p, int f, long u, long v, long w)
 // Consider page x of SCM s. Determine whether it contains any of image p.
 // If so, sample it or recursively subdivide it as needed.
 
-static long long divide(scm *s, long long b, int  d, long long x,
-                                long u, long v, long w, img *p, float *q)
+static long long divide(scm *s, img *p, long long b, int d, long long x,
+                                        long u, long v, long w, float *q)
 {
     long long a = b;
 
@@ -123,19 +143,18 @@ static long long divide(scm *s, long long b, int  d, long long x,
             const int c = scm_get_c(s);
             const int n = scm_get_n(s);
 
-            int h = 0;
+            int N = 0;
             int i;
             int j;
 
             memset(q, 0, (size_t) (o * o * c) * sizeof (float));
 
-            #pragma omp parallel for private(j) reduction(+:h)
+            #pragma omp parallel for private(j) reduction(+:N)
             for     (i = 0; i < n; ++i)
                 for (j = 0; j < n; ++j)
-                    h += corner(p, f, i, j, n, u, v, w,
-                                q + c * (o * (i + 1) + (j + 1)));
+                    N += pixel(s, p, f, i, j, u, v, w, q);
 
-            if (h) a = scm_append(s, a, x, q);
+            if (N) a = scm_append(s, a, x, q);
         }
         else
         {
@@ -144,10 +163,10 @@ static long long divide(scm *s, long long b, int  d, long long x,
             long long x2 = scm_page_child(x, 2);
             long long x3 = scm_page_child(x, 3);
 
-            a = divide(s, a, d - 1, x0, u * 2,     v * 2,     w * 2, p, q);
-            a = divide(s, a, d - 1, x1, u * 2,     v * 2 + 1, w * 2, p, q);
-            a = divide(s, a, d - 1, x2, u * 2 + 1, v * 2,     w * 2, p, q);
-            a = divide(s, a, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, p, q);
+            a = divide(s, p, a, d - 1, x0, u * 2,     v * 2,     w * 2, q);
+            a = divide(s, p, a, d - 1, x1, u * 2,     v * 2 + 1, w * 2, q);
+            a = divide(s, p, a, d - 1, x2, u * 2 + 1, v * 2,     w * 2, q);
+            a = divide(s, p, a, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, q);
         }
     }
     return a;
@@ -167,12 +186,12 @@ static int process(scm *s, int d, img *p)
     {
         long long b = 0;
 
-        b = divide(s, b, d, 0, 0, 0, 1, p, q);
-        b = divide(s, b, d, 1, 0, 0, 1, p, q);
-        b = divide(s, b, d, 2, 0, 0, 1, p, q);
-        b = divide(s, b, d, 3, 0, 0, 1, p, q);
-        b = divide(s, b, d, 4, 0, 0, 1, p, q);
-        b = divide(s, b, d, 5, 0, 0, 1, p, q);
+        b = divide(s, p, b, d, 0, 0, 0, 1, q);
+        b = divide(s, p, b, d, 1, 0, 0, 1, q);
+        b = divide(s, p, b, d, 2, 0, 0, 1, q);
+        b = divide(s, p, b, d, 3, 0, 0, 1, q);
+        b = divide(s, p, b, d, 4, 0, 0, 1, q);
+        b = divide(s, p, b, d, 5, 0, 0, 1, q);
 
         free(q);
     }
@@ -189,7 +208,8 @@ int convert(int argc, char **argv, const char *o,
                                            int x,
                                  const double *L,
                                  const double *P,
-                                 const float  *N)
+                                 const float  *N,
+                                           int A)
 {
     img  *p = NULL;
     scm  *s = NULL;
@@ -271,7 +291,7 @@ int convert(int argc, char **argv, const char *o,
 
             // Process the output.
 
-            if ((s = scm_ofile(out, n, p->c, b, g)))
+            if ((s = scm_ofile(out, n, p->c + A, b, g)))
             {
                 process(s, d, p);
                 scm_close(s);

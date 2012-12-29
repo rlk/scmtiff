@@ -39,7 +39,7 @@ void scm_vector(long long f, double y, double x, double *v)
         case 1: v[0] = -u[2]; v[1] =  u[1]; v[2] =  u[0]; break;
         case 2: v[0] =  u[0]; v[1] =  u[2]; v[2] = -u[1]; break;
         case 3: v[0] =  u[0]; v[1] = -u[2]; v[2] =  u[1]; break;
-        case 4: v[0] =  u[0]; v[1] = u[1]; v[2] =  u[2]; break;
+        case 4: v[0] =  u[0]; v[1] =  u[1]; v[2] =  u[2]; break;
         case 5: v[0] = -u[0]; v[1] =  u[1]; v[2] = -u[2]; break;
     }
 }
