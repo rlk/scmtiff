@@ -110,7 +110,7 @@ static int pixel(scm *s, img *p, int  f, int  i, int  j,
 
 static bool overlap(img *p, int f, long u, long v, long w)
 {
-    const int n = 128;
+    const int n = 256;
 
     for     (int i = 0; i <= n; ++i)
         for (int j = 0; j <= n; ++j)

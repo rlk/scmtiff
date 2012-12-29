@@ -57,7 +57,7 @@ struct img
     double latc, lat0, lat1;
     double lonc, lon0, lon1;
 
-    void (*project)(img *, const double *, double, double, double *);
+    int (*project)(img *, const double *, double, double, double *);
 };
 
 //------------------------------------------------------------------------------
@@ -78,12 +78,12 @@ void *img_scanline(img *, int);
 float img_sample  (img *, const double *, float *);
 int   img_locate  (img *, const double *);
 
-void  img_equirectangular (img *, const double *, double, double, double *);
-void  img_orthographic    (img *, const double *, double, double, double *);
-void  img_stereographic   (img *, const double *, double, double, double *);
-void  img_cylindrical     (img *, const double *, double, double, double *);
-void  img_default         (img *, const double *, double, double, double *);
-void  img_scube           (img *, const double *, double, double, double *);
+int   img_equirectangular (img *, const double *, double, double, double *);
+int   img_orthographic    (img *, const double *, double, double, double *);
+int   img_stereographic   (img *, const double *, double, double, double *);
+int   img_cylindrical     (img *, const double *, double, double, double *);
+int   img_default         (img *, const double *, double, double, double *);
+int   img_scube           (img *, const double *, double, double, double *);
 
 //------------------------------------------------------------------------------
 

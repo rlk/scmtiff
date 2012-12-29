@@ -90,60 +90,6 @@ void *img_scanline(img *p, int r)
 }
 
 //------------------------------------------------------------------------------
-#if 0
-static int normu8(const img *p, uint8_t d, float *f)
-{
-    *f = ((float) d * p->scaling_factor - p->norm0)
-                            / (p->norm1 - p->norm0);
-    return 1;
-}
-
-static int norms8(const img *p, int8_t d, float *f)
-{
-    *f = ((float) d * p->scaling_factor - p->norm0)
-                            / (p->norm1 - p->norm0);
-    return 1;
-}
-
-static int normu16(const img *p, uint16_t d, float *f)
-{
-    *f = ((float) d * p->scaling_factor - p->norm0)
-                            / (p->norm1 - p->norm0);
-    return 1;
-}
-
-static int norms16(const img *p, int16_t d, float *f)
-{
-    if      (d == -32768) return 0;    // Core null
-    else if (d == -32767) *f =   0.f;  // Representation saturation low
-    else if (d == -32766) *f =   0.f;  // Instrumentation saturation low
-    else if (d == -32764) *f =   1.f;  // Representation saturation high
-    else if (d == -32765) *f =   1.f;  // Instrumentation saturation high
-
-    else *f = ((float) d * p->scaling_factor - p->norm0)
-                                 / (p->norm1 - p->norm0);
-
-    return 1;
-}
-
-static int normf(const img *p, float d, float *f)
-{
-    unsigned int *w = (unsigned int *) (&d);
-
-    if      (*w == 0xFF7FFFFB) return 0;    // Core null
-    else if (*w == 0xFF7FFFFC) *f =   0.f;  // Representation saturation low
-    else if (*w == 0xFF7FFFFD) *f =   0.f;  // Instrumentation saturation low
-    else if (*w == 0xFF7FFFFE) *f =   1.f;  // Representation saturation high
-    else if (*w == 0xFF7FFFFF) *f =   1.f;  // Instrumentation saturation high
-
-    else if (isnormal(d)) *f = (d * p->scaling_factor - p->norm0)
-                                          / (p->norm1 - p->norm0);
-    else return 0;
-
-    return 1;
-}
-#endif
-//------------------------------------------------------------------------------
 
 static int normu8(const img *p, const uint8_t *u, float *f)
 {
@@ -204,45 +150,7 @@ static int normf(const img *p, const float *e, float *f)
 }
 
 //------------------------------------------------------------------------------
-#if 0
-static int getchan(const img *p, int i, int j, int k, float *f)
-{
-    const size_t s = (size_t) p->c * ((size_t) p->w * i + j);
 
-    if (p->b == 8)
-    {
-        if (p->g)
-            return norms8(p, (( int8_t *) p->p + s)[k], f);
-        else
-            return normu8(p, ((uint8_t *) p->p + s)[k], f);
-    }
-    if (p->b == 16)
-    {
-        if (p->g)
-            return norms16(p, (( int16_t *) p->p + s)[k], f);
-        else
-            return normu16(p, ((uint16_t *) p->p + s)[k], f);
-    }
-    return normf(p, ((float *) p->p + s)[k], f);
-}
-
-static int getsamp(img *p, int i, int j, float *c)
-{
-    int d = 0;
-
-    if (0 <= i && i < p->h && 0 <= j && j < p->w)
-    {
-        switch (p->c)
-        {
-            case 4: d |= getchan(p, i, j, 3, c + 3);
-            case 3: d |= getchan(p, i, j, 2, c + 2);
-            case 2: d |= getchan(p, i, j, 1, c + 1);
-            case 1: d |= getchan(p, i, j, 0, c + 0);
-        }
-    }
-    return d;
-}
-#else
 static int getchan(const img *p, int i, int j, int k, float *f)
 {
     const size_t s = ((size_t) p->w * i + j) * ((size_t) p->c) + k;
@@ -284,7 +192,6 @@ static int getsamp(img *p, int i, int j, float *c)
     }
     return d;
 }
-#endif
 
 // Perform a linearly-filtered sampling of the image p. The filter position
 // is smoothly-varying in the range [0, w), [0, h).
@@ -375,7 +282,7 @@ static inline double tolon(double a)
 
 //------------------------------------------------------------------------------
 
-void img_scube(img *p, const double *v, double lon, double lat, double *t)
+int img_scube(img *p, const double *v, double lon, double lat, double *t)
 {
     double x = v[0];
     double y = v[1];
@@ -396,27 +303,38 @@ void img_scube(img *p, const double *v, double lon, double lat, double *t)
 
     t[0] = (p->h - 2) * (b + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
     t[1] = (p->w - 2) * (a + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
+
+    return 1;
 }
 
-void img_equirectangular(img *p, const double *v, double lon, double lat, double *t)
+int img_equirectangular(img *p, const double *v, double lon, double lat, double *t)
 {
     double x = p->radius * (lon - p->lonp) * cos(p->latp);
     double y = p->radius * (lat);
 
     t[0] = p->l0 - y / p->scale;
     t[1] = p->s0 + x / p->scale;
+
+    return 1;
 }
 
-void img_orthographic(img *p, const double *v, double lon, double lat, double *t)
+int img_orthographic(img *p, const double *v, double lon, double lat, double *t)
 {
-    double x = p->radius * cos(lat) * sin(lon - p->lonp);
-    double y = p->radius * sin(lat);
+    if (p->lonmin <= lon && lon <= p->lonmax &&
+        p->latmin <= lat && lat <= p->latmax)
+    {
+        double x = p->radius * cos(lat - p->latp) * sin(lon - p->lonp);
+        double y = p->radius * sin(lat - p->latp);
 
-    t[0] = p->l0 - y / p->scale;
-    t[1] = p->s0 + x / p->scale;
+        t[0] = p->l0 - y / p->scale;
+        t[1] = p->s0 + x / p->scale;
+
+        return 1;
+    }
+    return 0;
 }
 
-void img_stereographic(img *p, const double *v, double lon, double lat, double *t)
+int img_stereographic(img *p, const double *v, double lon, double lat, double *t)
 {
     double x;
     double y;
@@ -434,18 +352,24 @@ void img_stereographic(img *p, const double *v, double lon, double lat, double *
 
     t[0] = p->l0 - y / p->scale;
     t[1] = p->s0 + x / p->scale;
+
+    return 1;
 }
 
-void img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
+int img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 {
     t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
     t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
+
+    return 1;
 }
 
-void img_default(img *p, const double *v, double lon, double lat, double *t)
+int img_default(img *p, const double *v, double lon, double lat, double *t)
 {
     t[0] = (p->h - 1) * (M_PI / 2.0 - lat) / M_PI;
     t[1] = (p->w    ) * (1.0 - lon / (M_PI * 2.0));
+
+    return 1;
 }
 
 // Panoramas are spheres viewed from the inside while planets are spheres
@@ -520,18 +444,19 @@ float img_sample(img *p, const double *v, float *c)
     {
         double t[2];
 
-        p->project(p, v, lon, lat, t);
-
-        if ((a = img_linear(p, t, c)))
+        if (p->project(p, v, lon, lat, t))
         {
-            switch (p->c)
+            if ((a = img_linear(p, t, c)))
             {
-                case 4: c[3] *= k;
-                case 3: c[2] *= k;
-                case 2: c[1] *= k;
-                case 1: c[0] *= k;
+                switch (p->c)
+                {
+                    case 4: c[3] *= k;
+                    case 3: c[2] *= k;
+                    case 2: c[1] *= k;
+                    case 1: c[0] *= k;
+                }
+                return a;
             }
-            return a;
         }
     }
     return 0.f;
@@ -543,12 +468,15 @@ int img_locate(img *p, const double *v)
 
     double t[2];
 
-    p->project(p, v, lon, lat, t);
-
-    if (0 <= t[0] && t[0] < p->h && 0 <= t[1] && t[1] < p->w)
-        return 1;
-    else
+    if (p->project(p, v, lon, lat, t))
+    {
+        if (0 <= t[0] && t[0] < p->h && 0 <= t[1] && t[1] < p->w)
+        {
+            return 1;
+        }
         return 0;
+    }
+    return 0;
 }
 
 //------------------------------------------------------------------------------
