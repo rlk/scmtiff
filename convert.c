@@ -32,7 +32,7 @@
 
 static bool overlap(img *p, int f, long u, long v, long w)
 {
-    const int n = 256;
+    const int n = 1024;
 
     for     (int i = 0; i <= n; ++i)
         for (int j = 0; j <= n; ++j)

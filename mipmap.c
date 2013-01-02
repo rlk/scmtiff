@@ -59,6 +59,26 @@ static void avg_pixel(float *p, const float *q0, const float *q1,
     }
 }
 
+static void get_pixel(float *p, int ki, int kj,
+                                int qi, int qj, int c, int n, int O, float *q)
+{
+    const int pi = qi / 2 + ki * n / 2;
+    const int pj = qj / 2 + kj * n / 2;
+
+    float *q0 = q + ((n + 2) * (qi + 1) + (qj + 1)) * c;
+    float *q1 = q + ((n + 2) * (qi + 1) + (qj + 2)) * c;
+    float *q2 = q + ((n + 2) * (qi + 2) + (qj + 1)) * c;
+    float *q3 = q + ((n + 2) * (qi + 2) + (qj + 2)) * c;
+    float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;
+
+    switch (O)
+    {
+        case 0: sum_pixel(pp, q0, q1, q2, q3, c); break;
+        case 1: max_pixel(pp, q0, q1, q2, q3, c); break;
+        case 2: avg_pixel(pp, q0, q1, q2, q3, c); break;
+    }
+}
+
 // Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
 // the c-channel n-by-n image buffer p, downsampling 2-to-1.
 
@@ -70,23 +90,7 @@ static void box(float *p, int ki, int kj, int c, int n, int O, float *q)
     #pragma omp parallel for private(qj)
     for     (qi = 0; qi < n; qi += 2)
         for (qj = 0; qj < n; qj += 2)
-        {
-            const int pi = qi / 2 + ki * n / 2;
-            const int pj = qj / 2 + kj * n / 2;
-
-            float *q0 = q + ((n + 2) * (qi + 1) + (qj + 1)) * c;
-            float *q1 = q + ((n + 2) * (qi + 1) + (qj + 2)) * c;
-            float *q2 = q + ((n + 2) * (qi + 2) + (qj + 1)) * c;
-            float *q3 = q + ((n + 2) * (qi + 2) + (qj + 2)) * c;
-            float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;
-
-            switch (O)
-            {
-                case 0: sum_pixel(pp, q0, q1, q2, q3, c); break;
-                case 1: max_pixel(pp, q0, q1, q2, q3, c); break;
-                case 2: avg_pixel(pp, q0, q1, q2, q3, c); break;
-            }
-        }
+            get_pixel(p, ki, kj, qi, qj, c, n, O, q);
 }
 
 // Scan SCM s seeking any page that is not present, but which has at least one
@@ -171,7 +175,7 @@ int mipmap(int argc, char **argv, const char *o, const char *m)
     int O = 2;
 
     if (m)
-    {  
+    {
         if      (strcmp(m, "sum") == 0) O = 0;
         else if (strcmp(m, "max") == 0) O = 1;
         else if (strcmp(m, "avg") == 0) O = 2;

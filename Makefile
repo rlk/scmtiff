@@ -3,10 +3,10 @@ EXES= scmtiff scmview
 
 #-------------------------------------------------------------------------------
 
-#CC = gcc -std=c99 -Wall -m64 -g
-#CC = gcc -std=c99 -Wall
-CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
-#CC = clang -m64 -Weverything -Wno-unused-parameter
+#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
+#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g -fopenmp
+#CC = /usr/local/bin/gcc -std=c99 -Wall
+CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
 
 CP = cp
 RM = rm -f
