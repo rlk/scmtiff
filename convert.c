@@ -26,6 +26,28 @@
 
 //------------------------------------------------------------------------------
 
+// Determine whether the image intersects with the page at row u column v of the
+// w-by-w page array on face f. This function is inefficient and only works
+// under limited circumstances.
+
+static bool overlap(img *p, int f, long u, long v, long w)
+{
+    const int n = 256;
+
+    for     (int i = 0; i <= n; ++i)
+        for (int j = 0; j <= n; ++j)
+        {
+            double c[3];
+
+            scm_get_sample_center(f, n * u + i, n * v + j, n * w, c);
+
+            if (img_locate(p, c))
+                return true;
+        }
+
+    return false;
+}
+
 // Given the four corner vectors of a sample, compute the five internal vectors
 // of a quincunx filtering of that sample.
 
@@ -101,29 +123,7 @@ static int pixel(scm *s, img *p, int  f, int  i, int  j,
 
     if (p->c < c) d[p->c] = a;
 
-    return (a > 0.f);
-}
-
-// Determine whether the image intersects with the page at row u column v of the
-// w-by-w page array on face f. This function is inefficient and only works
-// under limited circumstances.
-
-static bool overlap(img *p, int f, long u, long v, long w)
-{
-    const int n = 256;
-
-    for     (int i = 0; i <= n; ++i)
-        for (int j = 0; j <= n; ++j)
-        {
-            double c[3];
-
-            scm_get_sample_center(f, n * u + i, n * v + j, n * w, c);
-
-            if (img_locate(p, c))
-                return true;
-        }
-
-    return false;
+    return (a > 0.f) ? 1 : 0;
 }
 
 // Consider page x of SCM s. Determine whether it contains any of image p.
