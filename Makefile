@@ -112,6 +112,7 @@ dist-src:
 	$(CP) convert.c  $(SRCDIR)
 	$(CP) err.c      $(SRCDIR)
 	$(CP) err.h      $(SRCDIR)
+	$(CP) extrema.h  $(SRCDIR)
 	$(CP) finish.c   $(SRCDIR)
 	$(CP) img.c      $(SRCDIR)
 	$(CP) img.h      $(SRCDIR)
@@ -142,7 +143,7 @@ dist-src:
 
 #-------------------------------------------------------------------------------
 
-scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o convert.o rectify.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
+scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
 
 scmview : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmview.o
@@ -158,6 +159,8 @@ combine.o : util.h
 convert.o : scm.h
 convert.o : img.h
 convert.o : util.h
+extrema.o : img.h
+extrema.o : util.h
 img.o : img.h
 img.o : err.h
 img.o : util.h

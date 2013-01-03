@@ -126,6 +126,7 @@ int main(int argc, char **argv)
                 "\t\t-p process . . Select process\n"
                 "\t\t-o output  . . Output file\n"
                 "\t\t-T . . . . . . Emit timing information\n\n"
+                "\t%s -p extrema\n\n"
                 "\t%s -p convert [options]\n"
                 "\t\t-n n . . . . . Page size\n"
                 "\t\t-d d . . . . . Tree depth\n"
@@ -150,7 +151,10 @@ int main(int argc, char **argv)
                 "\t%s -p normal [options]\n"
                 "\t\t-R r0,r1 . . . Radius range\n",
 
-                exe, exe, exe, exe, exe, exe, exe);
+                exe, exe, exe, exe, exe, exe, exe, exe);
+
+    else if (strcmp(p, "extrema") == 0)
+        r = extrema(argc, argv);
 
     else if (strcmp(p, "convert") == 0)
         r = convert(argc, argv, o, n, d, b, g, x, L, P, N, A);

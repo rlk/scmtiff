@@ -47,7 +47,9 @@ img *img_alloc(int w, int h, int c, int b, int g)
             p->b = b;
             p->g = g;
 
-            p->scaling_factor = 1.0f;
+            p->norm0          = 0.f;
+            p->norm1          = 1.f;
+            p->scaling_factor = 1.f;
 
             return p;
         }
@@ -149,8 +151,6 @@ static int normf(const img *p, const float *e, float *f)
     return d;
 }
 
-//------------------------------------------------------------------------------
-
 static int getchan(const img *p, int i, int j, int k, float *f)
 {
     const size_t s = ((size_t) p->w * i + j) * ((size_t) p->c) + k;
@@ -176,7 +176,9 @@ static int getchan(const img *p, int i, int j, int k, float *f)
     return 0;
 }
 
-static int getsamp(img *p, int i, int j, float *c)
+//------------------------------------------------------------------------------
+
+int img_pixel(img *p, int i, int j, float *c)
 {
     int d = 0;
 
@@ -206,10 +208,10 @@ static float img_linear(img *p, const double *t, float *c)
     float aa[4], ab[4];
     float ba[4], bb[4];
 
-    int daa = getsamp(p, ia, ja, aa);
-    int dab = getsamp(p, ia, jb, ab);
-    int dba = getsamp(p, ib, ja, ba);
-    int dbb = getsamp(p, ib, jb, bb);
+    int daa = img_pixel(p, ia, ja, aa);
+    int dab = img_pixel(p, ia, jb, ab);
+    int dba = img_pixel(p, ib, ja, ba);
+    int dbb = img_pixel(p, ib, jb, bb);
 
     if (daa && dab && dba && dbb)
     {

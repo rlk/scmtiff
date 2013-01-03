@@ -236,6 +236,10 @@ img *pds_load(const char *name)
     {
         if ((p = (img *) calloc(1, sizeof (img))))
         {
+            p->norm0          = 0.f;
+            p->norm1          = 1.f;
+            p->scaling_factor = 1.f;
+
             parse_file(f, p, name, path);
             return p;
         }

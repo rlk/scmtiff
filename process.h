@@ -25,6 +25,7 @@ int rectify(int, char **, const char *, int,
             const double *, const double *, const float *);
 int convert(int, char **, const char *, int, int, int, int, int,
             const double *, const double *, const float *, int);
+int extrema(int, char **);
 
 //------------------------------------------------------------------------------
 
