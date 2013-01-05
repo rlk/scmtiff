@@ -1,0 +1,173 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 8.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       157,          7]
+NotebookDataLength[      5636,        164]
+NotebookOptionsPosition[      5195,        144]
+NotebookOutlinePosition[      5552,        160]
+CellTagsIndexPosition[      5509,        157]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"PageCount", "[", "d_", "]"}], ":=", 
+  RowBox[{
+   SuperscriptBox["2", 
+    RowBox[{
+     RowBox[{"2", "d"}], "+", "3"}]], "-", "2"}]}]], "Input",
+ CellChangeTimes->{{3.566220886293914*^9, 3.566220936447887*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"MapWidth", "[", 
+   RowBox[{"n_", ",", "d_"}], "]"}], ":=", 
+  RowBox[{"n", " ", 
+   SuperscriptBox["2", 
+    RowBox[{"d", "+", "2"}]]}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"MapHeight", "[", 
+   RowBox[{"n_", ",", "d_"}], "]"}], ":=", 
+  RowBox[{"n", " ", 
+   SuperscriptBox["2", 
+    RowBox[{"d", "+", "1"}]]}]}]}], "Input",
+ CellChangeTimes->{{3.5662209380155497`*^9, 3.566220967504335*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ScaleTable", "[", 
+   RowBox[{"r_", ",", "n_", ",", "d_"}], "]"}], ":=", 
+  RowBox[{"TableForm", "[", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Transpose", "[", 
+     RowBox[{"{", 
+      RowBox[{"d", ",", 
+       RowBox[{"MapWidth", "[", 
+        RowBox[{"n", ",", "d"}], "]"}], ",", 
+       RowBox[{"MapHeight", "[", 
+        RowBox[{"n", ",", "d"}], "]"}], ",", 
+       RowBox[{"N", "[", 
+        RowBox[{"2", "\[Pi]", " ", 
+         RowBox[{"r", "/", 
+          RowBox[{"MapWidth", "[", 
+           RowBox[{"n", ",", "d"}], "]"}]}]}], "]"}]}], "}"}], "]"}], ",", 
+    "\[IndentingNewLine]", 
+    RowBox[{"TableHeadings", "\[Rule]", 
+     RowBox[{"{", 
+      RowBox[{"None", ",", 
+       RowBox[{"{", 
+        RowBox[{
+        "\"\<Depth\>\"", ",", "\"\<Width\>\"", ",", "\"\<Height\>\"", ",", 
+         "\"\<Scale\>\""}], "}"}]}], "}"}]}]}], "]"}]}]], "Input",
+ CellChangeTimes->{{3.566221072560562*^9, 3.5662212008844557`*^9}, {
+  3.566221245013163*^9, 3.566221363607009*^9}, {3.566221455865265*^9, 
+  3.566221503578027*^9}, {3.566221855263905*^9, 3.566221880607484*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"ScaleTable", "[", 
+  RowBox[{"1737400", ",", "254", ",", 
+   RowBox[{"{", 
+    RowBox[{
+    "0", ",", "1", ",", "2", ",", "3", ",", "4", ",", "5", ",", "6", ",", "7",
+      ",", "8", ",", "9", ",", "10", ",", "11", ",", "12", ",", "13", ",", 
+     "14", ",", "15"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.566221142055088*^9, 3.566221151160654*^9}, {
+  3.566221311269504*^9, 3.566221322197393*^9}, {3.5662213538940973`*^9, 
+  3.566221378742567*^9}, {3.5662217011334467`*^9, 3.566221717739718*^9}, {
+  3.566221793661252*^9, 3.5662218124768057`*^9}, {3.566221896944121*^9, 
+  3.5662219372467747`*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  TagBox[GridBox[{
+     {
+      TagBox["\<\"Depth\"\>",
+       HoldForm], 
+      TagBox["\<\"Width\"\>",
+       HoldForm], 
+      TagBox["\<\"Height\"\>",
+       HoldForm], 
+      TagBox["\<\"Scale\"\>",
+       HoldForm]},
+     {"0", "1016", "508", "10744.494244777376`"},
+     {"1", "2032", "1016", "5372.247122388688`"},
+     {"2", "4064", "2032", "2686.123561194344`"},
+     {"3", "8128", "4064", "1343.061780597172`"},
+     {"4", "16256", "8128", "671.530890298586`"},
+     {"5", "32512", "16256", "335.765445149293`"},
+     {"6", "65024", "32512", "167.8827225746465`"},
+     {"7", "130048", "65024", "83.94136128732325`"},
+     {"8", "260096", "130048", "41.97068064366162`"},
+     {"9", "520192", "260096", "20.98534032183081`"},
+     {"10", "1040384", "520192", "10.492670160915406`"},
+     {"11", "2080768", "1040384", "5.246335080457703`"},
+     {"12", "4161536", "2080768", "2.6231675402288515`"},
+     {"13", "8323072", "4161536", "1.3115837701144257`"},
+     {"14", "16646144", "8323072", "0.6557918850572129`"},
+     {"15", "33292288", "16646144", "0.32789594252860643`"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Left}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxDividers->{
+     "Columns" -> {{False}}, "ColumnsIndexed" -> {}, 
+      "Rows" -> {False, True, {False}, False}, "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[2.0999999999999996`]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}],
+   {None, OutputFormsDump`HeadedColumns}],
+  Function[BoxForm`e$, 
+   TableForm[
+   BoxForm`e$, 
+    TableHeadings -> {
+     None, {"Depth", "Width", "Height", "Scale"}}]]]], "Output",
+ CellChangeTimes->{{3.566221151669372*^9, 3.566221202301277*^9}, {
+   3.5662212850735292`*^9, 3.5662213799284573`*^9}, 3.5662215059040813`*^9, {
+   3.5662217021439257`*^9, 3.566221718063736*^9}, {3.566221794290134*^9, 
+   3.56622181288457*^9}, {3.566221863318563*^9, 3.5662219377247753`*^9}}]
+}, Open  ]]
+},
+WindowSize->{740, 867},
+WindowMargins->{{Automatic, 604}, {273, Automatic}},
+FrontEndVersion->"8.0 for Mac OS X x86 (32-bit, 64-bit Kernel) (October 5, \
+2011)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[557, 20, 247, 7, 30, "Input"],
+Cell[807, 29, 440, 13, 49, "Input"],
+Cell[1250, 44, 1117, 28, 58, "Input"],
+Cell[CellGroupData[{
+Cell[2392, 76, 632, 12, 27, "Input"],
+Cell[3027, 90, 2152, 51, 297, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

@@ -1,0 +1,77 @@
+N=254
+D=8
+
+NAME = DTM-$(N)-$(D)
+FORM = -n$(N) -d$(D)
+NORM = -N-9160,10770 -g0
+RADI = -R1728240,1748170
+TEXT = -tdesc.txt
+
+GLDE =\
+	WAC_GLD100_E300N0450_100M.tif \
+	WAC_GLD100_E300N1350_100M.tif \
+	WAC_GLD100_E300N2250_100M.tif \
+	WAC_GLD100_E300N3150_100M.tif \
+	WAC_GLD100_E300S0450_100M.tif \
+	WAC_GLD100_E300S1350_100M.tif \
+	WAC_GLD100_E300S2250_100M.tif \
+	WAC_GLD100_E300S3150_100M.tif
+GLDP =\
+	WAC_GLD100_P900N0000_100M.tif \
+	WAC_GLD100_P900S0000_100M.tif
+LOLA =\
+	ldem_45n_100m.tif \
+	ldem_45s_100m.tif
+
+# Convert a raw normal map to a bordered and finished normal map.
+
+$(NAME)-N.tif: $(NAME)-O.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $(TEXT) $@
+
+# Convert a height map into a raw normal map.
+
+$(NAME)-O.tif: $(NAME).tif
+	scmtiff -T -pnormal $(RADI) -o$@ $<
+
+# Border and finish.
+
+$(NAME).tif: $(NAME)-M.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $(TEXT) $@
+
+# Combine the two projections and mipmap the result.
+
+$(NAME)-M.tif: $(NAME)-E.tif $(NAME)-P.tif
+	scmtiff -T -pcombine -mavg -o$@ $^
+	scmtiff -T -pmipmap $@
+
+# Sum the equirectangular projections.
+
+$(NAME)-E.tif: $(GLDE)
+	scmtiff -T -pcombine -mmax -o$@ $^
+
+# Sum the polar projections.
+
+$(NAME)-P.tif: $(GLDP) $(LOLA)
+	scmtiff -T -pcombine -o$@ $^
+
+# Convert all PDS files to TIFF.
+
+WAC_GLD100_E%.tif: WAC_GLD100_E%.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ $<
+
+WAC_GLD100_P900N0000_100M.tif: WAC_GLD100_P900N0000_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P90,12,11 $<
+
+WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P-90,12,11 $<
+
+ldem_45n_100m.tif: ldem_45n_100m.lbl
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P90,11,12 $<
+
+ldem_45s_100m.tif: ldem_45s_100m.lbl
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P-90,11,12 $<
+
+clean:
+	rm -f $(NAME).tif $(GLDE) $(GLDP) $(LOLA)
