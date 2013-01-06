@@ -1,0 +1,58 @@
+N=254
+D=7
+
+NAME = WAC-$(N)-$(D)
+FORM = -n$(N) -d$(D) -b8
+NORM = -N-0.052782,1.589920
+TEXT = -tdesc.txt
+
+WAC = \
+	WAC_GLOBAL_O000N0000_100M.tif \
+	WAC_GLOBAL_O000N0600_100M.tif \
+	WAC_GLOBAL_O000N1200_100M.tif \
+	WAC_GLOBAL_O000N1800_100M.tif \
+	WAC_GLOBAL_O000N2400_100M.tif \
+	WAC_GLOBAL_O000N3000_100M.tif \
+	WAC_GLOBAL_P900N0000_100M.tif \
+	WAC_GLOBAL_P900S0000_100M.tif
+
+# Border and finish.
+
+$(NAME).tif: $(NAME)-M.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $(TEXT) $@
+
+# Combine the two projections and mipmap the result.
+
+$(NAME)-M.tif: $(WAC)
+	scmtiff -T -pcombine -o$@ $^
+	scmtiff -T -pmipmap $@
+
+# Convert all PDS files to TIFF.
+
+WAC_GLOBAL_O000N0000_100M.tif : WAC_GLOBAL_O000N0000_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -L000,20,40 -P0,60,70 $<
+
+WAC_GLOBAL_O000N0600_100M.tif : WAC_GLOBAL_O000N0600_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -L060,20,40 -P0,60,70 $<
+
+WAC_GLOBAL_O000N1200_100M.tif : WAC_GLOBAL_O000N1200_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -L120,20,40 -P0,60,70 $<
+
+WAC_GLOBAL_O000N1800_100M.tif : WAC_GLOBAL_O000N1800_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -L180,20,40 -P0,60,70 $<
+
+WAC_GLOBAL_O000N2400_100M.tif : WAC_GLOBAL_O000N2400_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -L240,20,40 -P0,60,70 $<
+
+WAC_GLOBAL_O000N3000_100M.tif : WAC_GLOBAL_O000N3000_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -L300,20,40 -P0,60,70 $<
+
+WAC_GLOBAL_P900N0000_100M.tif : WAC_GLOBAL_P900N0000_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P+90,20,30 $<
+
+WAC_GLOBAL_P900S0000_100M.tif : WAC_GLOBAL_P900S0000_100M.IMG
+	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P-90,20,30 $<
+
+clean:
+	rm -f $(NAME).tif $(WAC)

@@ -42,7 +42,7 @@ int extrema(int argc, char **argv)
         {
             const size_t w = (size_t) p->w;
             const size_t h = (size_t) p->h;
-            const size_t n = 1024;
+            const size_t n = 1024 * 1024;
 
             float a =  FLT_MAX;
             float z = -FLT_MAX;

@@ -133,7 +133,7 @@ static int norms16(const img *p, const int16_t *s, float *f)
 
 static int normf(const img *p, const float *e, float *f)
 {
-    unsigned int *w = (unsigned int *) e;
+    const unsigned int *w = (const unsigned int *) e;
 
     float d = 1;
     float k = 0;
@@ -157,21 +157,21 @@ static int getchan(const img *p, int i, int j, int k, float *f)
 
     if (p->b == 32)
     {
-        return normf(p, (float *) p->p + s, f);
+        return normf(p, (const float *) p->p + s, f);
     }
     else if (p->b == 16)
     {
         if (p->g)
-            return norms16(p, ( int16_t *) p->p + s, f);
+            return norms16(p, (const  int16_t *) p->p + s, f);
         else
-            return normu16(p, (uint16_t *) p->p + s, f);
+            return normu16(p, (const uint16_t *) p->p + s, f);
     }
     else if (p->b ==  8)
     {
         if (p->g)
-            return norms8(p, ( int8_t *) p->p + s, f);
+            return norms8(p, (const  int8_t *) p->p + s, f);
         else
-            return normu8(p, (uint8_t *) p->p + s, f);
+            return normu8(p, (const uint8_t *) p->p + s, f);
     }
     return 0;
 }
@@ -360,8 +360,15 @@ int img_stereographic(img *p, const double *v, double lon, double lat, double *t
 
 int img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 {
-    t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
-    t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
+//  t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
+//  t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
+
+    // This hack fixes LOLA SIMPLE CYLINDRICAL projection, which seems wrong.
+
+    lon = tolon(lon - M_PI);
+
+    t[0] = p->l0 - p->res * (todeg(lat - p->latp));
+    t[1] = p->s0 + p->res * (todeg(lon - p->lonp));
 
     return 1;
 }

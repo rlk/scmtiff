@@ -1,0 +1,24 @@
+N=254
+D=3
+
+DATA = LDRM_16.LBL
+NAME = LDRM-$(N)-$(D)
+FORM = -n$(N) -d$(D) -b8
+NORM = -N0.0,8.22
+TEXT = -tdesc.txt
+
+# Border and finish.
+
+$(NAME).tif: $(NAME)-M.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $(TEXT) $@
+
+# Convert the PDS file and mipmap the result.
+
+$(NAME)-M.tif: $(DATA)
+	scmtiff -T -pconvert $(FORM) $(NORM) -o $@ $<
+	scmtiff -T -pmipmap $@
+
+clean:
+	rm -f $(NAME).tif $(NAME)-M.tif
+

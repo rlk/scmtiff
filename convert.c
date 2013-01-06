@@ -26,25 +26,40 @@
 
 //------------------------------------------------------------------------------
 
+#define NTAPS 1024
+#define MTAPS (NTAPS * NTAPS)
+
+static int tap[MTAPS];
+
+static void init_tap(int a, int d, int n, int *x)
+{
+    if (n == 1)
+        *x = a;
+    else
+    {
+        init_tap(a,     d * 2, n / 2, x        );
+        init_tap(a + d, d * 2, n / 2, x + n / 2);
+    }
+}
+
 // Determine whether the image intersects with the page at row u column v of the
 // w-by-w page array on face f. This function is inefficient and only works
 // under limited circumstances.
 
 static bool overlap(img *p, int f, long u, long v, long w)
 {
-    const int n = 1024;
+    for (int t = 0; t < MTAPS; ++t)
+    {
+        int i = tap[t] / NTAPS;
+        int j = tap[t] % NTAPS;
 
-    for     (int i = 0; i <= n; ++i)
-        for (int j = 0; j <= n; ++j)
-        {
-            double c[3];
+        double c[3];
 
-            scm_get_sample_center(f, n * u + i, n * v + j, n * w, c);
+        scm_get_sample_center(f, NTAPS * u + i, NTAPS * v + j, NTAPS * w, c);
 
-            if (img_locate(p, c))
-                return true;
-        }
-
+        if (img_locate(p, c))
+            return true;
+    }
     return false;
 }
 
@@ -216,6 +231,8 @@ int convert(int argc, char **argv, const char *o,
     char *e = NULL;
 
     char out[256];
+
+    init_tap(0, 1, MTAPS, tap);
 
     // Iterate over all input file arguments.
 

@@ -27,6 +27,31 @@
 
 //------------------------------------------------------------------------------
 
+static int get_match(const char *s, char *v, const char *pattern)
+{
+    char       error[STRMAX];
+    regmatch_t match[2];
+    regex_t    regex;
+
+    int err;
+
+    if ((err = regcomp(&regex, pattern, REG_EXTENDED)) == 0)
+    {
+        if ((err = regexec(&regex, s, 2, match, 0)) == 0)
+        {
+            memset (v, 0, STRMAX);
+            strncpy(v, s + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
+
+            return 1;
+        }
+    }
+
+    if (err != REG_NOMATCH && regerror(err, &regex, error, STRMAX))
+        apperr("%s : %s", pattern, error);
+
+    return 0;
+}
+
 // Str is a string giving a PDS element. Pattern is a regular expression with
 // two capture groups. If the string matches the pattern, copy the first capture
 // to the key string and the second to the val string.
@@ -103,19 +128,26 @@ static double get_double(const char *v)
     return strtod(v, NULL);
 }
 
+static double get_scale(const char *s)
+{
+    char v[STRMAX];
+
+    if (get_match(s, v, "(-?[\\.0-9]+) <M/PIX>"))
+        return get_double(v);
+    if (get_match(s, v, "(-?[\\.0-9]+) <KM/PIX>"))
+        return get_double(v) * 1000.0;;
+
+    return get_double(s);
+}
+
 static double get_angle(const char *s)
 {
     char v[STRMAX];
-    char d[STRMAX];
 
-    if (get_pair(s, v, d, "(-?[\\.0-9]+) <([^>]+)>"))
-    {
-        if (strcmp(d, "DEG"))
-            return get_double(v);
-        else
-            return get_double(v) * M_PI / 180.0;
-    }
-    return 0;
+    if (get_match(s, v, "(-?[\\.0-9]+) <DEG>"))
+        return get_double(v) * M_PI / 180.0;
+    else
+        return get_double(s);
 }
 
 static void parse_element(img *p, const char *k, const char *v)
@@ -142,7 +174,7 @@ static void parse_element(img *p, const char *k, const char *v)
     else if (!strcmp(k, "EASTERNMOST_LONGITUDE"))  p->lonmax = get_angle (v);
     else if (!strcmp(k, "WESTERNMOST_LONGITUDE"))  p->lonmin = get_angle (v);
     else if (!strcmp(k,      "CENTER_LONGITUDE"))  p->lonp   = get_angle (v);
-    else if (!strcmp(k,         "MAP_SCALE"))      p->scale  = get_double(v);
+    else if (!strcmp(k,         "MAP_SCALE"))      p->scale  = get_scale (v);
     else if (!strcmp(k,         "MAP_RESOLUTION")) p->res    = get_double(v);
     else if (!strcmp(k,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_double(v);
     else if (!strcmp(k, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_double(v);
@@ -184,9 +216,10 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
     {
         if (get_element(str, key, val))
         {
-            if      (!strcmp(key, "RECORD_BYTES"))  rs = get_int(val);
-            else if (!strcmp(key, "LABEL_RECORDS")) rc = get_int(val);
-            else if (!strcmp(key, "FILE_NAME"))
+            if      (strcmp(key, "RECORD_BYTES")  == 0)  rs = get_int(val);
+            else if (strcmp(key, "LABEL_RECORDS") == 0) rc = get_int(val);
+            else if (strcmp(key, "FILE_NAME")     == 0
+                  || strcmp(key, "^IMAGE")        == 0)
             {
                 strcpy(img, dir);
                 strcat(img, val);
