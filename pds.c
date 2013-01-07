@@ -218,8 +218,8 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
         {
             if      (strcmp(key, "RECORD_BYTES")  == 0)  rs = get_int(val);
             else if (strcmp(key, "LABEL_RECORDS") == 0) rc = get_int(val);
-            else if (strcmp(key, "FILE_NAME")     == 0
-                  || strcmp(key, "^IMAGE")        == 0)
+            else if (strcmp(key, "FILE_NAME")     == 0)
+//                || strcmp(key, "^IMAGE")        == 0)
             {
                 strcpy(img, dir);
                 strcat(img, val);

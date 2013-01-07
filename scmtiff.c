@@ -169,7 +169,7 @@ int main(int argc, char **argv)
         r = mipmap (argc, argv, o, m);
 
     else if (strcmp(p, "border") == 0)
-        r = border (argc, argv, o);
+        r = border (argc, argv, o, A);
 
     else if (strcmp(p, "finish") == 0)
         r = finish (argc, argv, t, l);

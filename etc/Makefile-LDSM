@@ -1,5 +1,5 @@
 N=254
-D=3
+D=4
 
 DATA = LDSM_16.LBL
 NAME = LDSM-$(N)-$(D)

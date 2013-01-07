@@ -31,6 +31,6 @@ echo "SCM TIFF: Copyright (C) 2012-13 Robert Kooima"          >> $txt
 set -x
 
 scmtiff -T -pconvert -n$2 -d$3 -b8 -A -N$n0,$n1 -o$tmp $1
-scmtiff -T -pmipmap $tmp
+scmtiff -T -pmipmap -A $tmp
 scmtiff -T -pborder -o$scm $tmp
 scmtiff -T -pfinish -t$txt $scm

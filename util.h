@@ -29,6 +29,8 @@ float lerp2(float, float, float, float, float, float);
 
 int extcmp(const char *, const char *);
 
+int grow(float *, float *, int, int);
+
 //------------------------------------------------------------------------------
 
 #endif

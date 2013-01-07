@@ -23,8 +23,8 @@
 
 //------------------------------------------------------------------------------
 
-static void sum_pixel(float *p, const float *q0, const float *q1,
-                                const float *q2, const float *q3, int c)
+static void sum_pixels(float *p, const float *q0, const float *q1,
+                                 const float *q2, const float *q3, int c)
 {
     switch (c)
     {
@@ -35,8 +35,8 @@ static void sum_pixel(float *p, const float *q0, const float *q1,
     }
 }
 
-static void max_pixel(float *p, const float *q0, const float *q1,
-                                const float *q2, const float *q3, int c)
+static void max_pixels(float *p, const float *q0, const float *q1,
+                                 const float *q2, const float *q3, int c)
 {
     switch (c)
     {
@@ -47,8 +47,8 @@ static void max_pixel(float *p, const float *q0, const float *q1,
     }
 }
 
-static void avg_pixel(float *p, const float *q0, const float *q1,
-                                const float *q2, const float *q3, int c)
+static void avg_pixels(float *p, const float *q0, const float *q1,
+                                 const float *q2, const float *q3, int c)
 {
     switch (c)
     {
@@ -59,7 +59,7 @@ static void avg_pixel(float *p, const float *q0, const float *q1,
     }
 }
 
-static void get_pixel(float *p, int ki, int kj,
+static void box_pixels(float *p, int ki, int kj,
                                 int qi, int qj, int c, int n, int O, float *q)
 {
     const int pi = qi / 2 + ki * n / 2;
@@ -73,9 +73,9 @@ static void get_pixel(float *p, int ki, int kj,
 
     switch (O)
     {
-        case 0: sum_pixel(pp, q0, q1, q2, q3, c); break;
-        case 1: max_pixel(pp, q0, q1, q2, q3, c); break;
-        case 2: avg_pixel(pp, q0, q1, q2, q3, c); break;
+        case 0: sum_pixels(pp, q0, q1, q2, q3, c); break;
+        case 1: max_pixels(pp, q0, q1, q2, q3, c); break;
+        case 2: avg_pixels(pp, q0, q1, q2, q3, c); break;
     }
 }
 
@@ -90,14 +90,16 @@ static void box(float *p, int ki, int kj, int c, int n, int O, float *q)
     #pragma omp parallel for private(qj)
     for     (qi = 0; qi < n; qi += 2)
         for (qj = 0; qj < n; qj += 2)
-            get_pixel(p, ki, kj, qi, qj, c, n, O, q);
+            box_pixels(p, ki, kj, qi, qj, c, n, O, q);
 }
+
+//------------------------------------------------------------------------------
 
 // Scan SCM s seeking any page that is not present, but which has at least one
 // child present. Fill such pages using down-sampled child data and append them.
 // Return the number of pages added, so we can stop when there are none.
 
-static long long process(scm *s, int O)
+static long long process(scm *s, int O, int A)
 {
     long long t = 0;
 
@@ -157,6 +159,8 @@ static long long process(scm *s, int O)
                     if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, O, q);
                     if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, O, q);
 
+                    if (A) grow(p, q, c, n);
+
                     b = scm_append(s, b, x, p);
                     t++;
                 }
@@ -170,7 +174,7 @@ static long long process(scm *s, int O)
 
 //------------------------------------------------------------------------------
 
-int mipmap(int argc, char **argv, const char *o, const char *m)
+int mipmap(int argc, char **argv, const char *o, const char *m, int A)
 {
     int O = 2;
 
@@ -189,7 +193,7 @@ int mipmap(int argc, char **argv, const char *o, const char *m)
         {
             long long c;
 
-            while ((c = process(s, O)))
+            while ((c = process(s, O, A)))
                 ;
 
             scm_close(s);

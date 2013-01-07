@@ -198,7 +198,7 @@ int img_pixel(img *p, int i, int j, float *c)
 // Perform a linearly-filtered sampling of the image p. The filter position
 // is smoothly-varying in the range [0, w), [0, h).
 
-static float img_linear(img *p, const double *t, float *c)
+static int img_linear(img *p, const double *t, float *c)
 {
     const int ia = (int) floor(t[0]);
     const int ib = (int)  ceil(t[0]);
@@ -266,7 +266,7 @@ static float img_linear(img *p, const double *t, float *c)
             case 1: c[0] = bb[0];
         }
     }
-    return (daa || dab || dba || dbb) ? 1.f : 0.f;
+    return (daa || dab || dba || dbb) ? 1 : 0;
 }
 
 //------------------------------------------------------------------------------
@@ -434,7 +434,7 @@ static double angle(double a, double b)
     }
 }
 
-float img_sample(img *p, const double *v, float *c)
+int img_sample(img *p, const double *v, float *c)
 {
     const double lon = tolon(atan2(v[0], v[2])), lat = asin(v[1]);
 
@@ -447,7 +447,7 @@ float img_sample(img *p, const double *v, float *c)
         klon = (float) blend(p->lon0, p->lon1, angle(lon, p->lonc));
 
     float k;
-    float a;
+    int   h = 0;
 
     if ((k = klat * klon))
     {
@@ -455,7 +455,7 @@ float img_sample(img *p, const double *v, float *c)
 
         if (p->project(p, v, lon, lat, t))
         {
-            if ((a = img_linear(p, t, c)))
+            if ((h = img_linear(p, t, c)))
             {
                 switch (p->c)
                 {
@@ -464,11 +464,10 @@ float img_sample(img *p, const double *v, float *c)
                     case 2: c[1] *= k;
                     case 1: c[0] *= k;
                 }
-                return a;
             }
         }
     }
-    return 0.f;
+    return h;
 }
 
 int img_locate(img *p, const double *v)

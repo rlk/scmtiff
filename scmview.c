@@ -299,7 +299,7 @@ static int start(int argc, char **argv)
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_TEXTURE_2D);
-        glEnable(GL_BLEND);
+        // glEnable(GL_BLEND);
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -1,5 +1,5 @@
 N=254
-D=3
+D=4
 
 DATA = LDRM_16.LBL
 NAME = LDRM-$(N)-$(D)

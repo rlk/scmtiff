@@ -1,0 +1,32 @@
+N=254
+D=7
+
+DATA = \
+	lsz_xxxxx_3cp_piu_90n000_v1.tif \
+	lsz_xxxxx_3cp_piu_90s000_v1.tif
+
+NAME = Mini-RF-CP-$(N)-$(D)
+FORM = -n$(N) -d$(D) -b8 -A
+NORM = -N0.0,1.407336
+TEXT = -tdesc.txt
+
+# Border and finish.
+
+$(NAME).tif: $(NAME)-M.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $(TEXT) $@
+
+# Convert the PDS file and mipmap the result.
+
+$(NAME)-M.tif: $(DATA)
+	scmtiff -T -pcombine -o $@ $^
+	scmtiff -T -pmipmap $@
+
+# Convert the PDS files to TIFF
+
+%.tif: %.lbl
+	scmtiff -T -pconvert $(FORM) $(NORM) -o $@ $<
+
+clean:
+	rm -f $(NAME).tif $(NAME)-M.tif
+

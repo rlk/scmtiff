@@ -76,7 +76,7 @@ void img_set_defaults(img *);
 
 int   img_pixel   (img *, int, int, float *);
 void *img_scanline(img *, int);
-float img_sample  (img *, const double *, float *);
+int   img_sample  (img *, const double *, float *);
 int   img_locate  (img *, const double *);
 
 int   img_equirectangular (img *, const double *, double, double, double *);

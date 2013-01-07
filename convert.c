@@ -11,6 +11,7 @@
 // more details.
 
 #include <stdbool.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -79,24 +80,22 @@ static void quincunx(double *q, const double *v)
 // page found at row u column v of the w-by-w page array on face f. Sample
 // that pixel by projection into image p using a quincunx filtering pattern.
 
-static float multisample(img *p, int  f, int  i, int  j, int n,
+static int multisample(img *p, int  f, int  i, int  j, int n,
                                  long u, long v, long w, float *d)
 {
     double c[12];
     double C[15];
     int    N = 0;
-    float  A = 0.f;
 
     scm_get_sample_corners(f, n * u + i, n * v + j, n * w, c);
 
     quincunx(C, c);
 
-    for (int l = 4; l >= 0; --l)
+    for (int l = 0; l < 5; l++)
     {
         float t[4];
-        float a;
 
-        if ((a = img_sample(p, C + l * 3, t)))
+        if (img_sample(p, C + l * 3, t))
         {
             switch (p->c)
             {
@@ -105,7 +104,6 @@ static float multisample(img *p, int  f, int  i, int  j, int n,
                 case 2: d[1] += t[1];
                 case 1: d[0] += t[0];
             }
-            A += a;
             N += 1;
         }
     }
@@ -118,9 +116,8 @@ static float multisample(img *p, int  f, int  i, int  j, int n,
             case 2: d[1] /= N;
             case 1: d[0] /= N;
         }
-        return A / N;
     }
-    return 0.f;
+    return N;
 }
 
 // Determine the value of the pixel at row i column j of the page found at row
@@ -133,19 +130,22 @@ static int pixel(scm *s, img *p, int  f, int  i, int  j,
     const int n = scm_get_n(s);
     const int c = scm_get_c(s);
 
-    float *d = q + c * ((n + 2) * (i + 1) + (j + 1));
-    float  a = multisample(p, f, i, j, n, u, v, w, d);
+    const size_t o = ((size_t) n + 2) * ((size_t) i + 1) + ((size_t) j + 1);
 
-    if (p->c < c) d[p->c] = a;
+    float *d = q + o * c;
 
-    return (a > 0.f) ? 1 : 0;
+    int N = multisample(p, f, i, j, n, u, v, w, d);
+
+    if (p->c < c) d[p->c] = N / 5.f;
+
+    return N;
 }
 
 // Consider page x of SCM s. Determine whether it contains any of image p.
 // If so, sample it or recursively subdivide it as needed.
 
 static long long divide(scm *s, img *p, long long b, int d, long long x,
-                                        long u, long v, long w, float *q)
+                                        long u, long v, long w, float *q, float *t)
 {
     long long a = b;
 
@@ -169,6 +169,8 @@ static long long divide(scm *s, img *p, long long b, int d, long long x,
                 for (j = 0; j < n; ++j)
                     N += pixel(s, p, f, i, j, u, v, w, q);
 
+            if (p->c < c && N && N < n * n * 5) grow(q, t, c, n);
+
             if (N) a = scm_append(s, a, x, q);
         }
         else
@@ -178,10 +180,10 @@ static long long divide(scm *s, img *p, long long b, int d, long long x,
             long long x2 = scm_page_child(x, 2);
             long long x3 = scm_page_child(x, 3);
 
-            a = divide(s, p, a, d - 1, x0, u * 2,     v * 2,     w * 2, q);
-            a = divide(s, p, a, d - 1, x1, u * 2,     v * 2 + 1, w * 2, q);
-            a = divide(s, p, a, d - 1, x2, u * 2 + 1, v * 2,     w * 2, q);
-            a = divide(s, p, a, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, q);
+            a = divide(s, p, a, d - 1, x0, u * 2,     v * 2,     w * 2, q, t);
+            a = divide(s, p, a, d - 1, x1, u * 2,     v * 2 + 1, w * 2, q, t);
+            a = divide(s, p, a, d - 1, x2, u * 2 + 1, v * 2,     w * 2, q, t);
+            a = divide(s, p, a, d - 1, x3, u * 2 + 1, v * 2 + 1, w * 2, q, t);
         }
     }
     return a;
@@ -192,22 +194,24 @@ static long long divide(scm *s, img *p, long long b, int d, long long x,
 
 static int process(scm *s, int d, img *p)
 {
-    const size_t o = (size_t) scm_get_n(s) + 2;
-    const size_t c = (size_t) scm_get_c(s);
-
     float *q;
+    float *t;
 
-    if ((q = (float *) calloc(o * o * c, sizeof (float))))
+    if ((q = scm_alloc_buffer(s)))
     {
-        long long b = 0;
+        if ((t = scm_alloc_buffer(s)))
+        {
+            long long b = 0;
 
-        b = divide(s, p, b, d, 0, 0, 0, 1, q);
-        b = divide(s, p, b, d, 1, 0, 0, 1, q);
-        b = divide(s, p, b, d, 2, 0, 0, 1, q);
-        b = divide(s, p, b, d, 3, 0, 0, 1, q);
-        b = divide(s, p, b, d, 4, 0, 0, 1, q);
-        b = divide(s, p, b, d, 5, 0, 0, 1, q);
+            b = divide(s, p, b, d, 0, 0, 0, 1, q, t);
+            b = divide(s, p, b, d, 1, 0, 0, 1, q, t);
+            b = divide(s, p, b, d, 2, 0, 0, 1, q, t);
+            b = divide(s, p, b, d, 3, 0, 0, 1, q, t);
+            b = divide(s, p, b, d, 4, 0, 0, 1, q, t);
+            b = divide(s, p, b, d, 5, 0, 0, 1, q, t);
 
+            free(t);
+        }
         free(q);
     }
     return 0;

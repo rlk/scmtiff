@@ -69,4 +69,78 @@ int extcmp(const char *name, const char *ext)
     return strcasecmp(name + strlen(name) - strlen(ext), ext);
 }
 
+
+//------------------------------------------------------------------------------
+
+static void accumulate(float *p, const float *q, int c)
+{
+    switch (c)
+    {
+        case 4: p[3] += q[3];
+        case 3: p[2] += q[2];
+        case 2: p[1] += q[1];
+        case 1: p[0] += q[0];
+    }
+}
+
+static void divide(float *p, float d, int c)
+{
+    switch (c)
+    {
+        case 4: p[3] /= d;
+        case 3: p[2] /= d;
+        case 2: p[1] /= d;
+        case 1: p[0] /= d;
+    }
+}
+
+// Grow the c-channel, n-by-n image at buffer p by one pixel, taking the average
+// of all existing neighbor pixels. Use q as temporary storage.
+
+int grow(float *p, float *q, int c, int n)
+{
+    const int s = (n + 2) * c;
+    const int a = (c - 1);
+
+    float *P;
+    float *Q;
+
+    int N = 0;
+    int i;
+    int j;
+    int d;
+
+    memcpy(q, p, (size_t) (n + 2) * (n + 2) * c * sizeof (float));
+
+    #pragma omp parallel for private(j, P, Q, d) reduction(+:N)
+    for     (i = 1; i <= n; i++)
+        for (j = 1; j <= n; j++)
+        {
+            P = p + ((n + 2) * i + j) * c;
+            Q = q + ((n + 2) * i + j) * c;
+
+            if (Q[a] == 0)
+            {
+                d = 0;
+
+                if ((Q - s - c)[a]) { accumulate(P, Q - s - c, a); d++; }
+                if ((Q - s    )[a]) { accumulate(P, Q - s    , a); d++; }
+                if ((Q - s + c)[a]) { accumulate(P, Q - s + c, a); d++; }
+
+                if ((Q     - c)[a]) { accumulate(P, Q     - c, a); d++; }
+                if ((Q     + c)[a]) { accumulate(P, Q     + c, a); d++; }
+
+                if ((Q + s - c)[a]) { accumulate(P, Q + s - c, a); d++; }
+                if ((Q + s    )[a]) { accumulate(P, Q + s    , a); d++; }
+                if ((Q + s + c)[a]) { accumulate(P, Q + s + c, a); d++; }
+
+                if (d)
+                {
+                    divide(P, (float) d, a);
+                    N++;
+                }
+            }
+        }
+    return N;
+}
 //------------------------------------------------------------------------------
