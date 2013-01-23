@@ -130,7 +130,6 @@ static void copyse(float *p, long long x, float *q, long long y, int n, int c)
 static void process(scm *s, scm *t)
 {
     const int o = scm_get_n(s) + 2;
-    const int n = scm_get_n(s);
     const int c = scm_get_c(s);
 
     long long b = 0;

@@ -121,23 +121,32 @@ static int multisample(img *p, int  f, int  i, int  j, int n,
 }
 
 // Determine the value of the pixel at row i column j of the page found at row
-// u column v of the w-by-w page array on face f. Set the coverage if needed.
-// Return true if data was added.
+// u column v of the w-by-w page array on face f. Return the sample hit count.
 
 static int pixel(scm *s, img *p, int  f, int  i, int  j,
                                  long u, long v, long w, float *q)
 {
+    // Sample the image.
+
     const int n = scm_get_n(s);
     const int c = scm_get_c(s);
 
-    const size_t o = ((size_t) n + 2) * ((size_t) i + 1) + ((size_t) j + 1);
-
-    float *d = q + o * c;
+    float *d = q + c * (((size_t) n + 2) * ((size_t) i + 1) + ((size_t) j + 1));
 
     int N = multisample(p, f, i, j, n, u, v, w, d);
 
-    if (p->c < c) d[p->c] = N / 5.f;
+    // Create the alpha channel and swap to BGRA, as necessary.
 
+    if (p->c < c)
+    {
+        if (p->b == 8 && p->c == 3)
+        {
+            d[3] = d[0];
+            d[0] = d[2];
+            d[2] = d[3];
+        }
+        d[p->c] = N / 5.f;
+    }
     return N;
 }
 

@@ -166,10 +166,10 @@ int main(int argc, char **argv)
         r = combine(argc, argv, o, m);
 
     else if (strcmp(p, "mipmap") == 0)
-        r = mipmap (argc, argv, o, m);
+        r = mipmap (argc, argv, o, m, A);
 
     else if (strcmp(p, "border") == 0)
-        r = border (argc, argv, o, A);
+        r = border (argc, argv, o);
 
     else if (strcmp(p, "finish") == 0)
         r = finish (argc, argv, t, l);

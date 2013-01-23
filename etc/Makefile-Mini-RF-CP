@@ -20,7 +20,7 @@ $(NAME).tif: $(NAME)-M.tif
 
 $(NAME)-M.tif: $(DATA)
 	scmtiff -T -pcombine -o $@ $^
-	scmtiff -T -pmipmap $@
+	scmtiff -T -pmipmap -A $@
 
 # Convert the PDS files to TIFF
 
