@@ -105,6 +105,7 @@ dist : all
 
 dist-src:
 	mkdir -p         $(SRCDIR)
+	mkdir -p         $(SRCDIR)/etc
 
 	$(CP) Makefile   $(SRCDIR)
 	$(CP) border.c   $(SRCDIR)
@@ -112,7 +113,7 @@ dist-src:
 	$(CP) convert.c  $(SRCDIR)
 	$(CP) err.c      $(SRCDIR)
 	$(CP) err.h      $(SRCDIR)
-	$(CP) extrema.h  $(SRCDIR)
+	$(CP) extrema.c  $(SRCDIR)
 	$(CP) finish.c   $(SRCDIR)
 	$(CP) img.c      $(SRCDIR)
 	$(CP) img.h      $(SRCDIR)
@@ -138,6 +139,10 @@ dist-src:
 	$(CP) util.c     $(SRCDIR)
 	$(CP) util.h     $(SRCDIR)
 	$(CP) COPYING    $(SRCDIR)
+
+	$(CP) etc/Makefile-DTM $(SRCDIR)/etc
+	$(CP) etc/Makefile-WAC $(SRCDIR)/etc
+	$(CP) etc/NAC_ROI.sh   $(SRCDIR)/etc
 
 	zip -r $(SRCDIR) $(SRCDIR)
 
