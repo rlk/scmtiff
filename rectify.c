@@ -82,13 +82,14 @@ static void dosamp(img *p, double lat0, double lat1,
             accumulate(p, i2, j0, q, c) +
             accumulate(p, i2, j2, q, c);
 
-    switch (c)
-    {
-        case 4: q[3] /= d;
-        case 3: q[2] /= d;
-        case 2: q[1] /= d;
-        case 1: q[0] /= d;
-    }
+    if (d)
+        switch (c)
+        {
+            case 4: q[3] /= d;
+            case 3: q[2] /= d;
+            case 2: q[1] /= d;
+            case 1: q[0] /= d;
+        }
 }
 
 // Sample the image across an entire TIFF tile covering the given range of
@@ -115,7 +116,7 @@ static void process(const char *out, img *p, int n, int s, int c)
     TIFF  *T;
     float *b;
 
-    if ((T = TIFFOpen(out, "w")))
+    if ((T = TIFFOpen(out, "w8")))
     {
         TIFFSetField(T, TIFFTAG_IMAGEWIDTH,  2 * n);
         TIFFSetField(T, TIFFTAG_IMAGELENGTH,     n);
