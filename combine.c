@@ -33,6 +33,20 @@ static inline float avg(float a, float b)
     return (a + b) * 0.5f;
 }
 
+static inline void blend(float *dst, const float *src, int c)
+{
+    const float a =       src[c - 1];
+    const float b = 1.f - src[c - 1];
+
+    switch (c)
+    {
+        case 4: dst[2] = dst[2] * b + src[2] * a;
+        case 3: dst[1] = dst[1] * b + src[1] * a;
+        case 2: dst[0] = dst[0] * b + src[0] * a;
+    }
+    dst[c - 1] = max(dst[c - 1], src[c - 1]);
+}
+
 //------------------------------------------------------------------------------
 
 // Attempt to read and map the SCM TIFF with the given name. If successful,
@@ -102,6 +116,7 @@ static void process(scm *s, scm **V, int C, int O)
 
         for (int x = 0; x <= m; ++x)
         {
+            int c = scm_get_c(s);
             int g = 0;
             int k = 0;
 
@@ -146,6 +161,10 @@ static void process(scm *s, scm **V, int C, int O)
                                 for (size_t j = 0; j < S; ++j)
                                     p[j] = avg(p[j], q[j]);
                                 break;
+                            case 3:
+                                for (size_t j = 0; j < S; j += c)
+                                    blend(p + j, q + j, c);
+                                break;
                         }
 
                 b = scm_append(s, b, x, p);
@@ -169,9 +188,10 @@ int combine(int argc, char **argv, const char *o, const char *m)
 
     if (m)
     {
-        if      (strcmp(m, "sum") == 0) O = 0;
-        else if (strcmp(m, "max") == 0) O = 1;
-        else if (strcmp(m, "avg") == 0) O = 2;
+        if      (strcmp(m, "sum")   == 0) O = 0;
+        else if (strcmp(m, "max")   == 0) O = 1;
+        else if (strcmp(m, "avg")   == 0) O = 2;
+        else if (strcmp(m, "blend") == 0) O = 3;
     }
 
     if ((V = (scm **) calloc((size_t) argc, sizeof (scm *))))

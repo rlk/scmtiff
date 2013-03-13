@@ -1,7 +1,7 @@
 N=254
 D=5
 
-DATA = mwpan2_16bit.png
+DATA = mwpan2_8bit.tif
 NAME = mwpan2-$(N)-$(D)
 FORM = -n$(N) -d$(D)
 TEXT = -tdesc.txt
