@@ -37,6 +37,7 @@ void scm_close(scm *s)
     {
         fclose(s->fp);
         scm_free(s);
+        free(s->name);
         free(s);
     }
 }
@@ -58,6 +59,8 @@ scm *scm_ifile(const char *name)
             {
                 if (scm_alloc(s))
                 {
+                    s->name = (char *) malloc(strlen(name) + 1);
+                    strcpy(s->name, name);
                     return s;
                 }
             }
@@ -95,6 +98,8 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g)
                 {
                     if (scm_ffwd(s))
                     {
+                        s->name = (char *) malloc(strlen(name) + 1);
+                        strcpy(s->name, name);
                         return s;
                     }
                 }
@@ -703,7 +708,7 @@ bool scm_read_page(scm *s, long long o, float *p)
 
         return (scm_read_data(s, p, oo, lo, sc) > 0);
     }
-    else apperr("Failed to read SCM TIFF IFD");
+    else apperr("Failed to read SCM TIFF IFD from %s", s->name);
 
     return false;
 }

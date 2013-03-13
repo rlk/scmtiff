@@ -104,7 +104,8 @@ typedef struct { long long x; long long o; } scm_pair;
 
 struct scm
 {
-    FILE *fp;                   // I/O file pointer
+    char *name;                 // File name
+    FILE *fp;                   // PILE pointer
 
     int n;                      // Page sample count
     int c;                      // Sample channel count

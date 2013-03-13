@@ -195,7 +195,7 @@ bool scm_read_header(scm *s, header *h)
         {
             return true;
         }
-        else apperr("File is not an SCM TIFF");
+        else apperr("%s is not an SCM TIFF", s->name);
     }
     return false;
 }
@@ -252,7 +252,7 @@ bool scm_init_hfd(scm *s, hfd *d)
 
         return true;
     }
-    else apperr("Unsupported pixel configuration (more than 64 BPP)");
+    else apperr("%s: Unsupported pixel configuration (> 64 BPP)", s->name);
 
     return false;
 }
@@ -270,7 +270,7 @@ bool scm_read_hfd(scm *s, hfd *d)
         {
             return true;
         }
-        else apperr("File is not an SCM TIFF");
+        else apperr("%s is not an SCM TIFF", s->name);
     }
     return false;
 }
@@ -328,7 +328,7 @@ bool scm_init_ifd(scm *s, ifd *d)
 
         return true;
     }
-    else apperr("Unsupported pixel configuration (more than 64 BPP)");
+    else apperr("%s: Unsupported pixel configuration (> 64 BPP)", s->name);
 
     return false;
 }
@@ -346,7 +346,7 @@ bool scm_read_ifd(scm *s, ifd *d, long long o)
         {
             return true;
         }
-        else apperr("File is not an SCM TIFF");
+        else apperr("%s is not an SCM TIFF", s->name);
     }
     return false;
 }
@@ -558,9 +558,9 @@ bool scm_link_list(scm *s, long long c, long long p)
             {
                 return true;
             }
-            else apperr("Failed to write previous IFD");
+            else apperr("%s: Failed to write previous IFD", s->name);
         }
-        else apperr("Failed to read previous IFD");
+        else apperr("%s: Failed to read previous IFD", s->name);
    }
     else
     {
@@ -574,9 +574,9 @@ bool scm_link_list(scm *s, long long c, long long p)
             {
                 return true;
             }
-            else apperr("Failed to write preamble");
+            else apperr("%s: Failed to write preamble", s->name);
         }
-        else apperr("Failed to read preamble");
+        else apperr("%s: Failed to read preamble", s->name);
     }
     return false;
 }
