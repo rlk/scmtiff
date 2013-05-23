@@ -1,0 +1,69 @@
+N=2048
+
+SIZE=-l5 -n11 -m12 -p1
+
+RECTIFY = scmtiff -prectify -T -n$(N) -N-9160,10770 -g0
+
+tifs : \
+	WAC_GLD100_E300N0450_100M.tif \
+	WAC_GLD100_E300N1350_100M.tif \
+	WAC_GLD100_E300N2250_100M.tif \
+	WAC_GLD100_E300N3150_100M.tif \
+	WAC_GLD100_E300S0450_100M.tif \
+	WAC_GLD100_E300S1350_100M.tif \
+	WAC_GLD100_E300S2250_100M.tif \
+	WAC_GLD100_E300S3150_100M.tif \
+	WAC_GLD100_P900N0000_100M.tif \
+	WAC_GLD100_P900S0000_100M.tif \
+	ldem_45n_100m.tif \
+	ldem_45s_100m.tif
+bins : \
+	WAC_GLD100_E300N0450_100M.bin \
+	WAC_GLD100_E300N1350_100M.bin \
+	WAC_GLD100_E300N2250_100M.bin \
+	WAC_GLD100_E300N3150_100M.bin \
+	WAC_GLD100_E300S0450_100M.bin \
+	WAC_GLD100_E300S1350_100M.bin \
+	WAC_GLD100_E300S2250_100M.bin \
+	WAC_GLD100_E300S3150_100M.bin \
+	WAC_GLD100_P900N0000_100M.bin \
+	WAC_GLD100_P900S0000_100M.bin \
+	ldem_45n_100m.bin \
+	ldem_45s_100m.bin
+
+WAC_GLD100_E%.tif: WAC_GLD100_E%.IMG
+	$(RECTIFY) -o$@ $<
+
+WAC_GLD100_P900N0000_100M.tif: WAC_GLD100_P900N0000_100M.IMG
+	$(RECTIFY) -o$@ -P90,12,11 $<
+
+WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
+	$(RECTIFY) -o$@ -P-90,12,11 $<
+
+ldem_45n_100m.tif: ldem_45n_100m.lbl
+	$(RECTIFY) -o$@ -P90,11,12 $<
+
+ldem_45s_100m.tif: ldem_45s_100m.lbl
+	$(RECTIFY) -o$@ -P-90,11,12 $<
+
+%.bin : %.tif
+	convert $(SIZE) $< $@
+
+out.bin : bins
+	reserve $(SIZE) $@
+
+	compute $(SIZE) -A $@ WAC_GLD100_E300N0450_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300N1350_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300N2250_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300N3150_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300S0450_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300S1350_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300S2250_100M.bin
+	compute $(SIZE) -A $@ WAC_GLD100_E300S3150_100M.bin
+	compute $(SIZE) -X $@ WAC_GLD100_P900N0000_100M.bin
+	compute $(SIZE) -X $@ WAC_GLD100_P900S0000_100M.bin
+	compute $(SIZE) -A $@ ldem_45n_100m.bin
+	compute $(SIZE) -A $@ ldem_45s_100m.bin
+
+out.tif : out.bin
+	convert $(SIZE) $< $@

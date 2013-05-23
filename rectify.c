@@ -156,9 +156,10 @@ static void process(const char *out, img *p, int n, int s, int c)
 
 int rectify(int argc, char **argv, const char *o,
                                            int n,
+                                 const float  *N,
+                                 const double *E,
                                  const double *L,
-                                 const double *P,
-                                 const float  *N)
+                                 const double *P)
 {
     img  *p = NULL;
     char *e = NULL;
@@ -195,13 +196,28 @@ int rectify(int argc, char **argv, const char *o,
         {
             // Set the blending parameters.
 
-            p->latc = P[0] * M_PI / 180.0;
-            p->lat0 = P[1] * M_PI / 180.0;
-            p->lat1 = P[2] * M_PI / 180.0;
+            if (P[0] || P[1] || P[2])
+            {
+                p->latc = P[0] * M_PI / 180.0;
+                p->lat0 = P[1] * M_PI / 180.0;
+                p->lat1 = P[2] * M_PI / 180.0;
+            }
+            if (L[0] || L[1] || L[2])
+            {
+                p->lonc = L[0] * M_PI / 180.0;
+                p->lon0 = L[1] * M_PI / 180.0;
+                p->lon1 = L[2] * M_PI / 180.0;
+            }
 
-            p->lonc = L[0] * M_PI / 180.0;
-            p->lon0 = L[1] * M_PI / 180.0;
-            p->lon1 = L[2] * M_PI / 180.0;
+            // Set the equirectangular subset parameters.
+
+            if (E[0] || E[1] || E[2] || E[3])
+            {
+                p->lonmin = E[0] * M_PI / 180.0;
+                p->lonmax = E[1] * M_PI / 180.0;
+                p->latmin = E[2] * M_PI / 180.0;
+                p->latmax = E[3] * M_PI / 180.0;
+            }
 
             // Set the normalization parameters.
 

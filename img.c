@@ -47,6 +47,11 @@ img *img_alloc(int w, int h, int c, int b, int g)
             p->b = b;
             p->g = g;
 
+            p->latmin = -0.5 * M_PI;
+            p->latmax =  0.5 * M_PI;
+            p->lonmin =  0.0;
+            p->latmin =  2.0 * M_PI;
+
             p->norm0          = 0.f;
             p->norm1          = 1.f;
             p->scaling_factor = 1.f;
@@ -375,8 +380,8 @@ int img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 
 int img_default(img *p, const double *v, double lon, double lat, double *t)
 {
-    t[0] = (p->h - 1) * (M_PI / 2.0 - lat) / M_PI;
-    t[1] = (p->w    ) * (1.0 - lon / (M_PI * 2.0));
+    t[0] = (p->h - 1) * (lat - p->latmin) / (p->latmax - p->latmin);
+    t[1] = (p->w    ) * (lon - p->lonmin) / (p->lonmax - p->latmax);
 
     return 1;
 }

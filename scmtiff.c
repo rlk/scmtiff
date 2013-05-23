@@ -81,6 +81,7 @@ int main(int argc, char **argv)
     int         l    =   0;
     int         T    =   0;
     int         x    =  -1;
+    double      E[4] = { 0.f, 0.f, 0.f , 0.f};
     double      L[3] = { 0.f, 0.f, 0.f };
     double      P[3] = { 0.f, 0.f, 0.f };
     float       N[2] = { 0.f, 0.f };
@@ -95,26 +96,39 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "Ab:d:g:hL:l:m:n:N:o:p:P:Tt:R:x:w:")) != -1)
+    while ((c = getopt(argc, argv, "Ab:d:E:g:hL:l:m:n:N:o:p:P:Tt:R:x:w:")) != -1)
         switch (c)
         {
-            case 'p': p = optarg;                                         break;
-            case 'm': m = optarg;                                         break;
-            case 'o': o = optarg;                                         break;
-            case 't': t = optarg;                                         break;
-            case 'n': sscanf(optarg, "%d", &n);                           break;
-            case 'd': sscanf(optarg, "%d", &d);                           break;
-            case 'b': sscanf(optarg, "%d", &b);                           break;
-            case 'g': sscanf(optarg, "%d", &g);                           break;
-            case 'l': sscanf(optarg, "%d", &l);                           break;
-            case 'x': sscanf(optarg, "%d", &x);                           break;
-            case 'L': sscanf(optarg, "%lf,%lf,%lf", L + 0, L + 1, L + 2); break;
-            case 'P': sscanf(optarg, "%lf,%lf,%lf", P + 0, P + 1, P + 2); break;
-            case 'N': sscanf(optarg, "%f,%f",       N + 0, N + 1);        break;
-            case 'R': sscanf(optarg, "%f,%f",       R + 0, R + 1);        break;
-            case 'A': A = 1;                                              break;
-            case 'h': h = 1;                                              break;
-            case 'T': T = 1;                                              break;
+            case 'A': A = 1;                    break;
+            case 'h': h = 1;                    break;
+            case 'T': T = 1;                    break;
+            case 'p': p = optarg;               break;
+            case 'm': m = optarg;               break;
+            case 'o': o = optarg;               break;
+            case 't': t = optarg;               break;
+            case 'n': sscanf(optarg, "%d", &n); break;
+            case 'd': sscanf(optarg, "%d", &d); break;
+            case 'b': sscanf(optarg, "%d", &b); break;
+            case 'g': sscanf(optarg, "%d", &g); break;
+            case 'l': sscanf(optarg, "%d", &l); break;
+            case 'x': sscanf(optarg, "%d", &x); break;
+
+            case 'E':
+                sscanf(optarg, "%lf,%lf,%lf,%lf", E + 0, E + 1, E + 2, E + 3);
+                break;
+            case 'L':
+                sscanf(optarg, "%lf,%lf,%lf",     L + 0, L + 1, L + 2);       
+                break;
+            case 'P':
+                sscanf(optarg, "%lf,%lf,%lf",     P + 0, P + 1, P + 2);       
+                break;
+            case 'N':
+                sscanf(optarg, "%f,%f",           N + 0, N + 1);              
+                break;
+            case 'R':
+                sscanf(optarg, "%f,%f",           R + 0, R + 1);              
+                break;
+
             case '?': apperr("Bad option -%c", optopt);                   break;
         }
 
@@ -132,6 +146,7 @@ int main(int argc, char **argv)
                 "\t\t-d d . . . . . Tree depth\n"
                 "\t\t-b b . . . . . Channel depth override\n"
                 "\t\t-g g . . . . . Channel sign override\n"
+                "\t\t-E w,e,s,n . . Equirectangular range\n"
                 "\t\t-L c,d0,d1 . . Longitude blend range\n"
                 "\t\t-P c,d0,d1 . . Latitude blend range\n"
                 "\t\t-N n0,n1 . . . Normalization range\n"
@@ -158,10 +173,10 @@ int main(int argc, char **argv)
         r = extrema(argc, argv);
 
     else if (strcmp(p, "convert") == 0)
-        r = convert(argc, argv, o, n, d, b, g, x, L, P, N, A);
+        r = convert(argc, argv, o, n, d, b, g, x, A, N, E, L, P);
 
     else if (strcmp(p, "rectify") == 0)
-        r = rectify(argc, argv, o, n,             L, P, N);
+        r = rectify(argc, argv, o, n,                N, E, L, P);
 
     else if (strcmp(p, "combine") == 0)
         r = combine(argc, argv, o, m);

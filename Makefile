@@ -4,9 +4,9 @@ EXES= scmtiff scmview
 #-------------------------------------------------------------------------------
 
 #CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
-#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g -fopenmp
+CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g -fopenmp
 #CC = /usr/local/bin/gcc -std=c99 -Wall
-CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
+#CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 
 CP = cp
 RM = rm -f
