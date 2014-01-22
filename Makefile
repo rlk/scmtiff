@@ -1,10 +1,13 @@
 
-EXES= scmtiff scmview
+EXES= scmtiff scmogle
 
 #-------------------------------------------------------------------------------
 
-#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
+# This build goes out of its way to use GCC instead of LLVM (the current default
+# under OS X) to ensure the availability of OpenMP.
+
 CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g -fopenmp
+#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
 #CC = /usr/local/bin/gcc -std=c99 -Wall
 #CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 
@@ -71,7 +74,9 @@ ifneq ($(wildcard /opt/local/include),)
         CFLAGS += -I/opt/local/include
 endif
 
-ifneq ($(shell uname), Darwin)
+ifeq ($(shell uname), Darwin)
+	CFLAGS += -Wno-deprecated-declarations
+else
 	CFLAGS += -D_FILE_OFFSET_BITS=64 -DM_PI=3.14159265358979323846
 endif
 
@@ -99,7 +104,7 @@ dist : all
 	mkdir -p         $(BINDIR)
 
 	$(CP) scmtiff    $(BINDIR)
-	$(CP) scmview    $(BINDIR)
+	$(CP) scmogle    $(BINDIR)
 
 	zip -r $(BINDIR) $(BINDIR)
 
@@ -134,7 +139,7 @@ dist-src:
 	$(CP) scmio.c    $(SRCDIR)
 	$(CP) scmio.h    $(SRCDIR)
 	$(CP) scmtiff.c  $(SRCDIR)
-	$(CP) scmview.c  $(SRCDIR)
+	$(CP) scmogle.c  $(SRCDIR)
 	$(CP) tif.c      $(SRCDIR)
 	$(CP) util.c     $(SRCDIR)
 	$(CP) util.h     $(SRCDIR)
@@ -151,7 +156,7 @@ dist-src:
 scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
 
-scmview : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmview.o
+scmogle : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmogle.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT)
 
 #-------------------------------------------------------------------------------
@@ -194,7 +199,7 @@ scmio.o : util.h
 scmio.o : err.h
 scmtiff.o : scm.h
 scmtiff.o : err.h
-scmview.o : scm.h
-scmview.o : err.h
+scmogle.o : scm.h
+scmogle.o : err.h
 tif.o : img.h
 tif.o : err.h

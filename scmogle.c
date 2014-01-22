@@ -1,4 +1,4 @@
-// SCMVIEW Copyright (C) 2012 Robert Kooima
+// SCMOGLE Copyright (C) 2012 Robert Kooima
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -12,9 +12,9 @@
 
 
 //------------------------------------------------------------------------------
-// SCMVIEW is a light-weight OpenGL-based viewer for SCMTIFF format image files.
+// SCMOGLE is a light-weight OpenGL-based viewer for SCMTIFF format image files.
 // It enables panning, zooming, and false-color rendering of individual pages,
-// as well as side-by-side comparison of multiple SCMTIFF data files. SCMVIEW is
+// as well as side-by-side comparison of multiple SCMTIFF data files. SCMOGLE is
 // a debugging tool, and does NOT produce seamless spherical renderings.
 
 #include <stdio.h>
@@ -83,8 +83,11 @@ static void data_null(int n, int c)
     for         (int i = 0; i < n; ++i)
         for     (int j = 0; j < n; ++j)
             for (int k = 0; k < c; ++k, ++l)
-                buf[l] = ((((i - 1) >> 3) & 1) ==
-                          (((j - 1) >> 3) & 1)) ? 0.4f : 0.6f;
+                if (k == 3)
+                    buf[l] = 1.0f;
+                else
+                    buf[l] = ((((i - 1) >> 3) & 1) ==
+                              (((j - 1) >> 3) & 1)) ? 0.4f : 0.6f;
 }
 
 // Load page x from all files. Upload the data to the on-screen texture cache.
@@ -299,7 +302,7 @@ static int start(int argc, char **argv)
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_TEXTURE_2D);
-        // glEnable(GL_BLEND);
+        glEnable(GL_BLEND);
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -383,7 +386,7 @@ static void display(void)
 
     glViewport(0, 0, w, h);
 
-    glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
+    glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
