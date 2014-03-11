@@ -275,8 +275,7 @@ bool scm_read_hfd(scm *s, hfd *d)
     return false;
 }
 
-// If o is non-zero, Write an HFD at offset o of SCM TIFF s. Otherwise, write
-// the IFD at the current file position and return the offset.
+// Write an HFD after the header and return its offset.
 
 long long scm_write_hfd(scm *s, hfd *d)
 {

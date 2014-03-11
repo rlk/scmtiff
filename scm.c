@@ -689,6 +689,31 @@ bool scm_finish(scm *s, const char *txt, int d)
     return st;
 }
 
+// LibTIFF doesn't allow a page with a non-zero size to have no data given.
+// As a cheap hack, point the header fields at the first page's data.
+
+bool scm_polish(scm *s)
+{
+    assert(s);
+
+    bool st = false;
+
+    hfd h;
+    ifd i;
+
+    if (scm_read_hfd(s, &h))
+    {
+        if (scm_read_ifd(s, &i, h.next))
+        {
+            h.strip_offsets     = i.strip_offsets;
+            h.strip_byte_counts = i.strip_byte_counts;
+        }
+        st = (scm_write_hfd(s, &h) > 0);
+    }
+
+    return st;
+}
+
 //------------------------------------------------------------------------------
 
 // Read the SCM TIFF IFD at offset o. Assume p provides space for one page of

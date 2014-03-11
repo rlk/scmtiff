@@ -75,3 +75,9 @@ ldem_45s_100m.tif: ldem_45s_100m.lbl
 
 clean:
 	rm -f $(NAME).tif $(GLDE) $(GLDP) $(LOLA)
+
+
+
+
+
+

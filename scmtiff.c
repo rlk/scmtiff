@@ -117,16 +117,16 @@ int main(int argc, char **argv)
                 sscanf(optarg, "%lf,%lf,%lf,%lf", E + 0, E + 1, E + 2, E + 3);
                 break;
             case 'L':
-                sscanf(optarg, "%lf,%lf,%lf",     L + 0, L + 1, L + 2);       
+                sscanf(optarg, "%lf,%lf,%lf",     L + 0, L + 1, L + 2);
                 break;
             case 'P':
-                sscanf(optarg, "%lf,%lf,%lf",     P + 0, P + 1, P + 2);       
+                sscanf(optarg, "%lf,%lf,%lf",     P + 0, P + 1, P + 2);
                 break;
             case 'N':
-                sscanf(optarg, "%f,%f",           N + 0, N + 1);              
+                sscanf(optarg, "%f,%f",           N + 0, N + 1);
                 break;
             case 'R':
-                sscanf(optarg, "%f,%f",           R + 0, R + 1);              
+                sscanf(optarg, "%f,%f",           R + 0, R + 1);
                 break;
 
             case '?': apperr("Bad option -%c", optopt);                   break;
@@ -189,6 +189,9 @@ int main(int argc, char **argv)
 
     else if (strcmp(p, "finish") == 0)
         r = finish (argc, argv, t, l);
+
+    else if (strcmp(p, "polish") == 0)
+        r = polish (argc, argv);
 
     else if (strcmp(p, "normal") == 0)
         r = normal (argc, argv, o, R);

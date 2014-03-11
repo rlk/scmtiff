@@ -6,10 +6,11 @@ EXES= scmtiff scmogle
 # This build goes out of its way to use GCC instead of LLVM (the current default
 # under OS X) to ensure the availability of OpenMP.
 
-CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g -fopenmp
+#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g -fopenmp
 #CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
 #CC = /usr/local/bin/gcc -std=c99 -Wall
 #CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
+CC = gcc -std=c99 -Wall -m64 -O3
 
 CP = cp
 RM = rm -f
@@ -74,6 +75,10 @@ ifneq ($(wildcard /opt/local/include),)
         CFLAGS += -I/opt/local/include
 endif
 
+ifneq ($(wildcard /usr/local/include),)
+        CFLAGS += -I/usr/local/include
+endif
+
 ifeq ($(shell uname), Darwin)
 	CFLAGS += -Wno-deprecated-declarations
 else
@@ -127,6 +132,7 @@ dist-src:
 	$(CP) normal.c   $(SRCDIR)
 	$(CP) pds.c      $(SRCDIR)
 	$(CP) png.c      $(SRCDIR)
+	$(CP) polish.h   $(SRCDIR)
 	$(CP) process.h  $(SRCDIR)
 	$(CP) rectify.c  $(SRCDIR)
 	$(CP) sample.c   $(SRCDIR)
@@ -153,7 +159,7 @@ dist-src:
 
 #-------------------------------------------------------------------------------
 
-scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o normal.o sample.o scmtiff.o
+scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o polish.o normal.o sample.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
 
 scmogle : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmogle.o

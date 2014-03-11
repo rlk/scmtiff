@@ -44,6 +44,7 @@ long long scm_rewind(scm *);
 long long scm_append(scm *, long long, long long, const float *);
 long long scm_repeat(scm *, long long, scm *, long long);
 bool      scm_finish(scm *, const char *, int);
+bool      scm_polish(scm *);
 
 bool scm_read_page(scm *, long long, float *);
 

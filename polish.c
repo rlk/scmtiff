@@ -10,24 +10,30 @@
 // FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 // more details.
 
-#ifndef SCMTIFF_PROCESS_H
-#define SCMTIFF_PROCESS_H
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "scm.h"
+#include "err.h"
+#include "util.h"
+#include "process.h"
 
 //------------------------------------------------------------------------------
 
-int sample (int, char **, const float *, int);
-int normal (int, char **, const char *, const float *);
-int finish (int, char **, const char *, int);
-int polish (int, char **);
-int border (int, char **, const char *);
-int mipmap (int, char **, const char *, const char *, int);
-int combine(int, char **, const char *, const char *);
-int rectify(int, char **, const char *, int,
-           const float *, const double *, const double *, const double *);
-int convert(int, char **, const char *, int, int, int, int, int, int,
-           const float *, const double *, const double *, const double *);
-int extrema(int, char **);
+int polish(int argc, char **argv)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        scm *s;
+
+        if ((s = scm_ifile(argv[i])))
+        {
+            scm_polish(s);
+            scm_close(s);
+        }
+    }
+    return 0;
+}
 
 //------------------------------------------------------------------------------
-
-#endif
