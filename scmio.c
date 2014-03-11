@@ -259,12 +259,12 @@ bool scm_init_hfd(scm *s, hfd *d)
 
 // Read an IFD at offset o of SCM TIFF s.
 
-bool scm_read_hfd(scm *s, hfd *d)
+bool scm_read_hfd(scm *s, hfd *d, long long o)
 {
     assert(s);
     assert(d);
 
-    if (scm_read(s, d, sizeof (hfd), sizeof (header)) >= 0)
+    if (o && scm_read(s, d, sizeof (hfd), o) >= 0)
     {
         if (is_hfd(d))
         {
@@ -277,16 +277,20 @@ bool scm_read_hfd(scm *s, hfd *d)
 
 // Write an HFD after the header and return its offset.
 
-long long scm_write_hfd(scm *s, hfd *d)
+long long scm_write_hfd(scm *s, hfd *d, long long o)
 {
     assert(s);
     assert(d);
 
-    if (scm_seek(s, sizeof (header)) >= 0)
+    if (o)
     {
-        return scm_write(s, d, sizeof (hfd));
+        if (scm_seek(s, o) >= 0)
+        {
+            return scm_write(s, d, sizeof (hfd));
+        }
+        else return -1;
     }
-    else return -1;
+    else return scm_write(s, d, sizeof (hfd));
 }
 
 //------------------------------------------------------------------------------
@@ -381,7 +385,7 @@ bool scm_read_preamble(scm *s)
 
     if (scm_read_header(s, &h))
     {
-        if (scm_read_hfd(s, &d))
+        if (scm_read_hfd(s, &d, h.first_ifd))
         {
             s->n = (int)                 d.image_width      .offset - 2;
             s->c = (int)                 d.samples_per_pixel.offset;
@@ -408,7 +412,7 @@ bool scm_write_preamble(scm *s)
     {
         if (scm_write_header(s, &h) >= 0)
         {
-            if ((h.first_ifd = (uint64_t) scm_write_hfd(s, &d)))
+            if ((h.first_ifd = (uint64_t) scm_write_hfd(s, &d, 0)))
             {
                 if (scm_write_header(s, &h) >= 0)
                 {
@@ -563,17 +567,22 @@ bool scm_link_list(scm *s, long long c, long long p)
    }
     else
     {
-        hfd h;
+        header h;
+        hfd    d;
 
-        if (scm_read_hfd(s, &h))
+        if (scm_read_header(s, &h))
         {
-            h.next = (uint64_t) c;
-
-            if (scm_write_hfd(s, &h) > 0)
+            if (scm_read_hfd(s, &d, h.first_ifd))
             {
-                return true;
+                d.next = (uint64_t) c;
+
+                if (scm_write_hfd(s, &d, h.first_ifd) > 0)
+                {
+                    return true;
+                }
+                else apperr("%s: Failed to write preamble", s->name);
             }
-            else apperr("%s: Failed to write preamble", s->name);
+            else apperr("%s: Failed to read preamble", s->name);
         }
         else apperr("%s: Failed to read preamble", s->name);
     }

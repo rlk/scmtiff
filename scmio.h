@@ -40,8 +40,8 @@ bool      scm_read_header   (scm *, header *);
 long long scm_write_header  (scm *, header *);
 
 bool      scm_init_hfd      (scm *, hfd *);
-bool      scm_read_hfd      (scm *, hfd *);
-long long scm_write_hfd     (scm *, hfd *);
+bool      scm_read_hfd      (scm *, hfd *, long long);
+long long scm_write_hfd     (scm *, hfd *, long long);
 
 bool      scm_init_ifd      (scm *, ifd *);
 bool      scm_read_ifd      (scm *, ifd *, long long);

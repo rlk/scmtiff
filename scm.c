@@ -598,15 +598,19 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
 
 long long scm_rewind(scm *s)
 {
-    hfd d;
+    header h;
+    hfd    d;
 
     assert(s);
 
-    if (scm_read_hfd(s, &d))
+    if (scm_read_header(s, &h))
     {
-        if (scm_seek(s, d.next))
+        if (scm_read_hfd(s, &d, h.first_ifd))
         {
-            return (long long) d.next;
+            if (scm_seek(s, d.next))
+            {
+                return (long long) d.next;
+            }
         }
     }
     return 0;
@@ -663,17 +667,21 @@ bool scm_finish(scm *s, const char *txt, int d)
 
                     // Update the header file directory.
 
-                    hfd h;
+                    header h;
+                    hfd    d;
 
-                    if (scm_read_hfd(s, &h))
+                    if (scm_read_header(s, &h))
                     {
-                        scm_field(&h.page_index,   SCM_PAGE_INDEX,  16, yc, yo);
-                        scm_field(&h.page_offset,  SCM_PAGE_OFFSET, 16, oc, oo);
-                        scm_field(&h.page_minimum, SCM_PAGE_MINIMUM, t, bc, ao);
-                        scm_field(&h.page_maximum, SCM_PAGE_MAXIMUM, t, bc, zo);
-                        scm_field(&h.description,  0x010E,           2, tc, to);
+                        if (scm_read_hfd(s, &d, h.first_ifd))
+                        {
+                            scm_field(&d.page_index,   SCM_PAGE_INDEX,  16, yc, yo);
+                            scm_field(&d.page_offset,  SCM_PAGE_OFFSET, 16, oc, oo);
+                            scm_field(&d.page_minimum, SCM_PAGE_MINIMUM, t, bc, ao);
+                            scm_field(&d.page_maximum, SCM_PAGE_MAXIMUM, t, bc, zo);
+                            scm_field(&d.description,  0x010E,           2, tc, to);
 
-                        st = (scm_write_hfd(s, &h) > 0);
+                            st = (scm_write_hfd(s, &d, h.first_ifd) > 0);
+                        }
                     }
                 }
             }
@@ -698,19 +706,22 @@ bool scm_polish(scm *s)
 
     bool st = false;
 
-    hfd h;
-    ifd i;
+    header h;
+    hfd    d;
+    ifd    i;
 
-    if (scm_read_hfd(s, &h))
+    if (scm_read_header(s, &h))
     {
-        if (scm_read_ifd(s, &i, h.next))
+        if (scm_read_hfd(s, &d, h.first_ifd))
         {
-            h.strip_offsets     = i.strip_offsets;
-            h.strip_byte_counts = i.strip_byte_counts;
+            if (scm_read_ifd(s, &i, d.next))
+            {
+                d.strip_offsets     = i.strip_offsets;
+                d.strip_byte_counts = i.strip_byte_counts;
+            }
+            st = (scm_write_hfd(s, &d, h.first_ifd) > 0);
         }
-        st = (scm_write_hfd(s, &h) > 0);
     }
-
     return st;
 }
 
