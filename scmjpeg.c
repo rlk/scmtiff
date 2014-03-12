@@ -58,11 +58,20 @@ int proc(const char *src, const char *dst)
 
     if ((S = TIFFOpen(src, "r8")) && (D = TIFFOpen(dst, "w8")))
     {
+        // Inform LibTIFF of the SCM private fields.
+
         extensions(S);
         extensions(D);
+
+        // Copy all directories from source to destination.
         do
         {
+            // Set the destination compression to JPEG.
+
             TIFFSetField(D, TIFFTAG_COMPRESSION, 7);
+            TIFFSetField(D, TIFFTAG_JPEGQUALITY, 85);
+
+            // Copy all common tags.
 
             copy32(S, D, TIFFTAG_IMAGEWIDTH);
             copy32(S, D, TIFFTAG_IMAGELENGTH);
@@ -79,9 +88,10 @@ int proc(const char *src, const char *dst)
             copypv(S, D, TIFFTAG_SCM_MINIMUM);
             copypv(S, D, TIFFTAG_SCM_MAXIMUM);
 
+            // Grow the strip buffer if necessary.
+
             tsize_t ns = TIFFNumberOfStrips(S);
             tsize_t ss = TIFFStripSize     (S);
-            tsize_t i;
 
             if (len < ss)
             {
@@ -91,13 +101,17 @@ int proc(const char *src, const char *dst)
                     syserr("Failed to allocate strip buffer size %d", ss);
             }
 
+            // Copy and re-encode each strip.
+
+            tsize_t i;
+
             for (i = 0; i < ns; ++i)
             {
                 if ((ss = TIFFReadEncodedStrip (S, i, (tdata_t) ptr, -1)) == -1)
                     memset(ptr, 0, (ss = len));
 
                 if ((ss = TIFFWriteEncodedStrip(D, i, (tdata_t) ptr, ss)) == -1)
-                    apperr("Failed to write strip (page %d)", N);
+                    apperr("Failed to write strip");
             }
 
             N++;
@@ -105,6 +119,9 @@ int proc(const char *src, const char *dst)
             TIFFFileno(D);
         }
         while (TIFFWriteDirectory(D) && TIFFReadDirectory(S));
+
+        // Rebuild the offset table: Read it from the 0th directory, scan the
+        // file updating the offset of each entry, and write it back.
 
         uint64  n = 0;
         uint64 *p = 0;
