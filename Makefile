@@ -1,5 +1,5 @@
 
-EXES= scmtiff scmogle
+EXES= scmtiff scmogle scmjpeg
 
 #-------------------------------------------------------------------------------
 
@@ -165,6 +165,9 @@ scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif
 
 scmogle : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmogle.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT)
+
+scmjpeg : err.o scmjpeg.o
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBTIF) $(LIBJPG) $(LIBZ)
 
 #-------------------------------------------------------------------------------
 
