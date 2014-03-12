@@ -1,9 +1,14 @@
 #include <stdlib.h>
+#include <getopt.h>
 #include <tiffio.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "err.h"
+
+static int opt_compression = 8;
+static int opt_jpegquality = 85;
+static int opt_zipquality  = 9;
 
 #define TIFFTAG_SCM_INDEX   0xFFB1
 #define TIFFTAG_SCM_OFFSET  0xFFB2
@@ -64,14 +69,19 @@ int proc(const char *src, const char *dst)
         extensions(D);
 
         // Copy all directories from source to destination.
+
         do
         {
-            // Set the destination compression to JPEG.
+            // Set the destination compression.
 
-            TIFFSetField(D, TIFFTAG_COMPRESSION, 7);
-            TIFFSetField(D, TIFFTAG_JPEGQUALITY, 85);
+            TIFFSetField(D, TIFFTAG_COMPRESSION, opt_compression);
 
-            // Copy all common tags.
+            if (opt_compression == 7)
+                TIFFSetField(D, TIFFTAG_JPEGQUALITY, opt_jpegquality);
+            if (opt_compression == 8)
+                TIFFSetField(D, TIFFTAG_ZIPQUALITY,  opt_zipquality);
+
+            // Copy all common fields.
 
             copy32(S, D, TIFFTAG_IMAGEWIDTH);
             copy32(S, D, TIFFTAG_IMAGELENGTH);
@@ -83,10 +93,16 @@ int proc(const char *src, const char *dst)
             copy16(S, D, TIFFTAG_PLANARCONFIG);
             copy16(S, D, TIFFTAG_PHOTOMETRIC);
             copypv(S, D, TIFFTAG_IMAGEDESCRIPTION);
-            copypv(S, D, TIFFTAG_SCM_INDEX);
-            copypv(S, D, TIFFTAG_SCM_OFFSET);
-            copypv(S, D, TIFFTAG_SCM_MINIMUM);
-            copypv(S, D, TIFFTAG_SCM_MAXIMUM);
+
+            // Copy the SCM index fields.
+
+            if (N == 0)
+            {
+                copypv(S, D, TIFFTAG_SCM_INDEX);
+                copypv(S, D, TIFFTAG_SCM_OFFSET);
+                copypv(S, D, TIFFTAG_SCM_MINIMUM);
+                copypv(S, D, TIFFTAG_SCM_MAXIMUM);
+            }
 
             // Grow the strip buffer if necessary.
 
@@ -126,15 +142,20 @@ int proc(const char *src, const char *dst)
         uint64  n = 0;
         uint64 *p = 0;
 
-        if (TIFFSetDirectory(D, 0) &&
-            TIFFGetField(D, TIFFTAG_SCM_OFFSET, &n, &p))
+        if (TIFFSetDirectory(S, 0) &&
+            TIFFGetField(S, TIFFTAG_SCM_OFFSET, &n, &p))
         {
+            p[0] = 0;
+
             for (int i = 1; i < N; i++)
                 if (TIFFSetDirectory(D, i))
                     p[i - 1] = TIFFCurrentDirOffset(D);
 
             if (TIFFSetDirectory(D, 0))
+            {
                 TIFFSetField(D, TIFFTAG_SCM_OFFSET, n, p);
+                TIFFWriteDirectory(D);
+            }
         }
 
         TIFFClose(S);
@@ -143,12 +164,41 @@ int proc(const char *src, const char *dst)
     return 0;
 }
 
+static int usage(const char *exe)
+{
+    fprintf(stderr, "%s [-j n] [-z n] <src.tif> <dst.tif>\n", exe);
+    return -1;
+}
+
 int main(int argc, char **argv)
 {
+    int c;
+
     TIFFSetWarningHandler(0);
 
-    if (argc == 3)
-        return proc(argv[1], argv[2]);
+    while ((c = getopt(argc, argv, "j:z:")) != -1)
+
+        switch (c)
+        {
+            case 'j':
+
+                opt_compression = 7;
+                opt_jpegquality = strtol(optarg, 0, 0);
+                break;
+
+            case 'z':
+
+                opt_compression = 8;
+                opt_zipquality  = strtol(optarg, 0, 0);
+                break;
+
+            case '?':
+
+                return usage(argv[0]);
+        }
+
+    if (argc == optind + 2)
+        return proc(argv[optind], argv[optind + 1]);
     else
-        return 1;
+        return usage(argv[0]);
 }
