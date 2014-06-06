@@ -27,6 +27,7 @@ struct img
     int    c;  // Image channel count
     int    b;  // Image bits per channel
     int    g;  // Image channel signedness
+    int    o;  // Image channel byte order
     int    d;  // Memory-mapped file descriptor
     size_t n;  // Memory-mapped size
     void  *q;  // Memory-mapped pointer

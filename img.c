@@ -98,6 +98,40 @@ void *img_scanline(img *p, int r)
 
 //------------------------------------------------------------------------------
 
+static int16_t getint16(const img *p, size_t s)
+{
+    union { uint8_t src[2]; int16_t dst; } swap;
+
+    if (p->o)
+    {
+        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 0];
+        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 1];
+    }
+    else
+    {
+        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 0];
+        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 1];
+    }
+    return swap.dst;
+}
+
+static uint16_t getuint16(const img *p, size_t s)
+{
+    union { uint8_t src[2]; uint16_t dst; } swap;
+
+    if (p->o)
+    {
+        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 0];
+        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 1];
+    }
+    else
+    {
+        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 0];
+        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 1];
+    }
+    return swap.dst;
+}
+
 static int normu8(const img *p, const uint8_t *u, float *f)
 {
     *f = ((float) (*u) * p->scaling_factor - p->norm0)
@@ -112,24 +146,24 @@ static int norms8(const img *p, const int8_t *s, float *f)
     return 1;
 }
 
-static int normu16(const img *p, const uint16_t *u, float *f)
+static int normu16(const img *p, uint16_t u, float *f)
 {
-    *f = ((float) (*u) * p->scaling_factor - p->norm0)
-                               / (p->norm1 - p->norm0);
+    *f = ((float) u * p->scaling_factor - p->norm0)
+                            / (p->norm1 - p->norm0);
     return 1;
 }
 
-static int norms16(const img *p, const int16_t *s, float *f)
+static int norms16(const img *p, int16_t s, float *f)
 {
     float d = 1;
     float k = 0;
 
-    if      (*s == -32768) d =   0;  // Null
-    else if (*s == -32767) k = 0.f;  // Representation  saturation low
-    else if (*s == -32766) k = 0.f;  // Instrumentation saturation low
-    else if (*s == -32764) k = 1.f;  // Representation  saturation high
-    else if (*s == -32765) k = 1.f;  // Instrumentation saturation high
-    else                   k =  *s;  // Good
+    if      (s == -32768) d =      0;  // Null
+    else if (s == -32767) k = -32768;  // Representation  saturation low
+    else if (s == -32766) k = -32768;  // Instrumentation saturation low
+    else if (s == -32764) k =  32767;  // Representation  saturation high
+    else if (s == -32765) k =  32767;  // Instrumentation saturation high
+    else                  k =      s;  // Good
 
     *f = (k * p->scaling_factor - p->norm0)
                     / (p->norm1 - p->norm0);
@@ -167,9 +201,9 @@ static int getchan(const img *p, int i, int j, int k, float *f)
     else if (p->b == 16)
     {
         if (p->g)
-            return norms16(p, (const  int16_t *) p->p + s, f);
+            return norms16(p, getint16(p, s), f);
         else
-            return normu16(p, (const uint16_t *) p->p + s, f);
+            return normu16(p, getuint16(p, s), f);
     }
     else if (p->b ==  8)
     {
@@ -365,16 +399,12 @@ int img_stereographic(img *p, const double *v, double lon, double lat, double *t
 
 int img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 {
-//  t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
-//  t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
-
+#if 0
     // This hack fixes LOLA SIMPLE CYLINDRICAL projection, which seems wrong.
-
     lon = tolon(lon - M_PI);
-
-    t[0] = p->l0 - p->res * (todeg(lat - p->latp));
-    t[1] = p->s0 + p->res * (todeg(lon - p->lonp));
-
+#endif
+    t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
+    t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
     return 1;
 }
 

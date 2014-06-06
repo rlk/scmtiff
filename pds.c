@@ -146,8 +146,10 @@ static double get_angle(const char *s)
 
     if (get_match(s, v, "(-?[\\.0-9]+) <DEG>"))
         return get_double(v) * M_PI / 180.0;
-    else
-        return get_double(s);
+    if (get_match(s, v, "(-?[\\.0-9]+) <DEGREE>"))
+        return get_double(v) * M_PI / 180.0;
+
+    return get_double(s);
 }
 
 static void parse_element(img *p, const char *k, const char *v)
@@ -162,8 +164,8 @@ static void parse_element(img *p, const char *k, const char *v)
     else if (!strcmp(k, "SAMPLE_BITS"))  p->b = get_int(v);
     else if (!strcmp(k, "SAMPLE_TYPE"))
     {
-        if      (!strcmp(v, "LSB_INTEGER")) p->g = 1;
-        else if (!strcmp(v, "MSB_INTEGER")) p->g = 1;
+        if      (!strcmp(v, "LSB_INTEGER")) { p->g = 1; p->o = 0; }
+        else if (!strcmp(v, "MSB_INTEGER")) { p->g = 1; p->o = 1; }
     }
 
     // Projection parameters
@@ -216,9 +218,9 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
     {
         if (get_element(str, key, val))
         {
-            if      (strcmp(key, "RECORD_BYTES")  == 0)  rs = get_int(val);
+            if      (strcmp(key, "RECORD_BYTES")  == 0) rs = get_int(val);
             else if (strcmp(key, "LABEL_RECORDS") == 0) rc = get_int(val);
-#if 1
+#if 0
             else if (strcmp(key, "FILE_NAME")     == 0)
 #else
             else if (strcmp(key, "^IMAGE")        == 0)
