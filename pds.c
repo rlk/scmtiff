@@ -135,7 +135,11 @@ static double get_scale(const char *s)
     if (get_match(s, v, "(-?[\\.0-9]+) <M/PIX>"))
         return get_double(v);
     if (get_match(s, v, "(-?[\\.0-9]+) <KM/PIX>"))
-        return get_double(v) * 1000.0;;
+        return get_double(v) * 1000.0;
+    if (get_match(s, v, "(-?[\\.0-9]+) <M/PIXEL>"))
+        return get_double(v);
+    if (get_match(s, v, "(-?[\\.0-9]+) <KM/PIXEL>"))
+        return get_double(v) * 1000.0;
 
     return get_double(s);
 }
@@ -166,6 +170,7 @@ static void parse_element(img *p, const char *k, const char *v)
     {
         if      (!strcmp(v, "LSB_INTEGER")) { p->g = 1; p->o = 0; }
         else if (!strcmp(v, "MSB_INTEGER")) { p->g = 1; p->o = 1; }
+        else if (!strcmp(v, "IEEE_REAL"))   { p->g = 0; p->o = 1; }
     }
 
     // Projection parameters

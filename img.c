@@ -98,51 +98,81 @@ void *img_scanline(img *p, int r)
 
 //------------------------------------------------------------------------------
 
-static int16_t getint16(const img *p, size_t s)
+static int16_t getint16(const img *p, const int16_t *s)
 {
-    union { uint8_t src[2]; int16_t dst; } swap;
+    int16_t d;
+
+    const uint8_t *src = (const uint8_t *)  s;
+          uint8_t *dst = (      uint8_t *) &d;
 
     if (p->o)
     {
-        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 0];
-        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 1];
+        dst[0] = src[1];
+        dst[1] = src[0];
     }
     else
     {
-        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 0];
-        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 1];
+        dst[0] = src[0];
+        dst[1] = src[1];
     }
-    return swap.dst;
+    return d;
 }
 
-static uint16_t getuint16(const img *p, size_t s)
+static uint16_t getuint16(const img *p, const uint16_t *s)
 {
-    union { uint8_t src[2]; uint16_t dst; } swap;
+    uint16_t d;
+
+    const uint8_t *src = (const uint8_t *)  s;
+          uint8_t *dst = (      uint8_t *) &d;
 
     if (p->o)
     {
-        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 0];
-        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 1];
+        dst[0] = src[1];
+        dst[1] = src[0];
     }
     else
     {
-        swap.src[0] = ((uint8_t *) p->p)[s * 2 + 0];
-        swap.src[1] = ((uint8_t *) p->p)[s * 2 + 1];
+        dst[0] = src[0];
+        dst[1] = src[1];
     }
-    return swap.dst;
+    return d;
 }
 
-static int normu8(const img *p, const uint8_t *u, float *f)
+static float getfloat(const img *p, const float *s)
 {
-    *f = ((float) (*u) * p->scaling_factor - p->norm0)
-                               / (p->norm1 - p->norm0);
+    float d;
+
+    const uint8_t *src = (const uint8_t *)  s;
+          uint8_t *dst = (      uint8_t *) &d;
+
+    if (p->o)
+    {
+        dst[0] = src[3];
+        dst[1] = src[2];
+        dst[2] = src[1];
+        dst[3] = src[0];
+    }
+    else
+    {
+        dst[0] = src[0];
+        dst[1] = src[1];
+        dst[2] = src[2];
+        dst[3] = src[3];
+    }
+    return d;
+}
+
+static int normu8(const img *p, uint8_t u, float *f)
+{
+    *f = ((float) u * p->scaling_factor - p->norm0)
+                            / (p->norm1 - p->norm0);
     return 1;
 }
 
-static int norms8(const img *p, const int8_t *s, float *f)
+static int norms8(const img *p, int8_t s, float *f)
 {
-    *f = ((float) (*s) * p->scaling_factor - p->norm0)
-                               / (p->norm1 - p->norm0);
+    *f = ((float) s * p->scaling_factor - p->norm0)
+                            / (p->norm1 - p->norm0);
     return 1;
 }
 
@@ -170,9 +200,9 @@ static int norms16(const img *p, int16_t s, float *f)
     return d;
 }
 
-static int normf(const img *p, const float *e, float *f)
+static int normf(const img *p, float e, float *f)
 {
-    const unsigned int *w = (const unsigned int *) e;
+    const uint32_t *w = (const uint32_t *) &e;
 
     float d = 1;
     float k = 0;
@@ -182,7 +212,7 @@ static int normf(const img *p, const float *e, float *f)
     else if (*w == 0xFF7FFFFD) k = 0.f;  // Instrumentation saturation low
     else if (*w == 0xFF7FFFFE) k = 1.f;  // Representation  saturation high
     else if (*w == 0xFF7FFFFF) k = 1.f;  // Instrumentation saturation high
-    else if (isnormal(*e))     k =  *e;  // Good
+    else if (isnormal(e))      k =   e;  // Good
     else                       d =   0;  // Punt
 
     *f = (k * p->scaling_factor - p->norm0)
@@ -196,21 +226,21 @@ static int getchan(const img *p, int i, int j, int k, float *f)
 
     if (p->b == 32)
     {
-        return normf(p, (const float *) p->p + s, f);
+        return normf(p, getfloat(p, (const float *) p->p + s), f);
     }
     else if (p->b == 16)
     {
         if (p->g)
-            return norms16(p, getint16(p, s), f);
+            return norms16(p,  getint16(p, (const int16_t  *) p->p + s), f);
         else
-            return normu16(p, getuint16(p, s), f);
+            return normu16(p, getuint16(p, (const uint16_t *) p->p + s), f);
     }
     else if (p->b ==  8)
     {
         if (p->g)
-            return norms8(p, (const  int8_t *) p->p + s, f);
+            return norms8(p, ((const  int8_t *) p->p)[s], f);
         else
-            return normu8(p, (const uint8_t *) p->p + s, f);
+            return normu8(p, ((const uint8_t *) p->p)[s], f);
     }
     return 0;
 }
@@ -391,9 +421,13 @@ int img_stereographic(img *p, const double *v, double lon, double lat, double *t
         y =  2 * p->radius * tan((M_PI / 4.0) + lat / 2) * cos(lon - p->lonp);
     }
 
+#if 0
     t[0] = p->l0 - y / p->scale;
     t[1] = p->s0 + x / p->scale;
-
+#else
+    t[0] = (p->h / 2.0 - 0.5) - y / p->scale;
+    t[1] = (p->h / 2.0 - 0.5) + x / p->scale;
+#endif
     return 1;
 }
 
