@@ -55,6 +55,7 @@ img *img_alloc(int w, int h, int c, int b, int g)
             p->norm0          = 0.f;
             p->norm1          = 1.f;
             p->scaling_factor = 1.f;
+            p->offset         = 0.f;
 
             return p;
         }
@@ -164,22 +165,22 @@ static float getfloat(const img *p, const float *s)
 
 static int normu8(const img *p, uint8_t u, float *f)
 {
-    *f = ((float) u * p->scaling_factor - p->norm0)
-                            / (p->norm1 - p->norm0);
+    *f = ((float) u * p->scaling_factor - p->offset - p->norm0)
+                                        / (p->norm1 - p->norm0);
     return 1;
 }
 
 static int norms8(const img *p, int8_t s, float *f)
 {
-    *f = ((float) s * p->scaling_factor - p->norm0)
-                            / (p->norm1 - p->norm0);
+    *f = ((float) s * p->scaling_factor - p->offset - p->norm0)
+                                        / (p->norm1 - p->norm0);
     return 1;
 }
 
 static int normu16(const img *p, uint16_t u, float *f)
 {
-    *f = ((float) u * p->scaling_factor - p->norm0)
-                            / (p->norm1 - p->norm0);
+    *f = ((float) u * p->scaling_factor - p->offset - p->norm0)
+                                        / (p->norm1 - p->norm0);
     return 1;
 }
 
@@ -195,8 +196,8 @@ static int norms16(const img *p, int16_t s, float *f)
     else if (s == -32765) k =  32767;  // Instrumentation saturation high
     else                  k =      s;  // Good
 
-    *f = (k * p->scaling_factor - p->norm0)
-                    / (p->norm1 - p->norm0);
+    *f = (k * p->scaling_factor - p->offset - p->norm0)
+                                / (p->norm1 - p->norm0);
     return d;
 }
 
@@ -215,8 +216,8 @@ static int normf(const img *p, float e, float *f)
     else if (isnormal(e))      k =   e;  // Good
     else                       d =   0;  // Punt
 
-    *f = (k * p->scaling_factor - p->norm0)
-                    / (p->norm1 - p->norm0);
+    *f = (k * p->scaling_factor - p->offset - p->norm0)
+                                / (p->norm1 - p->norm0);
     return d;
 }
 
@@ -425,8 +426,8 @@ int img_stereographic(img *p, const double *v, double lon, double lat, double *t
     t[0] = p->l0 - y / p->scale;
     t[1] = p->s0 + x / p->scale;
 #else
-    t[0] = (p->h / 2.0 - 0.5) - y / p->scale;
-    t[1] = (p->h / 2.0 - 0.5) + x / p->scale;
+    t[0] = (p->h / 2.0 - 0.5) - y / p->scale - 1; // FIRST_PIXEL
+    t[1] = (p->h / 2.0 - 0.5) + x / p->scale - 1; // FIRST_PIXEL
 #endif
     return 1;
 }
@@ -434,18 +435,19 @@ int img_stereographic(img *p, const double *v, double lon, double lat, double *t
 int img_cylindrical(img *p, const double *v, double lon, double lat, double *t)
 {
 #if 0
-    // This hack fixes LOLA SIMPLE CYLINDRICAL projection, which seems wrong.
     lon = tolon(lon - M_PI);
 #endif
-    t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp));
-    t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp));
+
+    t[0] = p->l0 - p->res * (todeg(lat) - todeg(p->latp)) - 1; // FIRST_PIXEL
+    t[1] = p->s0 + p->res * (todeg(lon) - todeg(p->lonp)) - 1; // FIRST_PIXEL
+
     return 1;
 }
 
 int img_default(img *p, const double *v, double lon, double lat, double *t)
 {
-    t[0] = (p->h - 1) * (lat - p->latmin) / (p->latmax - p->latmin);
-    t[1] = (p->w    ) * (lon - p->lonmin) / (p->lonmax - p->lonmin);
+    t[0] = p->h *      (lat - p->latmin) / (p->latmax - p->latmin);
+    t[1] = p->w * tolon(lon - p->lonmin) / (p->lonmax - p->lonmin);
 
     return 1;
 }

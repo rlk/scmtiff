@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     int         h    =   0;
     int         l    =   0;
     int         T    =   0;
-    int         x    =  -1;
+    int         x    =   0;
     double      E[4] = { 0.f, 0.f, 0.f , 0.f};
     double      L[3] = { 0.f, 0.f, 0.f };
     double      P[3] = { 0.f, 0.f, 0.f };

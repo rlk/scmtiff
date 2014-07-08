@@ -37,6 +37,7 @@ struct img
     float norm0;
     float norm1;
     float scaling_factor;
+    float offset;
 
     // Projection parameters
 

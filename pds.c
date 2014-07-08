@@ -39,9 +39,11 @@ static int get_match(const char *s, char *v, const char *pattern)
     {
         if ((err = regexec(&regex, s, 2, match, 0)) == 0)
         {
-            memset (v, 0, STRMAX);
-            strncpy(v, s + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
-
+            if (v)
+            {
+                memset (v, 0, STRMAX);
+                strncpy(v, s + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
+            }
             return 1;
         }
     }
@@ -153,7 +155,7 @@ static double get_angle(const char *s)
     if (get_match(s, v, "(-?[\\.0-9]+) <DEGREE>"))
         return get_double(v) * M_PI / 180.0;
 
-    return get_double(s);
+    return get_double(s) * M_PI / 180.0;
 }
 
 static void parse_element(img *p, const char *k, const char *v)
@@ -168,9 +170,11 @@ static void parse_element(img *p, const char *k, const char *v)
     else if (!strcmp(k, "SAMPLE_BITS"))  p->b = get_int(v);
     else if (!strcmp(k, "SAMPLE_TYPE"))
     {
-        if      (!strcmp(v, "LSB_INTEGER")) { p->g = 1; p->o = 0; }
-        else if (!strcmp(v, "MSB_INTEGER")) { p->g = 1; p->o = 1; }
-        else if (!strcmp(v, "IEEE_REAL"))   { p->g = 0; p->o = 1; }
+        if      (!strcmp(v, "LSB_INTEGER"))          { p->g = 1; p->o = 0; }
+        else if (!strcmp(v, "LSB_UNSIGNED_INTEGER")) { p->g = 0; p->o = 0; }
+        else if (!strcmp(v, "MSB_INTEGER"))          { p->g = 1; p->o = 1; }
+        else if (!strcmp(v, "MSB_UNSIGNED_INTEGER")) { p->g = 0; p->o = 1; }
+        else if (!strcmp(v, "IEEE_REAL"))            { p->g = 0; p->o = 1; }
     }
 
     // Projection parameters
@@ -187,16 +191,17 @@ static void parse_element(img *p, const char *k, const char *v)
     else if (!strcmp(k, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_double(v);
     else if (!strcmp(k,      "A_AXIS_RADIUS")) p->radius = K * get_double(v);
     else if (!strcmp(k, "SCALING_FACTOR")) p->scaling_factor = get_float (v);
+    else if (!strcmp(k,         "OFFSET"))         p->offset = get_float (v);
 
     else if (!strcmp(k, "MAP_PROJECTION_TYPE"))
     {
-        if      (!strcmp(v, "EQUIRECTANGULAR"))
+        if      (get_match(v, NULL, "EQUIRECTANGULAR"))
             p->project = img_equirectangular;
-        else if (!strcmp(v, "ORTHOGRAPHIC"))
+        else if (get_match(v, NULL, "ORTHOGRAPHIC"))
             p->project = img_orthographic;
-        else if (!strcmp(v, "POLAR STEREOGRAPHIC"))
+        else if (get_match(v, NULL, "POLAR.STEREOGRAPHIC"))
             p->project = img_stereographic;
-        else if (!strcmp(v, "SIMPLE CYLINDRICAL"))
+        else if (get_match(v, NULL, "SIMPLE.CYLINDRICAL"))
             p->project = img_cylindrical;
     }
 }
@@ -225,14 +230,13 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
         {
             if      (strcmp(key, "RECORD_BYTES")  == 0) rs = get_int(val);
             else if (strcmp(key, "LABEL_RECORDS") == 0) rc = get_int(val);
-#if 0
-            else if (strcmp(key, "FILE_NAME")     == 0)
-#else
             else if (strcmp(key, "^IMAGE")        == 0)
-#endif
             {
-                strcpy(img, dir);
-                strcat(img, val);
+                if (get_match(val, NULL, ".*\\.IMG"))
+                {
+                    strcpy(img, dir);
+                    strcat(img, val);
+                }
             }
             else parse_element(p, key, val);
         }
