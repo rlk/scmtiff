@@ -165,21 +165,21 @@ static float getfloat(const img *p, const float *s)
 
 static int normu8(const img *p, uint8_t u, float *f)
 {
-    *f = ((float) u * p->scaling_factor - p->offset - p->norm0)
+    *f = ((float) u * p->scaling_factor + p->offset - p->norm0)
                                         / (p->norm1 - p->norm0);
     return 1;
 }
 
 static int norms8(const img *p, int8_t s, float *f)
 {
-    *f = ((float) s * p->scaling_factor - p->offset - p->norm0)
+    *f = ((float) s * p->scaling_factor + p->offset - p->norm0)
                                         / (p->norm1 - p->norm0);
     return 1;
 }
 
 static int normu16(const img *p, uint16_t u, float *f)
 {
-    *f = ((float) u * p->scaling_factor - p->offset - p->norm0)
+    *f = ((float) u * p->scaling_factor + p->offset - p->norm0)
                                         / (p->norm1 - p->norm0);
     return 1;
 }
@@ -196,7 +196,7 @@ static int norms16(const img *p, int16_t s, float *f)
     else if (s == -32765) k =  32767;  // Instrumentation saturation high
     else                  k =      s;  // Good
 
-    *f = (k * p->scaling_factor - p->offset - p->norm0)
+    *f = (k * p->scaling_factor + p->offset - p->norm0)
                                 / (p->norm1 - p->norm0);
     return d;
 }
@@ -216,7 +216,7 @@ static int normf(const img *p, float e, float *f)
     else if (isnormal(e))      k =   e;  // Good
     else                       d =   0;  // Punt
 
-    *f = (k * p->scaling_factor - p->offset - p->norm0)
+    *f = (k * p->scaling_factor + p->offset - p->norm0)
                                 / (p->norm1 - p->norm0);
     return d;
 }
