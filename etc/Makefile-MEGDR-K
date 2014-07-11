@@ -1,0 +1,34 @@
+N=180
+D=6
+
+DATA = MEGDR-K.tif
+NAME = MEGDR-K-$(N)-$(D)
+FORM = -n$(N) -d$(D) -g0 -E-180,180,90,-90
+NORM= -N-22957,21245
+RADI= -R3373043,3417245
+
+# Convert a raw normal map to a bordered and finished normal map.
+
+$(NAME)-N.tif: $(NAME)-O.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $@
+
+# Convert a height map into a raw normal map.
+
+$(NAME)-O.tif: $(NAME).tif
+	scmtiff -T -pnormal $(RADI) -o$@ $<
+
+# Border and finish.
+
+$(NAME).tif: $(NAME)-M.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish -l3 $@
+
+# Convert the PDS file and mipmap the result.
+
+$(NAME)-M.tif: $(DATA)
+	scmtiff -T -pconvert $(FORM) $(NORM) -o $@ $<
+	scmtiff -T -pmipmap $@
+
+clean:
+	rm -f $(NAME).tif $(NAME)-M.tif
