@@ -268,12 +268,15 @@ int img_pixel(img *p, int i, int j, float *c)
 // Perform a linearly-filtered sampling of the image p. The filter position
 // is smoothly-varying in the range [0, w), [0, h).
 
-static int img_linear(img *p, const double *t, float *c)
+static int img_linear(img *p, const double *v, float *c)
 {
-    const int ia = (int) floor(t[0]);
-    const int ib = (int)  ceil(t[0]);
-    const int ja = (int) floor(t[1]);
-    const int jb = (int)  ceil(t[1]);
+    double s = v[0] - 0.5;
+    double t = v[1] - 0.5;
+
+    const int ia = (int) floor(s);
+    const int ib = (int)  ceil(s);
+    const int ja = (int) floor(t);
+    const int jb = (int)  ceil(t);
 
     float aa[4], ab[4];
     float ba[4], bb[4];
@@ -285,8 +288,8 @@ static int img_linear(img *p, const double *t, float *c)
 
     if (daa && dab && dba && dbb)
     {
-        const float u = (float) (t[0] - floor(t[0]));
-        const float v = (float) (t[1] - floor(t[1]));
+        const float u = (float) (s - floor(s));
+        const float v = (float) (t - floor(t));
 
         switch (p->c)
         {
