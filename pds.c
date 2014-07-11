@@ -283,9 +283,16 @@ img *pds_load(const char *name)
     {
         if ((p = (img *) calloc(1, sizeof (img))))
         {
+            p->project = img_default;
+            p->latmin  = -0.5 * M_PI;
+            p->latmax  =  0.5 * M_PI;
+            p->lonmin  =  0.0 * M_PI;
+            p->lonmax  =  2.0 * M_PI;
+
             p->norm0          = 0.f;
             p->norm1          = 1.f;
             p->scaling_factor = 1.f;
+            p->offset         = 0.f;
 
             parse_file(f, p, name, path);
             return p;
