@@ -146,7 +146,7 @@ static int data_init(int argc, char **argv)
     pagem = 0;
 
     if ((filev = (struct file *) calloc((size_t) argc, sizeof (struct file))))
-
+    {
         for (int argi = 1; argi < argc; ++argi)
             if ((filev[i].s = scm_ifile(argv[argi])))
             {
@@ -167,7 +167,8 @@ static int data_init(int argc, char **argv)
 
                 i++;
             }
-
+            else apperr("Failed to open SCM TIFF %s", argv[argi]);
+    }
     filec = i;
 
     if (i && N && C)
