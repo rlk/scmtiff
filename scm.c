@@ -35,7 +35,8 @@ void scm_close(scm *s)
 {
     if (s)
     {
-        fclose(s->fp);
+        if (s->fp)
+            fclose(s->fp);
         scm_free(s);
         free(s->name);
         free(s);
