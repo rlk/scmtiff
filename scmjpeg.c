@@ -1,8 +1,13 @@
 #include <stdlib.h>
-#include <getopt.h>
 #include <tiffio.h>
 #include <string.h>
 #include <stdio.h>
+
+#ifdef _WIN32
+#include "getopt.h"
+#else
+#include <getopt.h>
+#endif
 
 #include "err.h"
 
