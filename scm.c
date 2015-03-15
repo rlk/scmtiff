@@ -118,10 +118,10 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g)
 
 float *scm_alloc_buffer(scm *s)
 {
-    size_t o = (size_t) s->n + 2;
+    size_t n = (size_t) s->n;
     size_t c = (size_t) s->c;
 
-    return (float *) malloc(o * o * c * sizeof (float));
+    return (float *) malloc(n * n * c * sizeof (float));
 }
 
 // Query the parameters of SCM s.
@@ -152,17 +152,22 @@ int scm_get_g(scm *s)
 
 //------------------------------------------------------------------------------
 
+// These functions determine whether the indices i and j give the centroid of
+// a sample or its corner. Centroid sampling is preferred for height maps as
+// it helps guarantee a watertight mesh. Corner sampling is preferred for image
+// maps as it enables higher quality downsampling.
+
 void scm_get_sample_corners(int f, long i, long j, long n, double *v)
 {
-    scm_vector(f, (double) (i + 0) / n, (double) (j + 0) / n, v + 0);
-    scm_vector(f, (double) (i + 1) / n, (double) (j + 0) / n, v + 3);
-    scm_vector(f, (double) (i + 0) / n, (double) (j + 1) / n, v + 6);
-    scm_vector(f, (double) (i + 1) / n, (double) (j + 1) / n, v + 9);
+    scm_vector(f, ((double) i - 0.5) / n, ((double) j - 0.5) / n, v + 0);
+    scm_vector(f, ((double) i + 0.5) / n, ((double) j - 0.5) / n, v + 3);
+    scm_vector(f, ((double) i - 0.5) / n, ((double) j + 0.5) / n, v + 6);
+    scm_vector(f, ((double) i + 0.5) / n, ((double) j + 0.5) / n, v + 9);
 }
 
 void scm_get_sample_center(int f, long i, long j, long n, double *v)
 {
-    scm_vector(f, (i + 0.5) / n, (j + 0.5) / n, v);
+    scm_vector(f, (double) i / n, (double) j / n, v);
 }
 
 //------------------------------------------------------------------------------
@@ -410,7 +415,7 @@ static void scm_bound_leaf(scm *s, long long x,  const float     *pp,
             for     (int y = t; y < b; ++y)
                 for (int x = l; x < r; ++x)
                 {
-                    const int si = ((y + 1) * (s->n + 2) + (x + 1)) * s->c + k;
+                    const int si = (y * s->n + x) * s->c + k;
 
                     if (av[di] > pp[si]) av[di] = pp[si];
                     if (zv[di] < pp[si]) zv[di] = pp[si];

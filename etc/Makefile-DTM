@@ -1,5 +1,5 @@
-N=254
-D=7
+N=8
+D=5
 
 NAME = DTM-$(N)-$(D)
 FORM = -n$(N) -d$(D)
@@ -23,10 +23,11 @@ LOLA =\
 	ldem_45n_100m.tif \
 	ldem_45s_100m.tif
 
-# Convert a raw normal map to a bordered and finished normal map.
+all : $(NAME).tif
+
+# Convert a raw normal map to a finished normal map.
 
 $(NAME)-N.tif: $(NAME)-O.tif
-	scmtiff -T -pborder -o$@ $<
 	scmtiff -T -pfinish $(TEXT) $@
 
 # Convert a height map into a raw normal map.
@@ -34,10 +35,9 @@ $(NAME)-N.tif: $(NAME)-O.tif
 $(NAME)-O.tif: $(NAME).tif
 	scmtiff -T -pnormal $(RADI) -o$@ $<
 
-# Border and finish.
+# Finish.
 
 $(NAME).tif: $(NAME)-M.tif
-	scmtiff -T -pborder -o$@ $<
 	scmtiff -T -pfinish $(TEXT) $@
 
 # Combine the two projections and mipmap the result.

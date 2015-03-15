@@ -295,7 +295,7 @@ void dehdif(void *p, int n, int c, int b)
 
 void tobin(scm *s, uint8_t *bin, const float *dat, int i)
 {
-    const int n = s->n + 2;
+    const int n = s->n;
     const int m = s->c * n;
     const int d = s->b * m / 8;
 
@@ -305,7 +305,7 @@ void tobin(scm *s, uint8_t *bin, const float *dat, int i)
 
 void frombin(scm *s, const uint8_t *bin, float *dat, int i)
 {
-    const int n = s->n + 2;
+    const int n = s->n;
     const int m = s->c * n;
     const int d = s->b * m / 8;
 
@@ -317,7 +317,7 @@ void frombin(scm *s, const uint8_t *bin, float *dat, int i)
 
 void todif(scm *s, uint8_t *bin, int i)
 {
-    const int n = s->n + 2;
+    const int n = s->n;
     const int d = s->c * s->b * n / 8;
 
     for (int j = 0; j < s->r && i + j < n; ++j)
@@ -326,7 +326,7 @@ void todif(scm *s, uint8_t *bin, int i)
 
 void fromdif(scm *s, uint8_t *bin, int i)
 {
-    const int n = s->n + 2;
+    const int n = s->n;
     const int d = s->c * s->b * n / 8;
 
     for (int j = 0; j < s->r && i + j < n; ++j)
@@ -337,7 +337,7 @@ void fromdif(scm *s, uint8_t *bin, int i)
 
 void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
 {
-    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong l = (uLong) ((s->n) * min(s->r, s->n - i) * s->c * s->b / 8);
     uLong z = compressBound(l);
 
     compress((Bytef *) zip, &z, (const Bytef *) bin, l);
@@ -346,7 +346,7 @@ void tozip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t *c)
 
 void fromzip(scm *s, uint8_t *bin, int i, uint8_t *zip, uint32_t c)
 {
-    uLong l = (uLong) ((s->n + 2) * min(s->r, s->n + 2 - i) * s->c * s->b / 8);
+    uLong l = (uLong) (s->n * min(s->r, s->n - i) * s->c * s->b / 8);
     uLong z = (uLong) c;
 
     uncompress((Bytef *) bin, &l, (const Bytef *) zip, z);

@@ -99,7 +99,7 @@ static void divide(float *p, float d, int c)
 
 int grow(float *p, float *q, int c, int n)
 {
-    const int s = (n + 2) * c;
+    const int s = n * c;
     const int a = (c - 1);
 
     float *P;
@@ -110,14 +110,14 @@ int grow(float *p, float *q, int c, int n)
     int j;
     int d;
 
-    memcpy(q, p, (size_t) (n + 2) * (n + 2) * c * sizeof (float));
+    memcpy(q, p, (size_t) n * n * c * sizeof (float));
 
     #pragma omp parallel for private(j, P, Q, d) reduction(+:N)
-    for     (i = 1; i <= n; i++)
-        for (j = 1; j <= n; j++)
+    for     (i = 0; i < n; i++)
+        for (j = 0; j < n; j++)
         {
-            P = p + ((n + 2) * i + j) * c;
-            Q = q + ((n + 2) * i + j) * c;
+            P = p + (n * i + j) * c;
+            Q = q + (n * i + j) * c;
 
             if (Q[a] == 0)
             {

@@ -81,7 +81,7 @@ static void quincunx(double *q, const double *v)
 // that pixel by projection into image p using a quincunx filtering pattern.
 
 static int multisample(img *p, int  f, int  i, int  j, int n,
-                                 long u, long v, long w, float *d)
+                               long u, long v, long w, float *d)
 {
     double c[12];
     double C[15];
@@ -131,7 +131,7 @@ static int pixel(scm *s, img *p, int  f, int  i, int  j,
     const int n = scm_get_n(s);
     const int c = scm_get_c(s);
 
-    float *d = q + c * (((size_t) n + 2) * ((size_t) i + 1) + ((size_t) j + 1));
+    float *d = q + c * (((size_t) n) * ((size_t) i) + ((size_t) j));
 
     int N = multisample(p, f, i, j, n, u, v, w, d);
 
@@ -163,7 +163,6 @@ static long long divide(scm *s, img *p, long long b, int d, long long x,
         if (d == 0)
         {
             const int f = scm_page_root(x);
-            const int o = scm_get_n(s) + 2;
             const int c = scm_get_c(s);
             const int n = scm_get_n(s);
 
@@ -171,7 +170,7 @@ static long long divide(scm *s, img *p, long long b, int d, long long x,
             int i;
             int j;
 
-            memset(q, 0, (size_t) (o * o * c) * sizeof (float));
+            memset(q, 0, (size_t) (n * n * c) * sizeof (float));
 
             #pragma omp parallel for private(j) reduction(+:N)
             for     (i = 0; i < n; ++i)

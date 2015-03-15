@@ -65,11 +65,11 @@ static void sampnorm(int f, int i, int j, int n, int c,
     scm_get_sample_center(f, n * u + i,     n * v + j - 1, n * w, ve);
     scm_get_sample_center(f, n * u + i,     n * v + j + 1, n * w, vw);
 
-    double rc = p[((n + 2) * (i + 1) + (j + 1)) * c] * dr + r[0];
-    double rn = p[((n + 2) * (i + 0) + (j + 1)) * c] * dr + r[0];
-    double rs = p[((n + 2) * (i + 2) + (j + 1)) * c] * dr + r[0];
-    double re = p[((n + 2) * (i + 1) + (j + 0)) * c] * dr + r[0];
-    double rw = p[((n + 2) * (i + 1) + (j + 2)) * c] * dr + r[0];
+    double rc = p[(n * (i + 1) + (j + 1)) * c] * dr + r[0];
+    double rn = p[(n * (i + 0) + (j + 1)) * c] * dr + r[0];
+    double rs = p[(n * (i + 2) + (j + 1)) * c] * dr + r[0];
+    double re = p[(n * (i + 1) + (j + 0)) * c] * dr + r[0];
+    double rw = p[(n * (i + 1) + (j + 2)) * c] * dr + r[0];
 
     vn[0] *= rn; vn[1] *= rn; vn[2] *= rn;
     vs[0] *= rs; vs[1] *= rs; vs[2] *= rs;
@@ -94,7 +94,7 @@ static void sampnorm(int f, int i, int j, int n, int c,
 
     normalize(nn);
 
-    float *o = q + 3 * ((n + 2) * (i + 1) + (j + 1));
+    float *o = q + 3 * (n * i + j);
 
     o[0] = ((float) nn[0] + 1.f) / 2.f;
     o[1] = ((float) nn[1] + 1.f) / 2.f;
@@ -165,8 +165,8 @@ static void process(scm *s, scm *t, const float *r)
         {
             long long b = 0;
 
-            memset(q, 0, 3 * (size_t) (scm_get_n(t) + 2) *
-                             (size_t) (scm_get_n(t) + 2) * sizeof (float));
+            memset(q, 0, 3 * (size_t) scm_get_n(t) *
+                             (size_t) scm_get_n(t) * sizeof (float));
 
             b = divide(s, 0, t, b, 0, 0, 1, r, p, q);
             b = divide(s, 1, t, b, 0, 0, 1, r, p, q);
