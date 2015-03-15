@@ -376,8 +376,8 @@ int img_scube(img *p, const double *v, double lon, double lat, double *t)
     double a = -atan2(x, z);
     double b = -atan2(y, z);
 
-    t[0] = (p->h - 2) * (b + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
-    t[1] = (p->w - 2) * (a + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
+    t[0] = p->h * (b + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
+    t[1] = p->w * (a + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
 
     return 1;
 }

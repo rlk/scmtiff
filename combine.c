@@ -86,8 +86,8 @@ static int addfile(scm **V, int C, const char *name)
 
 static void process(scm *s, scm **V, int C, int O)
 {
-    const size_t S = (size_t) (scm_get_n(s) + 2)
-                   * (size_t) (scm_get_n(s) + 2)
+    const size_t S = (size_t) (scm_get_n(s))
+                   * (size_t) (scm_get_n(s))
                    * (size_t) (scm_get_c(s));
 
     float *p;

@@ -105,7 +105,7 @@ static int data_load(long long x)
 
     for (int i = 0; i < filec; ++i)
     {
-        int       n = scm_get_n (filev[i].s) + 2;
+        int       n = scm_get_n (filev[i].s);
         int       c = scm_get_c (filev[i].s);
         long long j = scm_search(filev[i].s, x);
 

@@ -23,74 +23,31 @@
 
 //------------------------------------------------------------------------------
 
-static void sum_pixels(float *p, const float *q0, const float *q1,
-                                 const float *q2, const float *q3, int c)
+static void copy(float *p, int ki, int kj, int c, int n, float *q)
 {
-    switch (c)
-    {
-        case 4: p[3] = q0[3] + q1[3] + q2[3] + q3[3];
-        case 3: p[2] = q0[2] + q1[2] + q2[2] + q3[2];
-        case 2: p[1] = q0[1] + q1[1] + q2[1] + q3[1];
-        case 1: p[0] = q0[0] + q1[0] + q2[0] + q3[0];
-    }
-}
+    int i;
+    int j;
 
-static void max_pixels(float *p, const float *q0, const float *q1,
-                                 const float *q2, const float *q3, int c)
-{
-    switch (c)
-    {
-        case 4: p[3] = max(max(q0[3], q1[3]), max(q2[3], q3[3]));
-        case 3: p[2] = max(max(q0[2], q1[2]), max(q2[2], q3[2]));
-        case 2: p[1] = max(max(q0[1], q1[1]), max(q2[1], q3[1]));
-        case 1: p[0] = max(max(q0[0], q1[1]), max(q2[0], q3[0]));
-    }
-}
+    #pragma omp parallel for private(j)
+    for     (i = 0; i < n; i += 2)
+        for (j = 0; j < n; j += 2)
+        {
+            int pi = ki ? n - 1 - i / 2 : i / 2;
+            int pj = kj ? n - 1 - j / 2 : j / 2;
+            int qi = ki ? n - 1 - i     : i;
+            int qj = kj ? n - 1 - j     : j;
 
-static void avg_pixels(float *p, const float *q0, const float *q1,
-                                 const float *q2, const float *q3, int c)
-{
-    switch (c)
-    {
-        case 4: p[3] = (q0[3] + q1[3] + q2[3] + q3[3]) / 4.f;
-        case 3: p[2] = (q0[2] + q1[2] + q2[2] + q3[2]) / 4.f;
-        case 2: p[1] = (q0[1] + q1[1] + q2[1] + q3[1]) / 4.f;
-        case 1: p[0] = (q0[0] + q1[0] + q2[0] + q3[0]) / 4.f;
-    }
-}
+            float *pp = p + (n * pi + pj) * c;
+            float *qq = q + (n * qi + qj) * c;
 
-static void box_pixels(float *p, int ki, int kj,
-                                int qi, int qj, int c, int n, int O, float *q)
-{
-    const int pi = qi / 2 + ki * n / 2;
-    const int pj = qj / 2 + kj * n / 2;
-
-    float *q0 = q + ((n + 2) * (qi + 1) + (qj + 1)) * c;
-    float *q1 = q + ((n + 2) * (qi + 1) + (qj + 2)) * c;
-    float *q2 = q + ((n + 2) * (qi + 2) + (qj + 1)) * c;
-    float *q3 = q + ((n + 2) * (qi + 2) + (qj + 2)) * c;
-    float *pp = p + ((n + 2) * (pi + 1) + (pj + 1)) * c;
-
-    switch (O)
-    {
-        case 0: sum_pixels(pp, q0, q1, q2, q3, c); break;
-        case 1: max_pixels(pp, q0, q1, q2, q3, c); break;
-        case 2: avg_pixels(pp, q0, q1, q2, q3, c); break;
-    }
-}
-
-// Box filter the c-channel, n-by-n image buffer q into quadrant (ki, kj) of
-// the c-channel n-by-n image buffer p, downsampling 2-to-1.
-
-static void box(float *p, int ki, int kj, int c, int n, int O, float *q)
-{
-    int qi;
-    int qj;
-
-    #pragma omp parallel for private(qj)
-    for     (qi = 0; qi < n; qi += 2)
-        for (qj = 0; qj < n; qj += 2)
-            box_pixels(p, ki, kj, qi, qj, c, n, O, q);
+            switch (c)
+            {
+                case 4: pp[3] = qq[3];
+                case 3: pp[2] = qq[2];
+                case 2: pp[1] = qq[1];
+                case 1: pp[0] = qq[0];
+            }
+        }
 }
 
 //------------------------------------------------------------------------------
@@ -148,16 +105,15 @@ static long long process(scm *s, int O, int A)
 
                 if (o0 || o1 || o2 || o3)
                 {
-                    const int o = scm_get_n(s) + 2;
                     const int n = scm_get_n(s);
                     const int c = scm_get_c(s);
 
-                    memset(p, 0, (size_t) (o * o * c) * sizeof (float));
+                    memset(p, 0, (size_t) (n * n * c) * sizeof (float));
 
-                    if (o0 && scm_read_page(s, o0, q)) box(p, 0, 0, c, n, O, q);
-                    if (o1 && scm_read_page(s, o1, q)) box(p, 0, 1, c, n, O, q);
-                    if (o2 && scm_read_page(s, o2, q)) box(p, 1, 0, c, n, O, q);
-                    if (o3 && scm_read_page(s, o3, q)) box(p, 1, 1, c, n, O, q);
+                    if (o0 && scm_read_page(s, o0, q)) copy(p, 0, 0, c, n, q);
+                    if (o1 && scm_read_page(s, o1, q)) copy(p, 0, 1, c, n, q);
+                    if (o2 && scm_read_page(s, o2, q)) copy(p, 1, 0, c, n, q);
+                    if (o3 && scm_read_page(s, o3, q)) copy(p, 1, 1, c, n, q);
 
                     if (A) grow(p, q, c, n);
 

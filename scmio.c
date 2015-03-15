@@ -27,11 +27,11 @@
 
 bool scm_alloc(scm *s)
 {
-    size_t bs = (size_t) s->r * (size_t) (s->n + 2)
-              * (size_t) s->c * (size_t)  s->b / 8;
+    size_t bs = (size_t) s->r * (size_t) s->n
+              * (size_t) s->c * (size_t) s->b / 8;
     size_t zs = compressBound(bs);
 
-    size_t c = (size_t) (s->n + 2 + s->r - 1) / (size_t) s->r;
+    size_t c = (size_t) (s->n + s->r - 1) / (size_t) s->r;
 
     if ((s->binv = (uint8_t **) calloc(c, sizeof (uint8_t *))) &&
         (s->zipv = (uint8_t **) calloc(c, sizeof (uint8_t *))))
@@ -52,7 +52,7 @@ void scm_free(scm *s)
 {
     if (s->r)
     {
-        int c = (s->n + 2 + s->r - 1) / s->r;
+        int c = (s->n + s->r - 1) / s->r;
 
         for (int i = 0; i < c; i++)
         {
@@ -226,8 +226,8 @@ bool scm_init_hfd(scm *s, hfd *d)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        scm_field(&d->image_width,       0x0100,  3, 1, (uint64_t) s->n + 2);
-        scm_field(&d->image_length,      0x0101,  3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->image_width,       0x0100,  3, 1, (uint64_t) s->n);
+        scm_field(&d->image_length,      0x0101,  3, 1, (uint64_t) s->n);
         scm_field(&d->samples_per_pixel, 0x0115,  3, 1, (uint64_t) s->c);
         scm_field(&d->rows_per_strip,    0x0116,  3, 1, (uint64_t) s->r);
         scm_field(&d->bits_per_sample,   0x0102,  3, c, 0);
@@ -305,8 +305,8 @@ bool scm_init_ifd(scm *s, ifd *d)
         uint16_t b = (uint16_t) s->b;
         uint64_t c = (uint64_t) s->c;
 
-        scm_field(&d->image_width,       0x0100, 3, 1, (uint64_t) s->n + 2);
-        scm_field(&d->image_length,      0x0101, 3, 1, (uint64_t) s->n + 2);
+        scm_field(&d->image_width,       0x0100, 3, 1, (uint64_t) s->n);
+        scm_field(&d->image_length,      0x0101, 3, 1, (uint64_t) s->n);
         scm_field(&d->samples_per_pixel, 0x0115, 3, 1, (uint64_t) s->c);
         scm_field(&d->rows_per_strip,    0x0116, 3, 1, (uint64_t) s->r);
         scm_field(&d->interpretation,    0x0106, 3, 1, scm_pint(s));
@@ -387,7 +387,7 @@ bool scm_read_preamble(scm *s)
     {
         if (scm_read_hfd(s, &d, h.first_ifd))
         {
-            s->n = (int)                 d.image_width      .offset - 2;
+            s->n = (int)                 d.image_width      .offset;
             s->c = (int)                 d.samples_per_pixel.offset;
             s->r = (int)                 d.rows_per_strip   .offset;
             s->b = (int) ((uint16_t *) (&d.bits_per_sample  .offset))[0];
@@ -523,7 +523,7 @@ bool scm_write_data(scm *s, const float *p, uint64_t *oo,
 {
     // Strip count is total rows / rows-per-strip rounded up.
 
-    int i, c = (s->n + 2 + s->r - 1) / s->r;
+    int i, c = (s->n + s->r - 1) / s->r;
     uint64_t o[c];
     uint32_t l[c];
 

@@ -92,10 +92,10 @@ static bool traverse(scm *s, double a, double b, long long x, int d,
             double ii = b * n - floor(b * n);
 
             for (int k = 0; k < c; ++k)
-                q[k] = lerp1(lerp1(p[((n + 2) * i1 + j1) * c + k],
-                                   p[((n + 2) * i1 + j2) * c + k], jj),
-                             lerp1(p[((n + 2) * i2 + j1) * c + k],
-                                   p[((n + 2) * i2 + j2) * c + k], jj), ii);
+                q[k] = lerp1(lerp1(p[(n * i1 + j1) * c + k],
+                                   p[(n * i1 + j2) * c + k], jj),
+                             lerp1(p[(n * i2 + j1) * c + k],
+                                   p[(n * i2 + j2) * c + k], jj), ii);
 
             return true;
         }

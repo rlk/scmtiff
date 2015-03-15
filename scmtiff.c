@@ -165,7 +165,6 @@ int main(int argc, char **argv)
                 "\t\t-m sum . . . . Combine by sum\n"
                 "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m avg . . . . Combine by average\n\n"
-                "\t%s -p border\n\n"
                 "\t%s -p finish [options]\n"
                 "\t\t-t text  . . . Image description text file\n"
                 "\t\t-l l . . . . . Bounding volume oversample level\n\n"
@@ -188,9 +187,6 @@ int main(int argc, char **argv)
 
     else if (strcmp(p, "mipmap") == 0)
         r = mipmap (argc, argv, o, m, A);
-
-    else if (strcmp(p, "border") == 0)
-        r = border (argc, argv, o);
 
     else if (strcmp(p, "finish") == 0)
         r = finish (argc, argv, t, l);
