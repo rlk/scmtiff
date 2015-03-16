@@ -77,6 +77,7 @@ scm *scm_ifile(const char *name)
 scm *scm_ofile(const char *name, int n, int c, int b, int g)
 {
     scm *s = NULL;
+    int  r = 16;
 
     assert(name);
     assert(n > 0);
@@ -85,11 +86,11 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g)
 
     if ((s = (scm *) calloc(sizeof (scm), 1)))
     {
-        s->n =  n;
-        s->c =  c;
-        s->b =  b;
-        s->g =  g;
-        s->r = 16;
+        s->n = n;
+        s->c = c;
+        s->b = b;
+        s->g = g;
+        s->r = r;
 
         if ((s->fp = fopen(name, "w+b")))
         {
