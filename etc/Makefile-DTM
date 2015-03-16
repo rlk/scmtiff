@@ -35,16 +35,12 @@ $(NAME)-N.tif: $(NAME)-O.tif
 $(NAME)-O.tif: $(NAME).tif
 	scmtiff -T -pnormal $(RADI) -o$@ $<
 
-# Finish.
+# Combine the two projections, mipmap the result, and finish.
 
-$(NAME).tif: $(NAME)-M.tif
-	scmtiff -T -pfinish $(TEXT) $@
-
-# Combine the two projections and mipmap the result.
-
-$(NAME)-M.tif: $(NAME)-E.tif $(NAME)-P.tif
+$(NAME).tif: $(NAME)-E.tif $(NAME)-P.tif
 	scmtiff -T -pcombine -mavg -o$@ $^
 	scmtiff -T -pmipmap $@
+	scmtiff -T -pfinish $(TEXT) $@
 
 # Sum the equirectangular projections.
 
