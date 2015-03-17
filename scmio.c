@@ -23,6 +23,13 @@
 
 //------------------------------------------------------------------------------
 
+// Return the number of image strips in one page of SCM s.
+
+int scm_strips(scm *s)
+{
+    return (s->n + s->r - 1) / s->r;
+}
+
 // Allocate properly-sized bin and zip scratch buffers for SCM s.
 
 bool scm_alloc(scm *s)
@@ -31,7 +38,7 @@ bool scm_alloc(scm *s)
               * (size_t) s->c * (size_t) s->b / 8;
     size_t zs = compressBound(bs);
 
-    size_t c = (size_t) (s->n + s->r - 1) / (size_t) s->r;
+    size_t c = (size_t) scm_strips(s);
 
     if ((s->binv = (uint8_t **) calloc(c, sizeof (uint8_t *))) &&
         (s->zipv = (uint8_t **) calloc(c, sizeof (uint8_t *))))
@@ -52,7 +59,7 @@ void scm_free(scm *s)
 {
     if (s->r)
     {
-        int c = (s->n + s->r - 1) / s->r;
+        int c = scm_strips(s);
 
         for (int i = 0; i < c; i++)
         {
@@ -523,7 +530,7 @@ bool scm_write_data(scm *s, const float *p, uint64_t *oo,
 {
     // Strip count is total rows / rows-per-strip rounded up.
 
-    int i, c = (s->n + s->r - 1) / s->r;
+    int i, c = scm_strips(s);
     uint64_t o[c];
     uint32_t l[c];
 
