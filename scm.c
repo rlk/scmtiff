@@ -77,12 +77,15 @@ scm *scm_ifile(const char *name)
 scm *scm_ofile(const char *name, int n, int c, int b, int g)
 {
     scm *s = NULL;
-    int  r = 16;
 
     assert(name);
-    assert(n > 0);
+    assert(n > 2);
     assert(c > 0);
     assert(b > 0);
+
+    // Minor hack: the number of rows per strip is chosen to ensure that the
+    // number of strips is at least 3. This is done to ensure that the strip
+    // offsets and lengths don't need to be inlined into the TIFF IFD.
 
     if ((s = (scm *) calloc(sizeof (scm), 1)))
     {
@@ -90,7 +93,7 @@ scm *scm_ofile(const char *name, int n, int c, int b, int g)
         s->c = c;
         s->b = b;
         s->g = g;
-        s->r = r;
+        s->r = min(n / 3, 16);
 
         if ((s->fp = fopen(name, "w+b")))
         {

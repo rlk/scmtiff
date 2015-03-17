@@ -1,5 +1,5 @@
 N=8
-D=5
+D=4
 
 NAME = DTM-$(N)-$(D)
 FORM = -n$(N) -d$(D)
