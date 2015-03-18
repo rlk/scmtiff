@@ -12,6 +12,7 @@ CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = gcc -std=c99 -Wall -m64 -O3
 #CC = gcc -std=c99 -Wall -m64 -g
+#CC = cc -std=c99 -Wall -m64 -g
 
 CP = cp
 RM = rm -f
