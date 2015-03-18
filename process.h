@@ -19,6 +19,7 @@ int sample (int, char **, const float *, int);
 int normal (int, char **, const char *, const float *);
 int finish (int, char **, const char *, int);
 int polish (int, char **);
+int border (int, char **, const char *);
 int mipmap (int, char **, const char *, const char *, int);
 int combine(int, char **, const char *, const char *);
 int rectify(int, char **, const char *, int,

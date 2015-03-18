@@ -52,85 +52,97 @@ static float *pixel(float *p, int n, int c, int i, int j)
     return p + c * (i * n + j);
 }
 
-static void cpy(float *p, const float *q, int c)
+static void sum(float *p, const float *q, int c)
 {
     switch (c)
     {
-        case 4: p[3] = q[3];
-        case 3: p[2] = q[2];
-        case 2: p[1] = q[1];
-        case 1: p[0] = q[0];
+        case 4: p[3] += q[3];
+        case 3: p[2] += q[2];
+        case 2: p[1] += q[1];
+        case 1: p[0] += q[0];
     }
 }
 
-static void copyn(float *p, long long x, float *q, long long y, int n, int c)
+static void avg(float *p, int d, int c)
+{
+    switch (c)
+    {
+        case 4: p[3] /= d;
+        case 3: p[2] /= d;
+        case 2: p[1] /= d;
+        case 1: p[0] /= d;
+    }
+}
+
+static void sumn(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
-        cpy(pixel(p, n, c, 0, j),
-            pixel(q, n, c, translate_i[x][y](n - 2, j, n),
-                           translate_j[x][y](n - 2, j, n)), c);
+        sum(pixel(p, n, c, 0, j),
+            pixel(q, n, c, translate_i[x][y](n - 1, j, n),
+                           translate_j[x][y](n - 1, j, n)), c);
 }
 
-static void copys(float *p, long long x, float *q, long long y, int n, int c)
+static void sums(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int j = 0; j < n; ++j)
-        cpy(pixel(p, n, c, n - 1, j),
-            pixel(q, n, c, translate_i[x][y](1, j, n),
-                           translate_j[x][y](1, j, n)), c);
+        sum(pixel(p, n, c, n - 1, j),
+            pixel(q, n, c, translate_i[x][y](0, j, n),
+                           translate_j[x][y](0, j, n)), c);
 }
 
-static void copyw(float *p, long long x, float *q, long long y, int n, int c)
+static void sumw(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
-        cpy(pixel(p, n, c, i, 0),
-            pixel(q, n, c, translate_i[x][y](i, n - 2, n),
-                           translate_j[x][y](i, n - 2, n)), c);
+        sum(pixel(p, n, c, i, 0),
+            pixel(q, n, c, translate_i[x][y](i, n - 1, n),
+                           translate_j[x][y](i, n - 1, n)), c);
 }
 
-static void copye(float *p, long long x, float *q, long long y, int n, int c)
+static void sume(float *p, long long x, float *q, long long y, int n, int c)
 {
     for (int i = 0; i < n; ++i)
-        cpy(pixel(p, n, c, i, n - 1),
-            pixel(q, n, c, translate_i[x][y](i, 1, n),
-                           translate_j[x][y](i, 1, n)), c);
+        sum(pixel(p, n, c, i, n - 1),
+            pixel(q, n, c, translate_i[x][y](i, 0, n),
+                           translate_j[x][y](i, 0, n)), c);
 }
 
-static void copynw(float *p, long long x, float *q, long long y, int n, int c)
+static void sumnw(float *p, long long x, float *q, long long y, int n, int c)
 {
     if (translate_i[x][y])
-        cpy(pixel(p, n, c, 0, 0),
-            pixel(q, n, c, translate_i[x][y](n - 2, n - 2, n),
-                           translate_j[x][y](n - 2, n - 2, n)), c);
+        sum(pixel(p, n, c, 0, 0),
+            pixel(q, n, c, translate_i[x][y](n - 1, n - 1, n),
+                           translate_j[x][y](n - 1, n - 1, n)), c);
 }
 
-static void copyne(float *p, long long x, float *q, long long y, int n, int c)
+static void sumne(float *p, long long x, float *q, long long y, int n, int c)
 {
     if (translate_i[x][y])
-        cpy(pixel(p, n, c, 0, n - 1),
-            pixel(q, n, c, translate_i[x][y](n - 2, 1, n),
-                           translate_j[x][y](n - 2, 1, n)), c);
+        sum(pixel(p, n, c, 0, n - 1),
+            pixel(q, n, c, translate_i[x][y](n - 1, 0, n),
+                           translate_j[x][y](n - 1, 0, n)), c);
 }
 
-static void copysw(float *p, long long x, float *q, long long y, int n, int c)
+static void sumsw(float *p, long long x, float *q, long long y, int n, int c)
 {
     if (translate_i[x][y])
-        cpy(pixel(p, n, c, n - 1, 0),
-            pixel(q, n, c, translate_i[x][y](1, n - 2, n),
-                           translate_j[x][y](1, n - 2, n)), c);
+        sum(pixel(p, n, c, n - 1, 0),
+            pixel(q, n, c, translate_i[x][y](0, n - 1, n),
+                           translate_j[x][y](0, n - 1, n)), c);
 }
 
-static void copyse(float *p, long long x, float *q, long long y, int n, int c)
+static void sumse(float *p, long long x, float *q, long long y, int n, int c)
 {
     if (translate_i[x][y])
-        cpy(pixel(p, n, c, n - 1, n - 1),
-            pixel(q, n, c, translate_i[x][y](1, 1, n),
-                           translate_j[x][y](1, 1, n)), c);
+        sum(pixel(p, n, c, n - 1, n - 1),
+            pixel(q, n, c, translate_i[x][y](0, 0, n),
+                           translate_j[x][y](0, 0, n)), c);
 }
 
 static void process(scm *s, scm *t)
 {
-    const int o = scm_get_n(s) + 2;
+    const int n = scm_get_n(s);
     const int c = scm_get_c(s);
+    const int m = scm_get_n(s) - 1;
 
     long long b = 0;
     float    *p;
@@ -194,32 +206,80 @@ static void process(scm *s, scm *t)
                     long long osw = (isw < 0) ? 0 : scm_get_offset(s, isw);
                     long long ose = (ise < 0) ? 0 : scm_get_offset(s, ise);
 
-                    // Copy the borders of all adjacent pages into this one.
+                    int cn  = 0;
+                    int cs  = 0;
+                    int cw  = 0;
+                    int ce  = 0;
+                    int cnw = 0;
+                    int cne = 0;
+                    int csw = 0;
+                    int cse = 0;
+
+                    // Sum the borders of all adjacent pages into this one.
 
                     if (on && scm_read_page(s, on, q))
-                        copyn(p, f, q, fn, o, c);
+                    {
+                        sumn(p, f, q, fn, n, c);
+                        cn = 1;
+                    }
                     if (os && scm_read_page(s, os, q))
-                        copys(p, f, q, fs, o, c);
+                    {
+                        sums(p, f, q, fs, n, c);
+                        cs = 1;
+                    }
                     if (ow && scm_read_page(s, ow, q))
-                        copyw(p, f, q, fw, o, c);
+                    {
+                        sumw(p, f, q, fw, n, c);
+                        cw = 1;
+                    }
                     if (oe && scm_read_page(s, oe, q))
-                        copye(p, f, q, fe, o, c);
+                    {
+                        sume(p, f, q, fe, n, c);
+                        ce = 1;
+                    }
 
-                    // Copy the corners of all diagonal pages into this one.
+                    // Sum the corners of all diagonal pages into this one.
 
                     long long fnw = scm_page_root(xnw);
                     long long fne = scm_page_root(xne);
                     long long fsw = scm_page_root(xsw);
                     long long fse = scm_page_root(xse);
 
-                    if (onw && scm_read_page(s, onw, q))
-                        copynw(p, f, q, fnw, o, c);
-                    if (one && scm_read_page(s, one, q))
-                        copyne(p, f, q, fne, o, c);
-                    if (osw && scm_read_page(s, osw, q))
-                        copysw(p, f, q, fsw, o, c);
-                    if (ose && scm_read_page(s, ose, q))
-                        copyse(p, f, q, fse, o, c);
+                    if ((f == fn || f == fw) && onw && scm_read_page(s, onw, q))
+                    {
+                        sumnw(p, f, q, fnw, n, c);
+                        cnw = 1;
+                    }
+                    if ((f == fn || f == fe) && one && scm_read_page(s, one, q))
+                    {
+                        sumne(p, f, q, fne, n, c);
+                        cne = 1;
+                    }
+                    if ((f == fs || f == fw) && osw && scm_read_page(s, osw, q))
+                    {
+                        sumsw(p, f, q, fsw, n, c);
+                        csw = 1;
+                    }
+                    if ((f == fs || f == fe) && ose && scm_read_page(s, ose, q))
+                    {
+                        sumse(p, f, q, fse, n, c);
+                        cse = 1;
+                    }
+
+                    // Calculate the averages.
+
+                    for (int j = 1; j < m; j++)
+                    {
+                        avg(pixel(p, n, c, 0, j), 1 + cn, c);
+                        avg(pixel(p, n, c, m, j), 1 + cs, c);
+                        avg(pixel(p, n, c, j, 0), 1 + cw, c);
+                        avg(pixel(p, n, c, j, m), 1 + ce, c);
+                    }
+
+                    avg(pixel(p, n, c, 0, 0), 1 + cn + cw + cnw, c);
+                    avg(pixel(p, n, c, 0, m), 1 + cn + ce + cne, c);
+                    avg(pixel(p, n, c, m, 0), 1 + cs + cw + csw, c);
+                    avg(pixel(p, n, c, m, m), 1 + cs + ce + cse, c);
 
                     // Write the resulting page to the output.
 
