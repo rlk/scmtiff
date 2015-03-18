@@ -6,11 +6,11 @@ EXES= scmtiff scmogle scmjpeg
 # This build goes out of its way to use GCC instead of LLVM (the current default
 # under OS X) to ensure the availability of OpenMP.
 
-#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
+CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
 #CC = /usr/local/bin/gcc -std=c99 -Wall
 #CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
-CC = gcc -std=c99 -Wall -m64 -O3
+#CC = gcc -std=c99 -Wall -m64 -O3
 #CC = gcc -std=c99 -Wall -m64 -g
 
 CP = cp
