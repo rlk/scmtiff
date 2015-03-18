@@ -23,12 +23,13 @@ LOLA =\
 	ldem_45n_100m.tif \
 	ldem_45s_100m.tif
 
-all : $(NAME).tif
+all : $(NAME)-N.tif
 	say "The process has finished"
 
-# Convert a raw normal map to a finished normal map.
+# Convert a raw normal map to a bordered and finished normal map.
 
 $(NAME)-N.tif: $(NAME)-O.tif
+	scmtiff -T -pborder -o$@ $<
 	scmtiff -T -pfinish $(TEXT) $@
 
 # Convert a height map into a raw normal map.

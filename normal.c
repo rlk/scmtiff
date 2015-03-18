@@ -53,44 +53,82 @@ static void sampnorm(int f, int i, int j, int n, int c,
 {
     const float dr = r[1] - r[0];
 
+    double nn[3] = { 0, 0, 0 };
+    double nt[3], rt;
+
+    double vc[3];
     double vn[3];
     double vs[3];
-    double ve[3];
     double vw[3];
-    double vc[3];
+    double ve[3];
 
-    scm_get_sample_center(f, n * u + i,     n * v + j,     n * w, vc);
-    scm_get_sample_center(f, n * u + i - 1, n * v + j,     n * w, vn);
-    scm_get_sample_center(f, n * u + i + 1, n * v + j,     n * w, vs);
-    scm_get_sample_center(f, n * u + i,     n * v + j - 1, n * w, ve);
-    scm_get_sample_center(f, n * u + i,     n * v + j + 1, n * w, vw);
+    scm_get_sample_center(f, (n - 1) * u + i, (n - 1) * v + j, (n - 1) * w, vc);
+    rt = p[(n * i + j) * c] * dr + r[0];
+    vc[0] *= rt;
+    vc[1] *= rt;
+    vc[2] *= rt;
 
-    double rc = p[(n * (i + 1) + (j + 1)) * c] * dr + r[0];
-    double rn = p[(n * (i + 0) + (j + 1)) * c] * dr + r[0];
-    double rs = p[(n * (i + 2) + (j + 1)) * c] * dr + r[0];
-    double re = p[(n * (i + 1) + (j + 0)) * c] * dr + r[0];
-    double rw = p[(n * (i + 1) + (j + 2)) * c] * dr + r[0];
+    if (i > 0)
+    {
+        scm_get_sample_center(f, (n - 1) * u + i - 1, (n - 1) * v + j, (n - 1) * w, vn);
+        rt = p[(n * (i - 1) + j) * c] * dr + r[0];
+        vn[0] *= rt;
+        vn[1] *= rt;
+        vn[2] *= rt;
+    }
+    if (i < n - 1)
+    {
+        scm_get_sample_center(f, (n - 1) * u + i + 1, (n - 1) * v + j, (n - 1) * w, vs);
+        rt = p[(n * (i + 1) + j) * c] * dr + r[0];
+        vs[0] *= rt;
+        vs[1] *= rt;
+        vs[2] *= rt;
+    }
+    if (j > 0)
+    {
+        scm_get_sample_center(f, (n - 1) * u + i, (n - 1) * v + j - 1, (n - 1) * w, vw);
+        rt = p[(n * i + (j - 1)) * c] * dr + r[0];
+        vw[0] *= rt;
+        vw[1] *= rt;
+        vw[2] *= rt;
+    }
+    if (j < n - 1)
+    {
+        scm_get_sample_center(f, (n - 1) * u + i, (n - 1) * v + j + 1, (n - 1) * w, ve);
+        rt = p[(n * i + (j + 1)) * c] * dr + r[0];
+        ve[0] *= rt;
+        ve[1] *= rt;
+        ve[2] *= rt;
+    }
 
-    vn[0] *= rn; vn[1] *= rn; vn[2] *= rn;
-    vs[0] *= rs; vs[1] *= rs; vs[2] *= rs;
-    ve[0] *= re; ve[1] *= re; ve[2] *= re;
-    vw[0] *= rw; vw[1] *= rw; vw[2] *= rw;
-    vc[0] *= rc; vc[1] *= rc; vc[2] *= rc;
-
-    double na[3];
-    double nb[3];
-    double nc[3];
-    double nd[3];
-    double nn[3];
-
-    facenorm(vc, vn, ve, na);
-    facenorm(vc, ve, vs, nb);
-    facenorm(vc, vs, vw, nc);
-    facenorm(vc, vw, vn, nd);
-
-    nn[0] = na[0] + nb[0] + nc[0] + nd[0];
-    nn[1] = na[1] + nb[1] + nc[1] + nd[1];
-    nn[2] = na[2] + nb[2] + nc[2] + nd[2];
+    if (i > 0 && j > 0)
+    {
+        facenorm(vc, vn, vw, nt);
+        nn[0] += nt[0];
+        nn[1] += nt[1];
+        nn[2] += nt[2];
+    }
+    if (i > 0 && j < n - 1)
+    {
+        facenorm(vc, ve, vn, nt);
+        nn[0] += nt[0];
+        nn[1] += nt[1];
+        nn[2] += nt[2];
+    }
+    if (i < n - 1 && j > 0)
+    {
+        facenorm(vc, vw, vs, nt);
+        nn[0] += nt[0];
+        nn[1] += nt[1];
+        nn[2] += nt[2];
+    }
+    if (i < n - 1 && j < n - 1)
+    {
+        facenorm(vc, vs, ve, nt);
+        nn[0] += nt[0];
+        nn[1] += nt[1];
+        nn[2] += nt[2];
+    }
 
     normalize(nn);
 

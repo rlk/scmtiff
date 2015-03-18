@@ -87,7 +87,14 @@ static int multisample(img *p, int  f, int  i, int  j, int n,
     double C[15];
     int    N = 0;
 
-    scm_get_sample_corners(f, n * u + i, n * v + j, n * w, c);
+    // 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3
+    // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2
+    // 0 1 2 3 4 5 6 7 8
+    //                 0 1 2 3 4 5 6 7 8
+    //                                 0 1 2 3 4 5 6 7 8
+    //                                                 0 1 2 3 4 5 6 7 8
+
+    scm_get_sample_corners(f, (n - 1) * u + i, (n - 1) * v + j, (n - 1) * w, c);
 
     quincunx(C, c);
 
