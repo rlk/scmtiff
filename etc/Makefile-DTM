@@ -1,5 +1,5 @@
-N=9
-D=4
+N=129
+D=8
 
 NAME = DTM-$(N)-$(D)
 FORM = -n$(N) -d$(D)
@@ -71,16 +71,10 @@ WAC_GLD100_P900S0000_100M.tif: WAC_GLD100_P900S0000_100M.IMG
 	scmtiff -T -pconvert $(FORM) $(NORM) -o$@ -P-90,12,11 $<
 
 ldem_45n_100m.tif: ldem_45n_100m.lbl
-	scmtiff -T -pconvert $(FORM) -N1728240,1748170 -o$@ -P90,11,12 $<
+	scmtiff -T -pconvert $(FORM) -N1728240,1748170 -g0 -o$@ -P90,11,12 $<
 
 ldem_45s_100m.tif: ldem_45s_100m.lbl
-	scmtiff -T -pconvert $(FORM) -N1728240,1748170 -o$@ -P-90,11,12 $<
+	scmtiff -T -pconvert $(FORM) -N1728240,1748170 -g0 -o$@ -P-90,11,12 $<
 
 clean:
 	rm -f $(NAME).tif $(GLDE) $(GLDP) $(LOLA)
-
-
-
-
-
-
