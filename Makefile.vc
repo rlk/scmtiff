@@ -1,0 +1,75 @@
+# scmtiff -- Visual Studio Makefile
+
+LOCAL_INCLUDE = C:\Include
+LOCAL_LIB     = C:\Lib
+
+#------------------------------------------------------------------------------
+
+CPPFLAGS = /nologo /W3 /EHsc \
+	/DGLEW_STATIC \
+	/D_CRT_SECURE_NO_WARNINGS \
+	/D_CRT_NONSTDC_NO_DEPRECATE \
+	/D_USE_MATH_DEFINES \
+	/DHAVE_M_PI \
+	/DNOMINMAX \
+	/DWIN32
+
+LINK = link /nologo /SUBSYSTEM:WINDOWS /NODEFAULTLIB:"msvcrt.lib"
+
+!ifdef DEBUG
+CONFIG   = Debug
+CPPFLAGS = $(CPPFLAGS) /Od /MTd /Z7
+LINK     = $(LINK) /debug
+!else
+CONFIG   = Release
+CPPFLAGS = $(CPPFLAGS) /Ox /MT
+!endif
+
+#------------------------------------------------------------------------------
+
+LIBS = \
+	freeglut.lib \
+	libtiff.lib \
+	jpeg.lib \
+	libpng16.lib \
+	zlib.lib \
+	glew32s.lib \
+	opengl32.lib \
+	ws2_32.lib \
+	version.lib \
+	uuid.lib \
+	winmm.lib \
+	imm32.lib \
+	ole32.lib \
+	oleaut32.lib \
+	gdi32.lib \
+	user32.lib \
+	shell32.lib \
+	kernel32.lib \
+	comctl32.lib
+
+
+CPPFLAGS = $(CPPFLAGS) \
+	/I$(LOCAL_INCLUDE)
+
+LINK = $(LINK) \
+	/LIBPATH:$(LOCAL_LIB)
+
+#------------------------------------------------------------------------------
+
+all : $(CONFIG) $(CONFIG)\scmtiff.exe
+
+$(CONFIG)\scmtiff.exe : err.obj scmdef.obj scmdat.obj scmio.obj scm.obj img.obj jpg.obj png.obj tif.obj pds.obj extrema.obj convert.obj rectify.obj combine.obj mipmap.obj border.obj finish.obj polish.obj normal.obj sample.obj scmtiff.obj
+	$(LINK) /out:$@ $** $(LIBS)
+
+$(CONFIG) :
+	mkdir $(CONFIG)
+
+.c.obj :
+	$(CPP) $(CPPFLAGS) /c /Tp $<
+
+#------------------------------------------------------------------------------
+
+clean:
+	-del $(CONFIG)\scmtiff.exe err.obj scmdef.obj scmdat.obj scmio.obj scm.obj img.obj jpg.obj png.obj tif.obj pds.obj extrema.obj convert.obj rectify.obj combine.obj mipmap.obj border.obj finish.obj polish.obj normal.obj sample.obj scmtiff.obj
+

@@ -156,13 +156,13 @@ static int pixel(scm *s, img *p, int  f, int  i, int  j,
 static long long divide(scm *s, img *p, long long b, int d, long long x,
                                         long u, long v, long w, float *q, float *t)
 {
+    const int f = (int) scm_page_root(x);
     long long a = b;
 
-    if (overlap(p, scm_page_root(x), u, v, w))
+    if (overlap(p, f, u, v, w))
     {
         if (d == 0)
         {
-            const int f = scm_page_root(x);
             const int o = scm_get_n(s) + 2;
             const int c = scm_get_c(s);
             const int n = scm_get_n(s);
@@ -242,7 +242,7 @@ int convert(int argc, char **argv, const char *o,
 {
     img  *p = NULL;
     scm  *s = NULL;
-    char *e = NULL;
+    const char *e = NULL;
 
     char out[256];
 

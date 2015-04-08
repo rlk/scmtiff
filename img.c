@@ -14,11 +14,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <math.h>
+
+#ifndef _WIN32
+#include <unistd.h>
 #include <sys/mman.h>
+#endif
 
 #include "img.h"
 #include "err.h"
@@ -186,7 +189,7 @@ static int normu16(const img *p, uint16_t u, float *f)
 
 static int norms16(const img *p, int16_t s, float *f)
 {
-    float d = 1;
+    int   d = 1;
     float k = 0;
 
     if      (s == -32768) d =      0;  // Null
@@ -205,7 +208,7 @@ static int normf(const img *p, float e, float *f)
 {
     const uint32_t *w = (const uint32_t *) &e;
 
-    float d = 1;
+    int   d = 1;
     float k = 0;
 
     if      (*w == 0xFF7FFFFB) d =   0;  // Null

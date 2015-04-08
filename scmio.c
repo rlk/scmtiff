@@ -69,6 +69,11 @@ void scm_free(scm *s)
 
 //------------------------------------------------------------------------------
 
+#ifdef _WIN32
+#define fseeko _fseeki64
+#define ftello _ftelli64
+#endif
+
 // Move the SCM file pointer to the end of the file
 
 bool scm_ffwd(scm *s)
@@ -99,7 +104,7 @@ bool scm_seek(scm *s, long long o)
 
 bool scm_read(scm *s, void *ptr, size_t len, long long o)
 {
-    if (scm_seek(s, o) >= 0)
+    if (scm_seek(s, o))
     {
         if (fread(ptr, 1, len, s->fp) == len)
         {
@@ -189,7 +194,7 @@ bool scm_read_header(scm *s, header *h)
     assert(s);
     assert(h);
 
-    if (scm_read(s, h, sizeof (header), 0) >= 0)
+    if (scm_read(s, h, sizeof (header), 0))
     {
         if (is_header(h))
         {
@@ -264,7 +269,7 @@ bool scm_read_hfd(scm *s, hfd *d, long long o)
     assert(s);
     assert(d);
 
-    if (o && scm_read(s, d, sizeof (hfd), o) >= 0)
+    if (o && scm_read(s, d, sizeof (hfd), o))
     {
         if (is_hfd(d))
         {
@@ -284,7 +289,7 @@ long long scm_write_hfd(scm *s, hfd *d, long long o)
 
     if (o)
     {
-        if (scm_seek(s, o) >= 0)
+        if (scm_seek(s, o))
         {
             return scm_write(s, d, sizeof (hfd));
         }
@@ -343,7 +348,7 @@ bool scm_read_ifd(scm *s, ifd *d, long long o)
     assert(s);
     assert(d);
 
-    if (o && scm_read(s, d, sizeof (ifd), o) >= 0)
+    if (o && scm_read(s, d, sizeof (ifd), o))
     {
         if (is_ifd(d))
         {
@@ -364,7 +369,7 @@ long long scm_write_ifd(scm *s, ifd *d, long long o)
 
     if (o)
     {
-        if (scm_seek(s, o) >= 0)
+        if (scm_seek(s, o))
         {
             return scm_write(s, d, sizeof (ifd));
         }
@@ -496,10 +501,10 @@ bool scm_read_data(scm *s, float *p, uint64_t oo,
     // Strip count and rows-per-strip are given by the IFD.
 
     int i, c = sc;
-    uint64_t o[c];
-    uint32_t l[c];
+    uint64_t o[256];
+    uint32_t l[256];
 
-    if (scm_read_zips(s, s->zipv, oo, lo, sc, o, l) > 0)
+    if (scm_read_zips(s, s->zipv, oo, lo, sc, o, l))
     {
         // Decode each strip.
 
@@ -524,8 +529,8 @@ bool scm_write_data(scm *s, const float *p, uint64_t *oo,
     // Strip count is total rows / rows-per-strip rounded up.
 
     int i, c = (s->n + 2 + s->r - 1) / s->r;
-    uint64_t o[c];
-    uint32_t l[c];
+    uint64_t o[256];
+    uint32_t l[256];
 
     // Encode each strip for writing. This is our hot spot.
 

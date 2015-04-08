@@ -22,7 +22,7 @@
 //------------------------------------------------------------------------------
 
 static bool traverse(scm *s, double a, double b, long long x, int d,
-                     int *h, float *p, float *q)
+                     long long *h, float *p, float *q)
 {
     long long i;
 
@@ -88,8 +88,8 @@ static bool traverse(scm *s, double a, double b, long long x, int d,
             int j1 = (int) floor(a * n) + 1, j2 = j1 + 1;
             int i1 = (int) floor(b * n) + 1, i2 = i1 + 1;
 
-            double jj = a * n - floor(a * n);
-            double ii = b * n - floor(b * n);
+            float jj = (float) (a * n - floor(a * n));
+            float ii = (float) (b * n - floor(b * n));
 
             for (int k = 0; k < c; ++k)
                 q[k] = lerp1(lerp1(p[((n + 2) * i1 + j1) * c + k],
@@ -104,7 +104,7 @@ static bool traverse(scm *s, double a, double b, long long x, int d,
 }
 
 static bool locate(scm *s, double lat, double lon, int d,
-                   int *h, float *p, float *q)
+                   long long *h, float *p, float *q)
 {
     int i = 4;
 
@@ -147,9 +147,10 @@ static void process(scm *s, const float *R, int d)
 
     if ((p = scm_alloc_buffer(s)))
     {
+        long long h = -1;
+
         double lon;
         double lat;
-        int h = -1;
 
         while (scanf("%lf %lf", &lat, &lon) == 2)
         {

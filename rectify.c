@@ -162,7 +162,7 @@ int rectify(int argc, char **argv, const char *o,
                                  const double *P)
 {
     img  *p = NULL;
-    char *e = NULL;
+    const char *e = NULL;
 
     char out[256];
 

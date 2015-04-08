@@ -56,7 +56,8 @@ static char *load_txt(const char *name)
     else apperr("Failed to open %s", name);
 
     fclose(fp);
-    return p;
+
+    return (char *) p;
 }
 
 //------------------------------------------------------------------------------

@@ -119,7 +119,7 @@ static long long divide(scm *s, long long x,
 
         if (scm_read_page(s, o, p))
         {
-            const int f = scm_page_root(x);
+            const int f = int(scm_page_root(x));
             const int n = scm_get_n(s);
             const int c = scm_get_c(s);
             int i;

@@ -432,6 +432,7 @@ static bool scm_bound(scm *s, long long xc, const long long *xv,
                                                     void **maxv, int d)
 {
     const size_t sz = tifsizeof(scm_type(s));
+    const size_t yz = (size_t) yc * (size_t) s->c;
 
     float *pp = NULL;
     float *av = NULL;
@@ -441,8 +442,8 @@ static bool scm_bound(scm *s, long long xc, const long long *xv,
 
     if ((pp = scm_alloc_buffer(s)))
     {
-        if ((av = (float *) malloc(yc * s->c * sizeof (float))) &&
-            (zv = (float *) malloc(yc * s->c * sizeof (float))))
+        if ((av = (float *) malloc(yz * sizeof (float))) &&
+            (zv = (float *) malloc(yz * sizeof (float))))
         {
             // Calculate bounds for all pages.
 
@@ -459,11 +460,11 @@ static bool scm_bound(scm *s, long long xc, const long long *xv,
 
             // Convert floating point values to the SCM value type.
 
-            if ((minv[0] = malloc(yc * s->c * sz)) &&
-                (maxv[0] = malloc(yc * s->c * sz)))
+            if ((minv[0] = malloc(yz * sz)) &&
+                (maxv[0] = malloc(yz * sz)))
             {
-                ftob(minv[0], av, yc * s->c, s->b, s->g);
-                ftob(maxv[0], zv, yc * s->c, s->b, s->g);
+                ftob(minv[0], av, yz, s->b, s->g);
+                ftob(maxv[0], zv, yz, s->b, s->g);
 
                 st = true;
             }
@@ -556,8 +557,8 @@ long long scm_repeat(scm *s, long long b, scm *t, long long o)
         uint64_t lo = (uint64_t) d.strip_byte_counts.offset;
         uint16_t sc = (uint16_t) d.strip_byte_counts.count;
 
-        uint64_t O[sc];
-        uint32_t L[sc];
+        uint64_t O[256];
+        uint32_t L[256];
 
         d.next = 0;
 
@@ -659,11 +660,11 @@ bool scm_finish(scm *s, const char *txt, int d)
 
                     if (scm_ffwd(s))
                     {
-                        yo = scm_write(s,   yv, yc * sizeof (long long));
-                        oo = scm_write(s,   ov, oc * sizeof (long long));
-                        ao = scm_write(s, minv, bc * sz);
-                        zo = scm_write(s, maxv, bc * sz);
-                        to = scm_write(s,  txt, tc);
+                        yo = scm_write(s,   yv, (size_t) yc * sizeof (long long));
+                        oo = scm_write(s,   ov, (size_t) oc * sizeof (long long));
+                        ao = scm_write(s, minv, (size_t) bc * sz);
+                        zo = scm_write(s, maxv, (size_t) bc * sz);
+                        to = scm_write(s,  txt, (size_t) tc);
                     }
 
                     // Update the header file directory.
@@ -743,7 +744,7 @@ bool scm_read_page(scm *s, long long o, float *p)
         uint64_t lo = (uint64_t) i.strip_byte_counts.offset;
         uint16_t sc = (uint16_t) i.strip_byte_counts.count;
 
-        return (scm_read_data(s, p, oo, lo, sc) > 0);
+        return scm_read_data(s, p, oo, lo, sc);
     }
     else apperr("Failed to read SCM TIFF IFD from %s", s->name);
 

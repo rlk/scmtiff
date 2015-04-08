@@ -100,7 +100,7 @@ static void process(scm *s, scm **V, int C, int O)
         long long b = 0;
         long long m = 0;
         long long i = 0;
-        long long o[C];
+        long long o[256];
 
         // Determine the highest page index in the input.
 

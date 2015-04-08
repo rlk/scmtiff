@@ -12,12 +12,12 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #ifdef _WIN32
 #include "getopt.h"
 #else
 #include <getopt.h>
+#include <unistd.h>
 #endif
 
 #include "scm.h"
