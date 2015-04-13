@@ -1,4 +1,4 @@
-// SCMTIFF Copyright (C) 2012 Robert Kooima
+// SCMTIFF Copyright (C) 2012-2015 Robert Kooima
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -119,7 +119,7 @@ static long long divide(scm *s, long long x,
 
         if (scm_read_page(s, o, p))
         {
-            const int f = int(scm_page_root(x));
+            const int f = (int) scm_page_root(x);
             const int n = scm_get_n(s);
             const int c = scm_get_c(s);
             int i;

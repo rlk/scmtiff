@@ -1,4 +1,4 @@
-// SCMTIFF Copyright (C) 2012 Robert Kooima
+// SCMTIFF Copyright (C) 2012-2015 Robert Kooima
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
