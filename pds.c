@@ -49,6 +49,7 @@ static int get_element(FILE *f, char *k, char *v, char *d)
                 if      (isspace(t)) { n = 3;           }
                 else if (isalpha(t)) { n = 2; *k++ = t; }
                 else if (('_' == t)) { n = 2; *k++ = t; }
+                else if (('=' == t)) { n = 4;           }
                 else                 { return 0;        }
                 break;
 
