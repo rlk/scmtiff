@@ -1,4 +1,4 @@
-// SCMTIFF Copyright (C) 2012 Robert Kooima
+// SCMTIFF Copyright (C) 2012-2015 Robert Kooima
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -15,7 +15,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <regex.h>
 #include <ctype.h>
 #include <math.h>
 #include <sys/mman.h>
@@ -25,94 +24,90 @@
 
 #define STRMAX 81
 
-//------------------------------------------------------------------------------
-
-static int get_match(const char *s, char *v, const char *pattern)
+static int equals(const char *a, const char *b)
 {
-    char       error[STRMAX];
-    regmatch_t match[2];
-    regex_t    regex;
+    return (strcasecmp(a, b) == 0) ? 1 : 0;
+}
 
-    int err;
+static int get_element(FILE *f, char *k, char *v, char *d)
+{
+    int n = 1;
+    int t;
 
-    if ((err = regcomp(&regex, pattern, REG_EXTENDED)) == 0)
-    {
-        if ((err = regexec(&regex, s, 2, match, 0)) == 0)
+    while (n && (t = fgetc(f)) != EOF)
+        switch (n)
         {
-            if (v)
-            {
-                memset (v, 0, STRMAX);
-                strncpy(v, s + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
-            }
-            return 1;
+            case 1:
+                if      (isspace(t)) { n = 1;           }
+                else if (isalpha(t)) { n = 2; *k++ = t; }
+                else if (('^' == t)) { n = 2; *k++ = t; }
+                else                 { return 0;        }
+                break;
+
+            case 2:
+                if      (isspace(t)) { n = 3;           }
+                else if (isalpha(t)) { n = 2; *k++ = t; }
+                else if (('_' == t)) { n = 2; *k++ = t; }
+                else                 { return 0;        }
+                break;
+
+            case 3:
+                if      (isspace(t)) { n = 3;           }
+                else if (('=' == t)) { n = 4;           }
+                else                 { return 0;        }
+                break;
+
+            case 4:
+                if      (isspace(t)) { n = 4;           }
+                else if (('"' == t)) { n = 5;           }
+                else if (isgraph(t)) { n = 6; *v++ = t; }
+                else                 { return 0;        }
+                break;
+ 
+            case 5:
+                if      (('"' == t)) { n = 7;           }
+                else                 { n = 5; *v++ = t; }
+                break;
+
+            case 6:
+                if      (isgraph(t)) { n = 6; *v++ = t; }
+                else if ((015 == t)) { n = 10;          }
+                else if ((012 == t)) { n = 0;           }
+                else if (isspace(t)) { n = 7;           }
+                else                 { return 0;        }
+                break;
+ 
+            case 7:
+                if      (('<' == t)) { n = 8;           }
+                else if ((015 == t)) { n = 10;          }
+                else if ((012 == t)) { n = 0;           }
+                else if (isspace(t)) { n = 7;           }
+                else                 { return 0;        }
+                break;
+
+            case 8:
+                if      (('>' == t)) { n = 9;           }
+                else if (isgraph(t)) { n = 8; *d++ = t; }
+                else                 { return 0;        }
+                break;
+
+            case 9:
+                if      ((015 == t)) { n = 10;          }
+                else if ((012 == t)) { n = 0;           }
+                else                 { return 0;        }
+                break;
+
+            case 10:
+                if      ((012 == t)) { n = 0;           }
+                else                 { return 0;        }
+                break;
         }
-    }
 
-    if (err != REG_NOMATCH && regerror(err, &regex, error, STRMAX))
-        apperr("%s : %s", pattern, error);
+    *k = 0;
+    *v = 0;
+    *d = 0;
 
-    return 0;
-}
-
-// Str is a string giving a PDS element. Pattern is a regular expression with
-// two capture groups. If the string matches the pattern, copy the first capture
-// to the key string and the second to the val string.
-
-static int get_pair(const char *s, char *k, char *v, const char *pattern)
-{
-    char       error[STRMAX];
-    regmatch_t match[3];
-    regex_t    regex;
-
-    int err;
-
-    if ((err = regcomp(&regex, pattern, REG_EXTENDED)) == 0)
-    {
-        if ((err = regexec(&regex, s, 3, match, 0)) == 0)
-        {
-            memset(k, 0, STRMAX);
-            memset(v, 0, STRMAX);
-
-            strncpy(k, s + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
-            strncpy(v, s + match[2].rm_so, match[2].rm_eo - match[2].rm_so);
-
-            return 1;
-        }
-    }
-
-    if (err != REG_NOMATCH && regerror(err, &regex, error, STRMAX))
-        apperr("%s : %s", pattern, error);
-
-    return 0;
-}
-
-// Parse a PDS element by attempting to match it against regular expressions.
-// The first recognizes quoted strings and returns only the quoted contents in
-// the value. The second mops up everything else.
-
-static int get_element(const char *s, char *k, char *v)
-{
-    return (get_pair(s, k, v, "^ *([A-Z^][A-Z_:]*) *= *\"([^\"]*)\"") ||
-            get_pair(s, k, v, "^ *([A-Z^][A-Z_:]*) *= *(.*)$"));
-}
-
-// Read a line from the given PDS file. PDS is non-case-sensitive so convert
-// it to upper case to simplify regex matching. Trim any trailing whitespace.
-// The string END signals the end of PDS label data. Stop there to avoid
-// parsing into concatenated raw data.
-
-static int get_line(char *s, int n, FILE *fp)
-{
-    if (fgets(s, n, fp))
-    {
-        char *t = s;
-
-        for (; isprint(*t); ++t) *t = (char) toupper(*t);
-        for (; isspace(*t); ++t) *t = 0;
-
-        return strcmp(s, "END");
-    }
-    return 0;
+    return n ? 0 : 1;
 }
 
 static int get_int(const char *v)
@@ -130,88 +125,27 @@ static double get_double(const char *v)
     return strtod(v, NULL);
 }
 
-static double get_scale(const char *s)
+static double get_scale(const char *v, const char *u)
 {
-    char v[STRMAX];
+    if (equals(u, "M/PIX"))    return get_double(v);
+    if (equals(u, "KM/PIX"))   return get_double(v) * 1000.0;
+    if (equals(u, "M/PIXEL"))  return get_double(v);
+    if (equals(u, "KM/PIXEL")) return get_double(v) * 1000.0;
 
-    if (get_match(s, v, "(-?[\\.0-9]+) <M/PIX>"))
-        return get_double(v);
-    if (get_match(s, v, "(-?[\\.0-9]+) <KM/PIX>"))
-        return get_double(v) * 1000.0;
-    if (get_match(s, v, "(-?[\\.0-9]+) <M/PIXEL>"))
-        return get_double(v);
-    if (get_match(s, v, "(-?[\\.0-9]+) <KM/PIXEL>"))
-        return get_double(v) * 1000.0;
-
-    return get_double(s);
+    return get_double(v);
 }
 
-static double get_angle(const char *s)
+static double get_angle(const char *v, const char *u)
 {
-    char v[STRMAX];
-
-    if (get_match(s, v, "(-?[\\.0-9]+) <DEG>"))
-        return get_double(v) * M_PI / 180.0;
-    if (get_match(s, v, "(-?[\\.0-9]+) <DEGREE>"))
-        return get_double(v) * M_PI / 180.0;
-
-    return get_double(s) * M_PI / 180.0;
-}
-
-static void parse_element(img *p, const char *k, const char *v)
-{
-    const double K = 1000.0;
-
-    // Raster parameters
-
-    if      (!strcmp(k, "LINE_SAMPLES")) p->w = get_int(v);
-    else if (!strcmp(k, "LINES"))        p->h = get_int(v);
-    else if (!strcmp(k, "BANDS"))        p->c = get_int(v);
-    else if (!strcmp(k, "SAMPLE_BITS"))  p->b = get_int(v);
-    else if (!strcmp(k, "SAMPLE_TYPE"))
-    {
-        if      (!strcmp(v, "LSB_INTEGER"))          { p->g = 1; p->o = 0; }
-        else if (!strcmp(v, "LSB_UNSIGNED_INTEGER")) { p->g = 0; p->o = 0; }
-        else if (!strcmp(v, "MSB_INTEGER"))          { p->g = 1; p->o = 1; }
-        else if (!strcmp(v, "MSB_UNSIGNED_INTEGER")) { p->g = 0; p->o = 1; }
-        else if (!strcmp(v, "IEEE_REAL"))            { p->g = 0; p->o = 1; }
-    }
-
-    // Projection parameters
-
-    else if (!strcmp(k,     "MAXIMUM_LATITUDE"))   p->latmax = get_angle (v);
-    else if (!strcmp(k,     "MINIMUM_LATITUDE"))   p->latmin = get_angle (v);
-    else if (!strcmp(k,      "CENTER_LATITUDE"))   p->latp   = get_angle (v);
-    else if (!strcmp(k, "EASTERNMOST_LONGITUDE"))  p->lonmax = get_angle (v);
-    else if (!strcmp(k, "WESTERNMOST_LONGITUDE"))  p->lonmin = get_angle (v);
-    else if (!strcmp(k,      "CENTER_LONGITUDE"))  p->lonp   = get_angle (v);
-    else if (!strcmp(k,         "MAP_SCALE"))      p->scale  = get_scale (v);
-    else if (!strcmp(k,         "MAP_RESOLUTION")) p->res    = get_double(v);
-    else if (!strcmp(k,   "LINE_PROJECTION_OFFSET"))   p->l0 = get_double(v);
-    else if (!strcmp(k, "SAMPLE_PROJECTION_OFFSET"))   p->s0 = get_double(v);
-    else if (!strcmp(k,      "A_AXIS_RADIUS")) p->radius = K * get_double(v);
-    else if (!strcmp(k, "SCALING_FACTOR")) p->scaling_factor = get_float (v);
-    else if (!strcmp(k,         "OFFSET"))         p->offset = get_float (v);
-
-    else if (!strcmp(k, "MAP_PROJECTION_TYPE"))
-    {
-        if      (get_match(v, NULL, "EQUIRECTANGULAR"))
-            p->project = img_equirectangular;
-        else if (get_match(v, NULL, "ORTHOGRAPHIC"))
-            p->project = img_orthographic;
-        else if (get_match(v, NULL, "POLAR.STEREOGRAPHIC"))
-            p->project = img_stereographic;
-        else if (get_match(v, NULL, "SIMPLE.CYLINDRICAL"))
-            p->project = img_cylindrical;
-    }
+    return get_double(v) * M_PI / 180.0;
 }
 
 static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 {
-    char str[STRMAX];
-    char key[STRMAX];
-    char val[STRMAX];
-    char img[STRMAX];
+    char k[1024];
+    char v[1024];
+    char u[1024];
+    char img[1024];
 
     int rs = 0;
     int rc = 0;
@@ -224,23 +158,56 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 
     // Read the PDS label and interpret all PDS data elements.
 
-    while (get_line(str, STRMAX, f))
-    {
-        if (get_element(str, key, val))
+    while (get_element(f, k, v, u))
+
+        if      (equals(k, "RECORD_BYTES"))  rs = get_int(v);
+        else if (equals(k, "LABEL_RECORDS")) rc = get_int(v);
+        else if (equals(k, "^IMAGE"))
         {
-            if      (strcmp(key, "RECORD_BYTES")  == 0) rs = get_int(val);
-            else if (strcmp(key, "LABEL_RECORDS") == 0) rc = get_int(val);
-            else if (strcmp(key, "^IMAGE")        == 0)
-            {
-                if (get_match(val, NULL, ".*\\.IMG"))
-                {
-                    strcpy(img, dir);
-                    strcat(img, val);
-                }
-            }
-            else parse_element(p, key, val);
+            strcpy(img, dir);
+            strcat(img, v);
         }
-    }
+     
+        // Raster parameters
+
+        else if (equals(k, "LINE_SAMPLES")) p->w = get_int(v);
+        else if (equals(k, "LINES"))        p->h = get_int(v);
+        else if (equals(k, "BANDS"))        p->c = get_int(v);
+        else if (equals(k, "SAMPLE_BITS"))  p->b = get_int(v);
+        else if (equals(k, "SAMPLE_TYPE"))
+        {
+            if      (equals(v, "LSB_INTEGER"))          { p->g = 1; p->o = 0; }
+            else if (equals(v, "LSB_UNSIGNED_INTEGER")) { p->g = 0; p->o = 0; }
+            else if (equals(v, "MSB_INTEGER"))          { p->g = 1; p->o = 1; }
+            else if (equals(v, "MSB_UNSIGNED_INTEGER")) { p->g = 0; p->o = 1; }
+            else if (equals(v, "IEEE_REAL"))            { p->g = 0; p->o = 1; }
+        }
+
+        // Projection parameters
+
+        else if (equals(k,     "MAXIMUM_LATITUDE"))          p->latmax = get_angle(v, u);
+        else if (equals(k,     "MINIMUM_LATITUDE"))          p->latmin = get_angle(v, u);
+        else if (equals(k,      "CENTER_LATITUDE"))          p->latp   = get_angle(v, u);
+        else if (equals(k, "EASTERNMOST_LONGITUDE"))         p->lonmax = get_angle(v, u);
+        else if (equals(k, "WESTERNMOST_LONGITUDE"))         p->lonmin = get_angle(v, u);
+        else if (equals(k,      "CENTER_LONGITUDE"))         p->lonp   = get_angle(v, u);
+        else if (equals(k,         "MAP_SCALE"))             p->scale  = get_scale(v, u);
+        else if (equals(k,         "MAP_RESOLUTION"))        p->res    = get_double(v);
+        else if (equals(k,        "LINE_PROJECTION_OFFSET")) p->l0     = get_double(v);
+        else if (equals(k,      "SAMPLE_PROJECTION_OFFSET")) p->s0     = get_double(v);
+        else if (equals(k,           "A_AXIS_RADIUS"))       p->radius = get_double(v) * 1000.0;
+        else if (equals(k,     "SCALING_FACTOR"))            p->scaling_factor = get_float (v);
+        else if (equals(k,      "OFFSET"))                   p->offset = get_float (v);
+
+        else if (equals(k, "MAP_PROJECTION_TYPE"))
+        {
+            if      (equals(v, "EQUIRECTANGULAR"))     p->project = img_equirectangular;
+            else if (equals(v, "ORTHOGRAPHIC"))        p->project = img_orthographic;
+            else if (equals(v, "POLAR_STEREOGRAPHIC")) p->project = img_stereographic;
+            else if (equals(v, "SIMPLE_CYLINDRICAL"))  p->project = img_cylindrical;
+            else if (equals(v, "POLAR STEREOGRAPHIC")) p->project = img_stereographic;
+            else if (equals(v, "SIMPLE CYLINDRICAL"))  p->project = img_cylindrical;
+        }
 
     // Open and map the data file.
 
@@ -275,10 +242,10 @@ img *pds_load(const char *name)
     img  *p = NULL;
 
     // Separate the file name from its path.
-
+#if 0
     if (get_pair(name, path, file, "(.*/)([^/].*)") == 0)
         strcpy(path, "");
-
+#endif
     if ((f = fopen(name, "r")))
     {
         if ((p = (img *) calloc(1, sizeof (img))))
