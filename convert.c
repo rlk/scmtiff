@@ -307,10 +307,10 @@ int convert(int argc, char **argv, const char *o,
 
             if (E[0] || E[1] || E[2] || E[3])
             {
-                p->lonmin = E[0] * M_PI / 180.0;
-                p->lonmax = E[1] * M_PI / 180.0;
-                p->latmin = E[2] * M_PI / 180.0;
-                p->latmax = E[3] * M_PI / 180.0;
+                p->westernmost_longitude = E[0] * M_PI / 180.0;
+                p->easternmost_longitude = E[1] * M_PI / 180.0;
+                p->minimum_latitude = E[2] * M_PI / 180.0;
+                p->maximum_latitude = E[3] * M_PI / 180.0;
                 p->project = img_default;
             }
 

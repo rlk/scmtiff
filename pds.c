@@ -63,7 +63,7 @@ static int get_element(FILE *f, char *k, char *v, char *d)
                 else if (isgraph(t)) { n = 6; *v++ = t; }
                 else                 { return 0;        }
                 break;
- 
+
             case 5:
                 if      (('"' == t)) { n = 7;           }
                 else                 { n = 5; *v++ = t; }
@@ -76,7 +76,7 @@ static int get_element(FILE *f, char *k, char *v, char *d)
                 else if (isspace(t)) { n = 7;           }
                 else                 { return 0;        }
                 break;
- 
+
             case 7:
                 if      (('<' == t)) { n = 8;           }
                 else if ((015 == t)) { n = 10;          }
@@ -167,7 +167,7 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
             strcpy(img, dir);
             strcat(img, v);
         }
-     
+
         // Raster parameters
 
         else if (equals(k, "LINE_SAMPLES")) p->w = get_int(v);
@@ -185,28 +185,47 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 
         // Projection parameters
 
-        else if (equals(k,     "MAXIMUM_LATITUDE"))          p->latmax = get_angle(v, u);
-        else if (equals(k,     "MINIMUM_LATITUDE"))          p->latmin = get_angle(v, u);
-        else if (equals(k,      "CENTER_LATITUDE"))          p->latp   = get_angle(v, u);
-        else if (equals(k, "EASTERNMOST_LONGITUDE"))         p->lonmax = get_angle(v, u);
-        else if (equals(k, "WESTERNMOST_LONGITUDE"))         p->lonmin = get_angle(v, u);
-        else if (equals(k,      "CENTER_LONGITUDE"))         p->lonp   = get_angle(v, u);
-        else if (equals(k,         "MAP_SCALE"))             p->scale  = get_scale(v, u);
-        else if (equals(k,         "MAP_RESOLUTION"))        p->res    = get_double(v);
-        else if (equals(k,        "LINE_PROJECTION_OFFSET")) p->l0     = get_double(v);
-        else if (equals(k,      "SAMPLE_PROJECTION_OFFSET")) p->s0     = get_double(v);
-        else if (equals(k,           "A_AXIS_RADIUS"))       p->radius = get_double(v) * 1000.0;
-        else if (equals(k,     "SCALING_FACTOR"))            p->scaling_factor = get_float (v);
-        else if (equals(k,      "OFFSET"))                   p->offset = get_float (v);
+        else if (equals(k, "MAXIMUM_LATITUDE"))
+                         p->maximum_latitude         = get_angle(v, u);
+        else if (equals(k, "MINIMUM_LATITUDE"))
+                         p->minimum_latitude         = get_angle(v, u);
+        else if (equals(k, "CENTER_LATITUDE"))
+                         p->center_latitude          = get_angle(v, u);
+        else if (equals(k, "EASTERNMOST_LONGITUDE"))
+                         p->easternmost_longitude    = get_angle(v, u);
+        else if (equals(k, "WESTERNMOST_LONGITUDE"))
+                         p->westernmost_longitude    = get_angle(v, u);
+        else if (equals(k, "CENTER_LONGITUDE"))
+                         p->center_longitude         = get_angle(v, u);
+        else if (equals(k, "MAP_SCALE"))
+                         p->map_scale                = get_scale(v, u);
+        else if (equals(k, "MAP_RESOLUTION"))
+                         p->map_resolution           = get_double(v);
+        else if (equals(k, "LINE_PROJECTION_OFFSET"))
+                         p->line_projection_offset   = get_double(v);
+        else if (equals(k, "SAMPLE_PROJECTION_OFFSET"))
+                         p->sample_projection_offset = get_double(v);
+        else if (equals(k, "A_AXIS_RADIUS"))
+                         p->a_axis_radius            = get_double(v) * 1000.0;
+        else if (equals(k, "SCALING_FACTOR"))
+                         p->scaling_factor           = get_float(v);
+        else if (equals(k, "OFFSET"))
+                         p->offset                   = get_float(v);
 
         else if (equals(k, "MAP_PROJECTION_TYPE"))
         {
-            if      (equals(v, "EQUIRECTANGULAR"))     p->project = img_equirectangular;
-            else if (equals(v, "ORTHOGRAPHIC"))        p->project = img_orthographic;
-            else if (equals(v, "POLAR_STEREOGRAPHIC")) p->project = img_stereographic;
-            else if (equals(v, "SIMPLE_CYLINDRICAL"))  p->project = img_cylindrical;
-            else if (equals(v, "POLAR STEREOGRAPHIC")) p->project = img_stereographic;
-            else if (equals(v, "SIMPLE CYLINDRICAL"))  p->project = img_cylindrical;
+            if       (equals(v, "EQUIRECTANGULAR"))
+                p->project = img_equirectangular;
+            else if  (equals(v, "ORTHOGRAPHIC"))
+                p->project = img_orthographic;
+            else if  (equals(v, "POLAR_STEREOGRAPHIC"))
+                p->project = img_polar_stereographic;
+            else if  (equals(v, "SIMPLE_CYLINDRICAL"))
+                p->project = img_simple_cylindrical;
+            else if  (equals(v, "POLAR STEREOGRAPHIC"))
+                p->project = img_polar_stereographic;
+            else if  (equals(v, "SIMPLE CYLINDRICAL"))
+                p->project = img_simple_cylindrical;
         }
 
     // Open and map the data file.
@@ -250,16 +269,16 @@ img *pds_load(const char *name)
     {
         if ((p = (img *) calloc(1, sizeof (img))))
         {
-            p->project = img_default;
-            p->latmin  = -0.5 * M_PI;
-            p->latmax  =  0.5 * M_PI;
-            p->lonmin  =  0.0 * M_PI;
-            p->lonmax  =  2.0 * M_PI;
+            p->project                = img_default;
+            p->minimum_latitude       = -0.5 * M_PI;
+            p->maximum_latitude       =  0.5 * M_PI;
+            p->westernmost_longitude  =  0.0 * M_PI;
+            p->easternmost_longitude  =  2.0 * M_PI;
+            p->scaling_factor         =  1.f;
+            p->offset                 =  0.f;
 
-            p->norm0          = 0.f;
-            p->norm1          = 1.f;
-            p->scaling_factor = 1.f;
-            p->offset         = 0.f;
+            p->norm0 = 0.f;
+            p->norm1 = 1.f;
 
             parse_file(f, p, name, path);
             return p;

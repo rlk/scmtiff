@@ -42,17 +42,17 @@ struct img
     // Projection parameters
 
     int    x;
-    double latmax;
-    double latmin;
-    double latp;
-    double lonmax;
-    double lonmin;
-    double lonp;
-    double l0;
-    double s0;
-    double res;
-    double scale;
-    double radius;
+    double maximum_latitude;
+    double minimum_latitude;
+    double center_latitude;
+    double easternmost_longitude;
+    double westernmost_longitude;
+    double center_longitude;
+    double line_projection_offset;
+    double sample_projection_offset;
+    double map_resolution;
+    double map_scale;
+    double a_axis_radius;
 
     // Blending parameters
 
@@ -83,8 +83,8 @@ int   img_locate  (img *, const double *);
 
 int   img_equirectangular (img *, const double *, double, double, double *);
 int   img_orthographic    (img *, const double *, double, double, double *);
-int   img_stereographic   (img *, const double *, double, double, double *);
-int   img_cylindrical     (img *, const double *, double, double, double *);
+int   img_polar_stereographic   (img *, const double *, double, double, double *);
+int   img_simple_cylindrical     (img *, const double *, double, double, double *);
 int   img_default         (img *, const double *, double, double, double *);
 int   img_scube           (img *, const double *, double, double, double *);
 
