@@ -29,7 +29,8 @@ void  mid4(double *, const double *, const double *,
 float lerp1(float, float, float);
 float lerp2(float, float, float, float, float, float);
 
-int extcmp(const char *, const char *);
+int  extcmp(const char *, const char *);
+void dircpy(      char *, const char *);
 
 int grow(float *, float *, int, int);
 

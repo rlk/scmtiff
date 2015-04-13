@@ -21,6 +21,7 @@
 
 #include "img.h"
 #include "err.h"
+#include "util.h"
 
 #define STRMAX 81
 
@@ -254,28 +255,24 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 
 img *pds_load(const char *name)
 {
-    char file[256];
     char path[256];
 
     FILE *f = NULL;
     img  *p = NULL;
 
-    // Separate the file name from its path.
-#if 0
-    if (get_pair(name, path, file, "(.*/)([^/].*)") == 0)
-        strcpy(path, "");
-#endif
+    dircpy(path, name);
+    
     if ((f = fopen(name, "r")))
     {
         if ((p = (img *) calloc(1, sizeof (img))))
         {
-            p->project                = img_default;
-            p->minimum_latitude       = -0.5 * M_PI;
-            p->maximum_latitude       =  0.5 * M_PI;
-            p->westernmost_longitude  =  0.0 * M_PI;
-            p->easternmost_longitude  =  2.0 * M_PI;
-            p->scaling_factor         =  1.f;
-            p->offset                 =  0.f;
+            p->project               = img_default;
+            p->minimum_latitude      = -0.5 * M_PI;
+            p->maximum_latitude      =  0.5 * M_PI;
+            p->westernmost_longitude =  0.0 * M_PI;
+            p->easternmost_longitude =  2.0 * M_PI;
+            p->scaling_factor        =  1.f;
+            p->offset                =  0.f;
 
             p->norm0 = 0.f;
             p->norm1 = 1.f;

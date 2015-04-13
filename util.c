@@ -69,6 +69,17 @@ int extcmp(const char *name, const char *ext)
     return strcasecmp(name + strlen(name) - strlen(ext), ext);
 }
 
+void dircpy(char *dst, const char *src)
+{
+    char d = 0;
+
+    for (int i = (int) strlen(src); i >= 0; i--)
+    {
+        if (src[i] == '/')
+            d = 1;
+        dst[i] = src[i] * d;
+    }
+}
 
 //------------------------------------------------------------------------------
 
