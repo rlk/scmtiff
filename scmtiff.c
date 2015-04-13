@@ -1,4 +1,4 @@
-// SCMTIFF Copyright (C) 2012 Robert Kooima
+// SCMTIFF Copyright (C) 2012-2015 Robert Kooima
 //
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -13,13 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef _WIN32
-#include "getopt.h"
-#else
-#include <getopt.h>
-#include <unistd.h>
-#endif
-
+#include "config.h"
 #include "scm.h"
 #include "err.h"
 #include "process.h"
