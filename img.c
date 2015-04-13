@@ -360,31 +360,6 @@ static inline double tolon(double a)
 
 //------------------------------------------------------------------------------
 
-int img_scube(img *p, const double *v, double lon, double lat, double *t)
-{
-    double x = v[0];
-    double y = v[1];
-    double z = v[2];
-
-    switch (p->x)
-    {
-        case 0: z =  v[0]; y =  v[1]; x = -v[2]; break;
-        case 1: z = -v[0]; y =  v[1]; x =  v[2]; break;
-        case 2: x =  v[0]; z =  v[1]; y = -v[2]; break;
-        case 3: x =  v[0]; z = -v[1]; y =  v[2]; break;
-        case 4: x =  v[0]; y =  v[1]; z =  v[2]; break;
-        case 5: x = -v[0]; y =  v[1]; z = -v[2]; break;
-    }
-
-    double a = -atan2(x, z);
-    double b = -atan2(y, z);
-
-    t[0] = (p->h - 2) * (b + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
-    t[1] = (p->w - 2) * (a + M_PI / 4.0) / (M_PI / 2.0) + 1.0;
-
-    return 1;
-}
-
 int img_equirectangular(img *p, const double *v, double lon, double lat, double *t)
 {
     double x = p->a_axis_radius * (lon - p->center_longitude) * cos(p->center_latitude);

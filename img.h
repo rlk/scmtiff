@@ -54,8 +54,6 @@ struct img
     float scaling_factor;
     float offset;
 
-    int x;
-
     // Blending parameters
 
     double latc, lat0, lat1;

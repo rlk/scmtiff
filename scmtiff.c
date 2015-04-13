@@ -79,7 +79,6 @@ int main(int argc, char **argv)
     int         h    =   0;
     int         l    =   0;
     int         T    =   0;
-    int         x    =   0;
     double      E[4] = { 0.f, 0.f, 0.f , 0.f};
     double      L[3] = { 0.f, 0.f, 0.f };
     double      P[3] = { 0.f, 0.f, 0.f };
@@ -95,7 +94,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "Ab:d:E:g:hL:l:m:n:N:o:p:P:Tt:R:x:w:")) != -1)
+    while ((c = getopt(argc, argv, "Ab:d:E:g:hL:l:m:n:N:o:p:P:Tt:R:w:")) != -1)
         switch (c)
         {
             case 'A': A = 1;                    break;
@@ -110,7 +109,6 @@ int main(int argc, char **argv)
             case 'b': sscanf(optarg, "%d", &b); break;
             case 'g': sscanf(optarg, "%d", &g); break;
             case 'l': sscanf(optarg, "%d", &l); break;
-            case 'x': sscanf(optarg, "%d", &x); break;
 
             case 'E':
                 sscanf(optarg, "%lf,%lf,%lf,%lf", E + 0, E + 1, E + 2, E + 3);
@@ -172,10 +170,10 @@ int main(int argc, char **argv)
         r = extrema(argc, argv);
 
     else if (strcmp(p, "convert") == 0)
-        r = convert(argc, argv, o, n, d, b, g, x, A, N, E, L, P);
+        r = convert(argc, argv, o, n, d, b, g, A, N, E, L, P);
 
     else if (strcmp(p, "rectify") == 0)
-        r = rectify(argc, argv, o, n,                N, E, L, P);
+        r = rectify(argc, argv, o, n,             N, E, L, P);
 
     else if (strcmp(p, "combine") == 0)
         r = combine(argc, argv, o, m);

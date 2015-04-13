@@ -233,7 +233,6 @@ int convert(int argc, char **argv, const char *o,
                                            int d,
                                            int b,
                                            int g,
-                                           int x,
                                            int A,
                                  const float  *N,
                                  const double *E,
@@ -280,13 +279,6 @@ int convert(int argc, char **argv, const char *o,
 
             if (b == -1) b = p->b;
             if (g == -1) g = p->g;
-
-            if (x &  1) { p->project = img_scube; p->x = 0; }
-            if (x &  2) { p->project = img_scube; p->x = 1; }
-            if (x &  4) { p->project = img_scube; p->x = 2; }
-            if (x &  8) { p->project = img_scube; p->x = 3; }
-            if (x & 16) { p->project = img_scube; p->x = 4; }
-            if (x & 32) { p->project = img_scube; p->x = 5; }
 
             // Set the blending parameters.
 

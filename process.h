@@ -24,7 +24,7 @@ int mipmap (int, char **, const char *, const char *, int);
 int combine(int, char **, const char *, const char *);
 int rectify(int, char **, const char *, int,
            const float *, const double *, const double *, const double *);
-int convert(int, char **, const char *, int, int, int, int, int, int,
+int convert(int, char **, const char *, int, int, int, int, int,
            const float *, const double *, const double *, const double *);
 int extrema(int, char **);
 
