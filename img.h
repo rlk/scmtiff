@@ -32,27 +32,29 @@ struct img
     size_t n;  // Memory-mapped size
     void  *q;  // Memory-mapped pointer
 
-    // Sample level parameters
+    // Normalization parameters
 
     float norm0;
     float norm1;
-    float scaling_factor;
-    float offset;
 
-    // Projection parameters
+    // PDS parameters
 
-    int    x;
     double maximum_latitude;
     double minimum_latitude;
-    double center_latitude;
+    double  center_latitude;
     double easternmost_longitude;
     double westernmost_longitude;
-    double center_longitude;
-    double line_projection_offset;
+    double      center_longitude;
+    double   line_projection_offset;
     double sample_projection_offset;
     double map_resolution;
     double map_scale;
     double a_axis_radius;
+
+    float scaling_factor;
+    float offset;
+
+    int x;
 
     // Blending parameters
 

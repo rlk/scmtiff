@@ -215,8 +215,8 @@ int rectify(int argc, char **argv, const char *o,
             {
                 p->westernmost_longitude = E[0] * M_PI / 180.0;
                 p->easternmost_longitude = E[1] * M_PI / 180.0;
-                p->minimum_latitude = E[2] * M_PI / 180.0;
-                p->maximum_latitude = E[3] * M_PI / 180.0;
+                p->minimum_latitude      = E[2] * M_PI / 180.0;
+                p->maximum_latitude      = E[3] * M_PI / 180.0;
             }
 
             // Set the normalization parameters.

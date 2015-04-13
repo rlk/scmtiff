@@ -50,8 +50,8 @@ img *img_alloc(int w, int h, int c, int b, int g)
             p->b = b;
             p->g = g;
 
-            p->minimum_latitude = -0.5 * M_PI;
-            p->maximum_latitude =  0.5 * M_PI;
+            p->minimum_latitude      = -0.5 * M_PI;
+            p->maximum_latitude      =  0.5 * M_PI;
             p->westernmost_longitude =  0.0 * M_PI;
             p->easternmost_longitude =  2.0 * M_PI;
 
@@ -390,7 +390,7 @@ int img_equirectangular(img *p, const double *v, double lon, double lat, double 
     double x = p->a_axis_radius * (lon - p->center_longitude) * cos(p->center_latitude);
     double y = p->a_axis_radius * (lat);
 
-    t[0] = p->line_projection_offset - y / p->map_scale;
+    t[0] =   p->line_projection_offset - y / p->map_scale;
     t[1] = p->sample_projection_offset + x / p->map_scale;
 
     return 1;
@@ -399,12 +399,12 @@ int img_equirectangular(img *p, const double *v, double lon, double lat, double 
 int img_orthographic(img *p, const double *v, double lon, double lat, double *t)
 {
     if (p->westernmost_longitude <= lon && lon <= p->easternmost_longitude &&
-        p->minimum_latitude <= lat && lat <= p->maximum_latitude)
+             p->minimum_latitude <= lat && lat <=      p->maximum_latitude)
     {
         double x = p->a_axis_radius * cos(lat - p->center_latitude) * sin(lon - p->center_longitude);
         double y = p->a_axis_radius * sin(lat - p->center_latitude);
 
-        t[0] = p->line_projection_offset - y / p->map_scale;
+        t[0] =   p->line_projection_offset - y / p->map_scale;
         t[1] = p->sample_projection_offset + x / p->map_scale;
 
         return 1;
@@ -429,7 +429,7 @@ int img_polar_stereographic(img *p, const double *v, double lon, double lat, dou
     }
 
 #if 0
-    t[0] = p->line_projection_offset - y / p->map_scale;
+    t[0] =   p->line_projection_offset - y / p->map_scale;
     t[1] = p->sample_projection_offset + x / p->map_scale;
 #else
     t[0] = (p->h / 2.0 - 0.5) - y / p->map_scale - 1; // FIRST_PIXEL
@@ -444,7 +444,7 @@ int img_simple_cylindrical(img *p, const double *v, double lon, double lat, doub
     lon = tolon(lon - M_PI);
 #endif
 
-    t[0] = p->line_projection_offset - p->map_resolution * (todeg(lat) - todeg(p->center_latitude)) - 1; // FIRST_PIXEL
+    t[0] =   p->line_projection_offset - p->map_resolution * (todeg(lat) - todeg( p->center_latitude)) - 1; // FIRST_PIXEL
     t[1] = p->sample_projection_offset + p->map_resolution * (todeg(lon) - todeg(p->center_longitude)) - 1; // FIRST_PIXEL
 
     return 1;
@@ -452,7 +452,7 @@ int img_simple_cylindrical(img *p, const double *v, double lon, double lat, doub
 
 int img_default(img *p, const double *v, double lon, double lat, double *t)
 {
-    t[0] = p->h *      (lat - p->minimum_latitude) / (p->maximum_latitude - p->minimum_latitude);
+    t[0] = p->h *      (lat      - p->minimum_latitude) / (     p->maximum_latitude -      p->minimum_latitude);
     t[1] = p->w * tolon(lon - p->westernmost_longitude) / (p->easternmost_longitude - p->westernmost_longitude);
 
     return 1;
