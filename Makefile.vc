@@ -5,7 +5,7 @@ LOCAL_LIB     = C:\Lib
 
 #------------------------------------------------------------------------------
 
-CPPFLAGS = /nologo /W3 /EHsc \
+CPPFLAGS = /nologo /W3 /EHsc /openmp \
 	/DGLEW_STATIC \
 	/D_CRT_SECURE_NO_WARNINGS \
 	/D_CRT_NONSTDC_NO_DEPRECATE \
@@ -14,7 +14,7 @@ CPPFLAGS = /nologo /W3 /EHsc \
 	/DNOMINMAX \
 	/DWIN32
 
-LINK = link /nologo /SUBSYSTEM:WINDOWS /NODEFAULTLIB:"msvcrt.lib"
+LINK = link /nologo /SUBSYSTEM:CONSOLE /NODEFAULTLIB:"msvcrt.lib"
 
 !ifdef DEBUG
 CONFIG   = Debug
@@ -57,11 +57,14 @@ LINK = $(LINK) \
 
 #------------------------------------------------------------------------------
 
-all : $(CONFIG) $(CONFIG)\scmtiff.exe
+all : $(CONFIG) $(CONFIG)\scmtiff.exe $(CONFIG)\scmogle.exe
 
-$(CONFIG)\scmtiff.exe : err.obj scmdef.obj scmdat.obj scmio.obj scm.obj img.obj jpg.obj png.obj tif.obj pds.obj extrema.obj convert.obj rectify.obj combine.obj mipmap.obj border.obj finish.obj polish.obj normal.obj sample.obj scmtiff.obj
+$(CONFIG)\scmtiff.exe : getopt.obj err.obj util.obj scmdef.obj scmdat.obj scmio.obj scm.obj img.obj jpg.obj png.obj tif.obj pds.obj extrema.obj convert.obj rectify.obj combine.obj mipmap.obj border.obj finish.obj polish.obj normal.obj sample.obj scmtiff.obj
 	$(LINK) /out:$@ $** $(LIBS)
 
+$(CONFIG)\scmogle.exe : err.obj util.obj scmdef.obj scmdat.obj scmio.obj scm.obj img.obj scmogle.obj
+	$(LINK) /out:$@ $** $(LIBS)
+\
 $(CONFIG) :
 	mkdir $(CONFIG)
 

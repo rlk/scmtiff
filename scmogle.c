@@ -23,6 +23,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define FREEGLUT_LIB_PRAGMAS 0
+
 #ifdef __APPLE__
 #include <GL/glew.h>
 #include <GLUT/glut.h>
@@ -362,7 +364,7 @@ static void keyboard(unsigned char key, int x, int y)
 
 static void special(int key, int x, int y)
 {
-    int s = (glutGetModifiers() & GLUT_ACTIVE_SHIFT)  ?  1 : 0;
+    bool s = ((glutGetModifiers() & GLUT_ACTIVE_SHIFT) == 0);
 
     if      (key == GLUT_KEY_PAGE_UP)   page(+1, s);
     else if (key == GLUT_KEY_PAGE_DOWN) page(-1, s);

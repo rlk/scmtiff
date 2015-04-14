@@ -12,10 +12,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <jpeglib.h>
 
 #include "img.h"
 #include "err.h"
+
+#include <jpeglib.h>
 
 //------------------------------------------------------------------------------
 

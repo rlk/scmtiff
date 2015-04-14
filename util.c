@@ -12,8 +12,8 @@
 
 #include <math.h>
 #include <string.h>
-#include <strings.h>
 
+#include "config.h"
 #include "util.h"
 
 //------------------------------------------------------------------------------
