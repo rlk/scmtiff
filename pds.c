@@ -12,13 +12,12 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <math.h>
-#include <sys/mman.h>
 
+#include "config.h"
 #include "img.h"
 #include "err.h"
 #include "util.h"
@@ -232,11 +231,13 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
 
     // Open and map the data file.
 
-    void  *q;
-    int    d;
     size_t o = strcmp(img, lbl) ? 0 : (size_t) (rc * rs);
     size_t n = (size_t) p->w * (size_t) p->h
              * (size_t) p->c * (size_t) p->b / 8;
+
+#ifndef _WIN32
+    void  *q;
+    int    d;
 
     if ((d = open(img, O_RDONLY)) != -1)
     {
@@ -244,12 +245,35 @@ static void parse_file(FILE *f, img *p, const char *lbl, const char *dir)
         {
             p->p = (char *) q + o;
             p->q = q;
-            p->n = n;
+            p->n = n + o;
             p->d = d;
         }
         else syserr("Failed to mmap '%s'", img);
     }
     else syserr("Failed to open '%s'", img);
+#else
+    LPVOID q;
+    HANDLE hF;
+    HANDLE hFM;
+
+    if ((hF = CreateFile(img, GENERIC_READ, FILE_SHARE_READ, NULL,
+                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))
+                                          != INVALID_HANDLE_VALUE)
+    {
+        if ((hFM = CreateFileMapping(hF, NULL, PAGE_READONLY, 0, n, NULL)))
+        {
+            if ((q = MapViewOfFile(hFM, FILE_MAP_READ, 0, o, n)))
+            {
+                p->p   = q;
+                p->hF  = hF;
+                p->hFM = hFM;
+            }
+            else syserr("Failed to map '%s'", img);
+        }
+        else syserr("Failed to create file mapping '%s'", img);
+    }
+    else syserr("Failed to open '%s'", img);
+#endif
 }
 
 //------------------------------------------------------------------------------

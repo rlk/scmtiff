@@ -13,6 +13,8 @@
 #ifndef SCMTIFF_IMG_H
 #define SCMTIFF_IMG_H
 
+#include "config.h"
+
 //------------------------------------------------------------------------------
 
 typedef struct img img;
@@ -22,15 +24,23 @@ struct img
     // Data buffer and parameters
 
     void  *p;  // Pixel buffer pointer
+    size_t n;  // Pixel buffer size
     int    w;  // Image width
     int    h;  // Image height
     int    c;  // Image channel count
     int    b;  // Image bits per channel
     int    g;  // Image channel signedness
     int    o;  // Image channel byte order
-    int    d;  // Memory-mapped file descriptor
-    size_t n;  // Memory-mapped size
+
+    // Memory-mapped file parameters
+
+#ifndef _WIN32
+    int    d;  // File descriptor
     void  *q;  // Memory-mapped pointer
+#else
+    HANDLE hF;  // File handle
+    HANDLE hFM; // FileMapping handle
+#endif
 
     // Normalization parameters
 

@@ -18,11 +18,7 @@
 #include <fcntl.h>
 #include <math.h>
 
-#ifndef _WIN32
-#include <unistd.h>
-#include <sys/mman.h>
-#endif
-
+#include "config.h"
 #include "img.h"
 #include "err.h"
 #include "util.h"
@@ -76,6 +72,7 @@ void img_close(img *p)
 {
     if (p)
     {
+#ifndef _WIN32
         if (p->q)
             munmap(p->q, p->n);
         else
@@ -83,7 +80,8 @@ void img_close(img *p)
 
         if (p->d)
             close(p->d);
-
+#else
+#endif
         free(p);
     }
 }
