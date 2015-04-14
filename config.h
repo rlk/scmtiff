@@ -14,10 +14,34 @@
 #define SCMTIFF_CONFIG_H
 
 #ifdef _WIN32
+#include <windows.h>
 #include "getopt.h"
+
+#define strcasecmp _stricmp
+
+static inline double now()
+{
+    LARGE_INTEGER c;
+    LARGE_INTEGER f;
+    QueryPerformanceCounter(&c);
+    QueryPerformanceFrequency(&f);
+    return (double) c.QuadPart / (double) f.QuadPart;
+}
+
 #else
+
 #include <getopt.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/time.h>
+
+static inline double now()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double) tv.tv_sec + (double) tv.tv_usec / 1000000.0
+}
+
 #endif
 
 #endif

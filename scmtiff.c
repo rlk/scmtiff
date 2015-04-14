@@ -20,9 +20,6 @@
 
 //------------------------------------------------------------------------------
 
-#include <sys/time.h>
-#include <sys/resource.h>
-
 static void printhms(double dt)
 {
     if (dt > 60.0)
@@ -42,30 +39,14 @@ static void printhms(double dt)
     printf("%2.3fs", dt);
 }
 
-static void printtime(double dt)
-{
-    struct rusage ru;
-
-    if (getrusage(RUSAGE_SELF, &ru) == 0)
-    {
-        printf("\treal: ");
-        printhms(dt);
-        printf("  user: ");
-        printhms(ru.ru_utime.tv_sec + ru.ru_utime.tv_usec / 1000000.0);
-        printf(" sys: ");
-        printhms(ru.ru_stime.tv_sec + ru.ru_stime.tv_usec / 1000000.0);
-        printf("\n");
-    }
-}
-
 //------------------------------------------------------------------------------
 
 int main(int argc, char **argv)
 {
     const char *exe = argv[0];
 
-    struct timeval t0;
-    struct timeval t1;
+    double t0;
+    double t1;
 
     const char *p    = NULL;
     const char *m    = NULL;
@@ -88,7 +69,7 @@ int main(int argc, char **argv)
     int c;
     int r = 0;
 
-    gettimeofday(&t0, NULL);
+    t0 = now();
 
     setexe(exe);
 
@@ -198,10 +179,9 @@ int main(int argc, char **argv)
 
     else apperr("Unknown process '%s'", p);
 
-    gettimeofday(&t1, NULL);
+    t1 = now();
 
-    if (T) printtime((t1.tv_sec  - t0.tv_sec) +
-                     (t1.tv_usec - t0.tv_usec) / 1000000.0);
+    if (T) printhms(t1 - t0);
 
     return r;
 }
