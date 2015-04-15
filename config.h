@@ -15,9 +15,14 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <float.h>
 #include "getopt.h"
 
-#define strcasecmp _stricmp
+#define strcasecmp(a, b) _stricmp(a, b)
+#define isnormal(x) ((_fpclass(x) == _FPCLASS_PN) \
+                  || (_fpclass(x) == _FPCLASS_NN) \
+                  || (_fpclass(x) == _FPCLASS_PZ) \
+                  || (_fpclass(x) == _FPCLASS_NZ))
 
 static inline double now()
 {
@@ -43,5 +48,4 @@ static inline double now()
 }
 
 #endif
-
 #endif
