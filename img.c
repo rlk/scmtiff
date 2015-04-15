@@ -81,6 +81,13 @@ void img_close(img *p)
         if (p->d)
             close(p->d);
 #else
+        if (p->hFM)
+            UnmapViewOfFile(p->p);
+        else
+            free(p->p);
+
+        if (p->hF)
+            CloseHandle(p->hF);
 #endif
         free(p);
     }
