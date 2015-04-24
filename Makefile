@@ -23,6 +23,7 @@ CFLAGS =
 ifeq ($(shell uname), Darwin)
 	LIBOGL  = -framework GLUT -framework OpenGL
 	LIBEXT  = -framework Cocoa -framework ApplicationServices -framework Carbon
+	LIBGLEW = -lglew32
 endif
 
 ifeq ($(shell uname), MINGW32_NT-6.1)
@@ -31,11 +32,13 @@ ifeq ($(shell uname), MINGW32_NT-6.1)
 	LIBSDL  = -lmingw32
 	CC     += -static
 	CFLAGS += -DGLEW_STATIC
+	LIBGLEW = -lglew32
 endif
 
 ifeq ($(shell uname), Linux)
 	LIBOGL  = -lglut -lGL
 	LIBEXT  = -lpthread
+	LIBGLEW = -lGLEW -lGLU -lGL
 endif
 
 #-------------------------------------------------------------------------------
@@ -46,11 +49,6 @@ LIBTIF  = $(firstword $(wildcard /usr/local/lib/libtiff*.a \
 				    $(HOME)/lib/libtiff*.a \
 				       /usr/lib/libtiff*.a \
 				   C:/MinGW/lib/libtiff*.a) -ltiff)
-
-LIBGLEW = $(firstword $(wildcard /usr/local/lib/libGLEW*.a \
-				 /opt/local/lib/libGLEW*.a \
-				    $(HOME)/lib/libGLEW*.a \
-				       /usr/lib/libGLEW*.a) -lglew32)
 
 LIBJPG  = $(firstword $(wildcard /usr/local/lib/libjpeg*.a \
 				 /opt/local/lib/libjpeg*.a \
