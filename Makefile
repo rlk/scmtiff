@@ -100,9 +100,9 @@ clean :
 	$(RM) $(EXES) *.o
 
 #-------------------------------------------------------------------------------
-
-BINDIR= scmtiff-bin-$(shell svnversion)
-SRCDIR= scmtiff-src-$(shell svnversion)
+TAG=$(shell git rev-parse --short HEAD)
+BINDIR= scmtiff-bin-$(TAG)
+SRCDIR= scmtiff-src-$(TAG)
 
 dist : all
 	mkdir -p         $(BINDIR)
