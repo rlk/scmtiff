@@ -159,10 +159,10 @@ dist-src:
 #-------------------------------------------------------------------------------
 
 scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o polish.o normal.o sample.o scmtiff.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT) -lm
 
 scmogle : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmogle.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT)
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT) -lm
 
 scmjpeg : err.o scmjpeg.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBTIF) $(LIBJPG) $(LIBZ)
