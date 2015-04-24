@@ -12,6 +12,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <strings.h> //for strcasecmp()
 
 #include "config.h"
 #include "util.h"

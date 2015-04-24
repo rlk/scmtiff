@@ -5,8 +5,8 @@ EXES= scmtiff scmogle scmjpeg
 
 # This build goes out of its way to use GCC instead of LLVM (the current default
 # under OS X) to ensure the availability of OpenMP.
-
-CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
+CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
+#CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
 #CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -g
 #CC = /usr/local/bin/gcc -std=c99 -Wall
 #CC = gcc -std=c99 -Wall -m64 -fopenmp -O3
@@ -16,6 +16,7 @@ CC = /usr/local/bin/gcc -std=c99 -Wall -m64 -fopenmp -O3
 CP = cp
 RM = rm -f
 
+LFLAGS = -Wall
 CFLAGS =
 
 #-------------------------------------------------------------------------------
@@ -23,6 +24,7 @@ CFLAGS =
 ifeq ($(shell uname), Darwin)
 	LIBOGL  = -framework GLUT -framework OpenGL
 	LIBEXT  = -framework Cocoa -framework ApplicationServices -framework Carbon
+	LIBGLEW = -lglew32
 endif
 
 ifeq ($(shell uname), MINGW32_NT-6.1)
@@ -31,11 +33,13 @@ ifeq ($(shell uname), MINGW32_NT-6.1)
 	LIBSDL  = -lmingw32
 	CC     += -static
 	CFLAGS += -DGLEW_STATIC
+	LIBGLEW = -lglew32
 endif
 
 ifeq ($(shell uname), Linux)
 	LIBOGL  = -lglut -lGL
 	LIBEXT  = -lpthread
+	LIBGLEW = -lGLEW -lGLU -lGL
 endif
 
 #-------------------------------------------------------------------------------
@@ -46,11 +50,6 @@ LIBTIF  = $(firstword $(wildcard /usr/local/lib/libtiff*.a \
 				    $(HOME)/lib/libtiff*.a \
 				       /usr/lib/libtiff*.a \
 				   C:/MinGW/lib/libtiff*.a) -ltiff)
-
-LIBGLEW = $(firstword $(wildcard /usr/local/lib/libGLEW*.a \
-				 /opt/local/lib/libGLEW*.a \
-				    $(HOME)/lib/libGLEW*.a \
-				       /usr/lib/libGLEW*.a) -lglew32)
 
 LIBJPG  = $(firstword $(wildcard /usr/local/lib/libjpeg*.a \
 				 /opt/local/lib/libjpeg*.a \
@@ -102,9 +101,9 @@ clean :
 	$(RM) $(EXES) *.o
 
 #-------------------------------------------------------------------------------
-
-BINDIR= scmtiff-bin-$(shell svnversion)
-SRCDIR= scmtiff-src-$(shell svnversion)
+TAG=$(shell git rev-parse --short HEAD)
+BINDIR= scmtiff-bin-$(TAG)
+SRCDIR= scmtiff-src-$(TAG)
 
 dist : all
 	mkdir -p         $(BINDIR)
@@ -161,10 +160,10 @@ dist-src:
 #-------------------------------------------------------------------------------
 
 scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o polish.o normal.o sample.o scmtiff.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT) -lm
 
 scmogle : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmogle.o
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT)
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBZ) $(LIBGLEW) $(LIBOGL) $(LIBEXT) -lm
 
 scmjpeg : err.o scmjpeg.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBTIF) $(LIBJPG) $(LIBZ)
