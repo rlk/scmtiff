@@ -1,0 +1,67 @@
+N=180
+D=7
+
+FORM = -n$(N) -d$(D)
+
+all : \
+	BMNG-200401-$(N)-$(D).tif \
+	BMNG-200402-$(N)-$(D).tif \
+	BMNG-200403-$(N)-$(D).tif \
+	BMNG-200404-$(N)-$(D).tif \
+	BMNG-200405-$(N)-$(D).tif \
+	BMNG-200406-$(N)-$(D).tif \
+	BMNG-200407-$(N)-$(D).tif \
+	BMNG-200408-$(N)-$(D).tif \
+	BMNG-200409-$(N)-$(D).tif \
+	BMNG-200410-$(N)-$(D).tif \
+	BMNG-200411-$(N)-$(D).tif \
+	BMNG-200412-$(N)-$(D).tif
+
+# Border and finish.
+
+BMNG-%-$(N)-$(D).tif: BMNG-%-$(N)-$(D)-M.tif
+	scmtiff -T -pborder -o$@ $<
+	scmtiff -T -pfinish $(TEXT) $@
+
+# Merge the individual pages and mipmap the result.
+
+BMNG-%-$(N)-$(D)-M.tif :	world.%.3x21600x21600.A1.tif \
+					world.%.3x21600x21600.A2.tif \
+					world.%.3x21600x21600.B1.tif \
+					world.%.3x21600x21600.B2.tif \
+					world.%.3x21600x21600.C1.tif \
+					world.%.3x21600x21600.C2.tif \
+					world.%.3x21600x21600.D1.tif \
+					world.%.3x21600x21600.D2.tif
+
+	scmtiff -T -pcombine -msum -o$@ $^
+	scmtiff -T -pmipmap $@
+
+# Convert all PNG files to TIFF.
+
+%.A1.tif : %.A1.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E-180,-90,90,0 $<
+
+%.B1.tif : %.B1.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E-90,0,90,0 $<
+
+%.C1.tif : %.C1.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E0,90,90,0 $<
+
+%.D1.tif : %.D1.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E90,180,90,0 $<
+
+%.A2.tif : %.A2.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E-180,-90,0,-90 $<
+
+%.B2.tif : %.B2.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E-90,0,0,-90 $<
+
+%.C2.tif : %.C2.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E0,90,0,-90 $<
+
+%.D2.tif : %.D2.png
+	scmtiff -T -pconvert $(FORM) -o$@ -E90,180,0,-90 $<
+
+clean:
+	rm -f BMNG-$(N)-$(D).tif $(BMNG)
