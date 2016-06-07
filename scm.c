@@ -425,8 +425,7 @@ static void scm_bound_leaf(scm *s, long long x,  const float     *pp,
 // virtual pages. Allocate and initialize minv and maxv with the min and max
 // values of all real and virtual pages.
 
-static bool scm_bound(scm *s, long long xc, const long long *xv,
-                              long long yc, const long long *yv,
+static bool scm_bound(scm *s, long long yc, const long long *yv,
                               long long oc, const long long *ov,
                                                     void **minv,
                                                     void **maxv, int d)
@@ -656,7 +655,7 @@ bool scm_finish(scm *s, const char *txt, int d)
         {
             if ((oc = scm_scan_offsets(s, &ov, yc, yv)))
             {
-                if (scm_bound(s, xc, xv, yc, yv, oc, ov, &minv, &maxv, d))
+                if (scm_bound(s, yc, yv, oc, ov, &minv, &maxv, d))
                 {
                     // Append all metadata.
 
