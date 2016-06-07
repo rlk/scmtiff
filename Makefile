@@ -135,6 +135,7 @@ dist-src:
 	$(CP) png.c      $(SRCDIR)
 	$(CP) polish.h   $(SRCDIR)
 	$(CP) process.h  $(SRCDIR)
+	$(CP) prune.h    $(SRCDIR)
 	$(CP) rectify.c  $(SRCDIR)
 	$(CP) sample.c   $(SRCDIR)
 	$(CP) scm.c      $(SRCDIR)
@@ -160,7 +161,7 @@ dist-src:
 
 #-------------------------------------------------------------------------------
 
-scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o finish.o polish.o normal.o sample.o scmtiff.o
+scmtiff     : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o jpg.o png.o tif.o pds.o extrema.o convert.o rectify.o combine.o mipmap.o border.o prune.o finish.o polish.o normal.o sample.o scmtiff.o
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $^ $(LIBJPG) $(LIBTIF) $(LIBPNG) $(LIBZ) $(LIBEXT)
 
 scmogle : err.o util.o scmdef.o scmdat.o scmio.o scm.o img.o scmogle.o
@@ -171,45 +172,29 @@ scmjpeg : err.o scmjpeg.o
 
 #-------------------------------------------------------------------------------
 
-border.o : scm.h
-border.o : util.h
-combine.o : scm.h
-combine.o : err.h
-combine.o : util.h
-convert.o : scm.h
-convert.o : img.h
-convert.o : util.h
-extrema.o : img.h
-extrema.o : util.h
-img.o : img.h
-img.o : err.h
-img.o : util.h
-jpg.o : img.h
-jpg.o : err.h
-mipmap.o : scm.h
-mipmap.o : err.h
-mipmap.o : util.h
-normal.o : scm.h
-normal.o : err.h
-normal.o : util.h
-pds.o : img.h
-pds.o : err.h
-png.o : img.h
-png.o : err.h
-scm.o : scmdat.h
-scm.o : scmio.h
-scm.o : scm.h
-scm.o : err.h
-scm.o : util.h
-scm.h  : scmdat.h
-scmdat.o : scmdat.h
-scmdef.o : scmdef.h
-scmio.o : scmdat.h
-scmio.o : util.h
-scmio.o : err.h
-scmtiff.o : scm.h
-scmtiff.o : err.h
-scmogle.o : scm.h
-scmogle.o : err.h
-tif.o : img.h
-tif.o : err.h
+border.o :  border.c scm.h scmdat.h scmdef.h util.h process.h
+combine.o : combine.c scm.h scmdat.h err.h util.h process.h
+convert.o : convert.c scm.h scmdat.h scmdef.h img.h config.h err.h util.h process.h
+err.o :     err.c err.h
+extrema.o : extrema.c img.h config.h util.h
+finish.o :  finish.c scm.h scmdat.h err.h util.h process.h
+getopt.o :  getopt.c
+img.o :     img.c config.h img.h err.h util.h
+jpg.o :     jpg.c img.h config.h err.h
+mipmap.o :  mipmap.c scm.h scmdat.h scmdef.h err.h util.h process.h
+normal.o :  normal.c scm.h scmdat.h scmdef.h err.h util.h process.h
+pds.o :     pds.c config.h img.h err.h util.h
+png.o :     png.c img.h config.h err.h
+polish.o :  polish.c scm.h scmdat.h err.h util.h process.h
+prune.o :   prune.c scm.h scmdat.h scmdef.h process.h
+rectify.o : rectify.c scm.h scmdat.h scmdef.h img.h config.h err.h util.h process.h
+sample.o :  sample.c scm.h scmdat.h scmdef.h util.h
+scm.o :     scm.c scmdef.h scmdat.h scmio.h scm.h err.h util.h
+scmdat.o :  scmdat.c scmdat.h util.h
+scmdef.o :  scmdef.c scmdef.h
+scmio.o :   scmio.c scmdat.h scmio.h util.h err.h
+scmjpeg.o : scmjpeg.c err.h
+scmogle.o : scmogle.c scm.h scmdat.h scmdef.h err.h util.h
+scmtiff.o : scmtiff.c config.h scm.h scmdat.h err.h process.h
+tif.o :     tif.c img.h config.h err.h
+util.o :    util.c config.h util.h
