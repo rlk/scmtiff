@@ -73,7 +73,7 @@ int finish(int argc, char **argv, const char *t, int l)
             txt = load_txt(t);
 
         if (txt == NULL)
-            txt = "Copyright (c) 2012 Robert Kooima";
+            txt = "SCMTIFF Copyright (c) 2012 Robert Kooima";
 
         if ((s = scm_ifile(argv[i])))
         {
