@@ -158,6 +158,9 @@ int grow(float *p, float *q, int c, int n)
 
 //------------------------------------------------------------------------------
 
+int report_done = 0;
+int report_todo = 0;
+
 void hms(char *str, int s)
 {
     int h = 0;
@@ -180,38 +183,54 @@ void hms(char *str, int s)
     else        sprintf(str,         "%ds",       s);
 }
 
-void report(int n, int m)
+void report_init(int n)
 {
-    static char   str[256];
-    static int    first = 1;
-    static double start = 0;
+    report_done = 0;
+    report_todo = n;
+}
 
-    char passed[256];
-    char remain[256];
+void report_step(void)
+{
+    report_done++;
 
-    if (first)
+    if (report_todo)
     {
-        start = now();
-        first = 0;
-    }
-    else
-    {
-        for (int i = 0; i < strlen(str) - 1; i++)
-            printf("\b");
-    }
+        static char   str[256];
+        static int    dirty = 0;
+        static double start = 0;
 
-    if (n < m)
-    {
+        char passed[256];
+        char remain[256];
+
+        if (dirty)
+        {
+            for (int i = 0; i < strlen(str); i++)
+                printf("\b");
+        }
+        else
+        {
+            start = now();
+            dirty = 1;
+        }
+
         double d = now() - start;
 
         hms(passed, d);
-        hms(remain, d * m / n - d);
+        hms(remain, report_done ? d * report_todo / report_done - d : 0);
 
-        sprintf(str, "Processed %d of %d (%.2f%%%%) %s passed, estimated %s remaining.",
-                    n, m, 100.0 * n / m, passed, remain);
-        printf(str);
+        sprintf(str, "Processed %d of %d (%.2f) %s passed, "
+                                     "estimated %s remaining.",
+                    report_done,
+                    report_todo, 100.0 * report_done / report_todo,
+                    passed, remain);
+
+        if (report_done < report_todo)
+            printf("%s", str);
+        else
+            printf("%s\n", str);
+
+        fflush(stdout);
     }
-    fflush(stdout);
 }
 
 //------------------------------------------------------------------------------

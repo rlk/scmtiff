@@ -131,6 +131,8 @@ static long long divide(scm *s, long long x,
                     sampnorm(f, i, j, n, c, u, v, w, r, p, q);
 
             b = scm_append(t, b, x, q);
+
+            report_step();
         }
 
         // Generate normal maps for the children of page x.
@@ -161,6 +163,8 @@ static void process(scm *s, scm *t, const float *r)
 
     if (scm_scan_catalog(s))
     {
+        report_init((int) scm_get_length(s));
+
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             long long b = 0;

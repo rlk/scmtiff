@@ -138,6 +138,8 @@ static void process(scm *s, scm *t)
 
     if (scm_scan_catalog(s))
     {
+        report_init((int) scm_get_length(s));
+
         if ((p = scm_alloc_buffer(s)) && (q = scm_alloc_buffer(t)))
         {
             for (long long i = 0; i < scm_get_length(s); ++i)
@@ -225,6 +227,7 @@ static void process(scm *s, scm *t)
 
                     b = scm_append(t, b, x, p);
                 }
+                report_step();
             }
             free(q);
             free(p);

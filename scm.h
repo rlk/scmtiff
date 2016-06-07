@@ -58,6 +58,7 @@ long long scm_get_index (scm *, long long);
 long long scm_get_offset(scm *, long long);
 
 long long scm_search(scm *, long long);
+void      scm_forget(scm *, long long);
 
 //------------------------------------------------------------------------------
 

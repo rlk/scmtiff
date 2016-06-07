@@ -112,6 +112,8 @@ static void process(scm *s, scm **V, int C, int O)
             o[f] = 0;
         }
 
+        report_init(m);
+
         // Process each page of an SCM with the desired depth.
 
         for (int x = 0; x <= m; ++x)
@@ -169,6 +171,8 @@ static void process(scm *s, scm **V, int C, int O)
 
                 b = scm_append(s, b, x, p);
             }
+
+            report_step();
         }
 
         free(q);

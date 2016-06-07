@@ -35,7 +35,9 @@ void dircpy(      char *, const char *);
 int grow(float *, float *, int, int);
 
 void hms(char *, int);
-void report(int, int);
+
+void report_init(int);
+void report_step(void);
 
 //------------------------------------------------------------------------------
 

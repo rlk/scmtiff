@@ -25,10 +25,6 @@ int main(int argc, char **argv)
 {
     const char *exe = argv[0];
 
-    double t0;
-    double t1;
-    char timing[256];
-
     const char *p    = NULL;
     const char *m    = NULL;
     const char *o    = NULL;
@@ -40,7 +36,6 @@ int main(int argc, char **argv)
     int         A    =   0;
     int         h    =   0;
     int         l    =   0;
-    int         T    =   0;
     double      E[4] = { 0.f, 0.f, 0.f , 0.f};
     double      L[3] = { 0.f, 0.f, 0.f };
     double      P[3] = { 0.f, 0.f, 0.f };
@@ -49,8 +44,6 @@ int main(int argc, char **argv)
 
     int c;
     int r = 0;
-
-    t0 = now();
 
     setexe(exe);
 
@@ -61,7 +54,7 @@ int main(int argc, char **argv)
         {
             case 'A': A = 1;                    break;
             case 'h': h = 1;                    break;
-            case 'T': T = 1;                    break;
+            case 'T':                           break;
             case 'p': p = optarg;               break;
             case 'm': m = optarg;               break;
             case 'o': o = optarg;               break;
@@ -163,12 +156,6 @@ int main(int argc, char **argv)
         r = sample (argc, argv, R, d);
 
     else apperr("Unknown process '%s'", p);
-
-    t1 = now();
-
-    hms(timing, (int) (t1 - t0));
-
-    if (T) printf("%s\n", timing);
 
     return r;
 }

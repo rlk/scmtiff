@@ -27,11 +27,6 @@
 
 //------------------------------------------------------------------------------
 
-static int pages_done = 0;
-static int pages_todo = 0;
-
-//------------------------------------------------------------------------------
-
 #define NTAPS 1024
 #define MTAPS (NTAPS * NTAPS)
 
@@ -187,7 +182,7 @@ static long long divide(scm *s, img *p, long long b, int d, long long x,
 
             if (N) a = scm_append(s, a, x, q);
 
-            report(++pages_done, pages_todo);
+            report_step();
         }
         else
         {
@@ -212,6 +207,8 @@ static int process(scm *s, int d, img *p)
 {
     float *q;
     float *t;
+
+    report_init(6 << (d * 2));
 
     if ((q = scm_alloc_buffer(s)))
     {
@@ -335,8 +332,6 @@ int convert(int argc, char **argv, const char *o,
                 p->norm0 = 0.0f;
                 p->norm1 = 1.0f;
             }
-
-            pages_todo = 1 << (d * 2);
 
             // Process the output.
 
