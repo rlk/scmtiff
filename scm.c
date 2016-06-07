@@ -286,9 +286,9 @@ static long long scm_grow_leaves(scm *s, long long **v,
     long long c = xc;
     long long i;
 
-    for (i = 0; i < xc; ++i)
+    for (i = 0; d && i < xc; ++i)
         if (isleaf(xv[i], xc, xv))
-            m += scm_page_count(d);
+            m += (1 - (1 << (2 * d + 2))) / (-d);
 
     // Allocate storage for the extended catalog.
 
@@ -447,15 +447,26 @@ static bool scm_bound(scm *s, long long xc, const long long *xv,
         {
             // Calculate bounds for all pages.
 
-            for (long long i = xc - 1; i >= 0; --i)
+            for (long long i = yc - 1; i >= 0; --i)
             {
-                if (isleaf(xv[i], xc, xv))
+                if (ov[i])
                 {
-                    if (scm_read_page (s, ov[i], pp))
-                        scm_bound_leaf(s, xv[i], pp,
-                                       yc, yv, av, zv, 0, s->n, 0, s->n, d);
+                    long long j0 = llsearch(scm_page_child(yv[i], 0), yc, yv);
+                    long long j1 = llsearch(scm_page_child(yv[i], 1), yc, yv);
+                    long long j2 = llsearch(scm_page_child(yv[i], 2), yc, yv);
+                    long long j3 = llsearch(scm_page_child(yv[i], 3), yc, yv);
+
+                    if (j0 >= 0 && ov[j0] == 0 &&
+                        j1 >= 0 && ov[j1] == 0 &&
+                        j2 >= 0 && ov[j2] == 0 &&
+                        j3 >= 0 && ov[j3] == 0)
+                    {
+                        if (scm_read_page (s, ov[i], pp))
+                            scm_bound_leaf(s, yv[i], pp,
+                                           yc, yv, av, zv, 0, s->n, 0, s->n, d);
+                    }
+                    else scm_bound_node(s, yv[i], yc, yv, av, zv);
                 }
-                else scm_bound_node(s, xv[i], yc, yv, av, zv);
             }
 
             // Convert floating point values to the SCM value type.
@@ -818,6 +829,17 @@ long long scm_search(scm *s, long long x)
     if (x > s->xv[s->xc - 1]) return -1;
 
     return llsearch(x, s->xc, s->xv);
+}
+
+// "Forget" a page of data by zeroing its offset.
+
+void scm_forget(scm *s, long long i)
+{
+    assert(s);
+    assert(s->oc);
+    assert(s->ov);
+    assert(0 <= i && i < s->oc);
+    s->ov[i] = 0;
 }
 
 //------------------------------------------------------------------------------
