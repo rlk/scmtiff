@@ -14,30 +14,10 @@
 #include <string.h>
 
 #include "config.h"
+#include "util.h"
 #include "scm.h"
 #include "err.h"
 #include "process.h"
-
-//------------------------------------------------------------------------------
-
-static void printhms(double dt)
-{
-    if (dt > 60.0)
-    {
-        if (dt > 3600.0)
-        {
-            int h = (int) dt / 3600;
-            dt -= h * 3600;
-            printf("%dh", h);
-        }
-
-        int m = (int) dt / 60;
-        dt -= m * 60;
-        printf("%dm", m);
-    }
-
-    printf("%2.3fs", dt);
-}
 
 //------------------------------------------------------------------------------
 
@@ -47,6 +27,7 @@ int main(int argc, char **argv)
 
     double t0;
     double t1;
+    char timing[256];
 
     const char *p    = NULL;
     const char *m    = NULL;
@@ -185,7 +166,9 @@ int main(int argc, char **argv)
 
     t1 = now();
 
-    if (T) printhms(t1 - t0);
+    hms(timing, (int) (t1 - t0));
+
+    if (T) printf("%s\n", timing);
 
     return r;
 }

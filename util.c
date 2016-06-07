@@ -11,6 +11,7 @@
 // more details.
 
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "config.h"
@@ -154,4 +155,63 @@ int grow(float *p, float *q, int c, int n)
         }
     return N;
 }
+
+//------------------------------------------------------------------------------
+
+void hms(char *str, int s)
+{
+    int h = 0;
+    int m = 0;
+
+    if (s > 60.0)
+    {
+        if (s > 3600.0)
+        {
+            h  = (int) s / 3600;
+            s -= (int) h * 3600;
+        }
+
+        m  = (int) s / 60;
+        s -= (int) m * 60;
+    }
+
+    if      (h) sprintf(str, "%dh %dm %ds", h, m, s);
+    else if (m) sprintf(str,     "%dm %ds",    m, s);
+    else        sprintf(str,         "%ds",       s);
+}
+
+void report(int n, int m)
+{
+    static char   str[256];
+    static int    first = 1;
+    static double start = 0;
+
+    char passed[256];
+    char remain[256];
+
+    if (first)
+    {
+        start = now();
+        first = 0;
+    }
+    else
+    {
+        for (int i = 0; i < strlen(str) - 1; i++)
+            printf("\b");
+    }
+
+    if (n < m)
+    {
+        double d = now() - start;
+
+        hms(passed, d);
+        hms(remain, d * m / n - d);
+
+        sprintf(str, "Processed %d of %d (%.2f%%%%) %s passed, estimated %s remaining.",
+                    n, m, 100.0 * n / m, passed, remain);
+        printf(str);
+    }
+    fflush(stdout);
+}
+
 //------------------------------------------------------------------------------
