@@ -127,6 +127,23 @@ static void copyse(float *p, long long x, float *q, long long y, int n, int c)
                            translate_j[x][y](1, 1, n)), c);
 }
 
+static void dilate(float *p, int n, int c)
+{
+    for (int i = 1; i < n - 1; i++)
+    {
+        cpy(pixel(p, n, c, i,     0), pixel(p, n, c, i,     1), c);
+        cpy(pixel(p, n, c, i, n - 1), pixel(p, n, c, i, n - 2), c);
+
+        cpy(pixel(p, n, c,     0, i), pixel(p, n, c,     1, i), c);
+        cpy(pixel(p, n, c, n - 1, i), pixel(p, n, c, n - 2, i), c);
+    }
+
+    cpy(pixel(p, n, c,     0,     0), pixel(p, n, c,     1,     1), c);
+    cpy(pixel(p, n, c, n - 1,     0), pixel(p, n, c, n - 2,     1), c);
+    cpy(pixel(p, n, c,     0, n - 1), pixel(p, n, c,     1, n - 2), c);
+    cpy(pixel(p, n, c, n - 1, n - 1), pixel(p, n, c, n - 2, n - 2), c);
+}
+
 static void process(scm *s, scm *t)
 {
     const int o = scm_get_n(s) + 2;
@@ -146,6 +163,10 @@ static void process(scm *s, scm *t)
             {
                 if (scm_read_page(s, scm_get_offset(s, i), p))
                 {
+                    // Copy outer data onto the border as fallback for missing.
+
+                    dilate(p, o, c);
+
                     // Determine the page indices of all neighboring pages.
 
                     long long x   = scm_get_index(s, i);
