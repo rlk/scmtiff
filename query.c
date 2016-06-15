@@ -34,7 +34,7 @@ static bool isleaf(scm *s, long long i)
             // If child c exists and has data, then x is not a leaf.
 
             if ((j = scm_search(s, scm_page_child(x, c))) != -1)
-                if (scm_get_offset(s, j) >= 0)
+                if (scm_get_offset(s, j) > 0)
                     return false;
         }
         return true;
