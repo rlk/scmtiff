@@ -218,8 +218,8 @@ void report_step(void)
         hms(passed, d);
         hms(remain, report_done ? d * report_todo / report_done - d : 0);
 
-        sprintf(str, "Processed %d of %d (%.2f) %s passed, "
-                                     "estimated %s remaining.",
+        sprintf(str, "Processed %d of %d (%.2f%%) %s passed, "
+                                     "estimated %s remaining. ",
                     report_done,
                     report_todo, 100.0 * report_done / report_todo,
                     passed, remain);
