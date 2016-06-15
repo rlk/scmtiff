@@ -163,7 +163,11 @@ static int data_init(int argc, char **argv)
                 glTexParameteri(T, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(T, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-                scm_scan_catalog(filev[i].s);
+                if (scm_read_catalog(filev[i].s) == false)
+                {
+                    printf("Building catalog: %s\n", argv[argi]);
+                    scm_scan_catalog(filev[i].s);
+                }
 
                 pagem = max(pagem, scm_get_index(filev[i].s, scm_get_length(filev[i].s) - 1));
 

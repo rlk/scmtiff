@@ -763,6 +763,70 @@ bool scm_read_page(scm *s, long long o, float *p)
 
 //------------------------------------------------------------------------------
 
+// Read the index and offset catalog metadata.
+
+bool scm_read_catalog(scm *s)
+{
+    header h;
+    hfd    d;
+
+    assert(s);
+
+    if (scm_read_header(s, &h))
+    {
+        if (scm_read_hfd(s, &d, h.first_ifd))
+        {
+            // Determine the metadata sizes.
+
+            long long  xc = (long long) d.page_index.count;
+            long long  oc = (long long) d.page_offset.count;
+            size_t     xs = xc * sizeof (long long);
+            size_t     os = oc * sizeof (long long);
+            long long *xv = NULL;
+            long long *ov = NULL;
+
+            // Try to allocate storage and read the metadata.
+
+            if (xc && (xv = (long long *) malloc(xs)))
+                if (scm_read(s, xv, xs, d.page_index.offset) == false)
+                {
+                    free(xv);
+                    xc = 0;
+                }
+
+            if (oc && (ov = (long long *) malloc(os)))
+                if (scm_read(s, ov, os, d.page_offset.offset) == false)
+                {
+                    free(ov);
+                    oc = 0;
+                }
+
+            // On success, replace any current metadata.
+
+            if (xc && oc)
+            {
+                if (s->xv) free(s->xv);
+                if (s->ov) free(s->ov);
+
+                s->xv = xv;
+                s->xc = xc;
+                s->ov = ov;
+                s->oc = oc;
+
+                return true;
+            }
+            else
+            {
+                if (xv) free(xv);
+                if (ov) free(ov);
+
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
 // Scan the file and catalog the index and offset of all pages.
 
 bool scm_scan_catalog(scm *s)

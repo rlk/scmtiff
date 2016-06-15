@@ -52,6 +52,7 @@ bool scm_read_page(scm *, long long, float *);
 // SCM TIFF metadata search.
 
 bool scm_scan_catalog(scm *);
+bool scm_read_catalog(scm *);
 
 long long scm_get_length(scm *);
 long long scm_get_index (scm *, long long);
