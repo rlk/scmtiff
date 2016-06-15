@@ -92,7 +92,6 @@ int main(int argc, char **argv)
                 "\t\t-p process . . Select process\n"
                 "\t\t-o output  . . Output file\n"
                 "\t\t-T . . . . . . Emit timing information\n\n"
-                "\t%s -p extrema\n\n"
                 "\t%s -p convert [options]\n"
                 "\t\t-n n . . . . . Page size\n"
                 "\t\t-d d . . . . . Tree depth\n"
@@ -108,6 +107,8 @@ int main(int argc, char **argv)
                 "\t\t-m max . . . . Combine by maximum\n"
                 "\t\t-m avg . . . . Combine by average\n"
                 "\t\t-m blend . . . Combine by alpha blending\n\n"
+                "\t%s -p normal [options]\n"
+                "\t\t-R r0,r1 . . . Radius range\n\n"
                 "\t%s -p mipmap [-m mode]\n\n"
                 "\t\t-m sum . . . . Combine by sum\n"
                 "\t\t-m max . . . . Combine by maximum\n"
@@ -117,13 +118,10 @@ int main(int argc, char **argv)
                 "\t%s -p finish [options]\n"
                 "\t\t-t text  . . . Image description text file\n"
                 "\t\t-l l . . . . . Bounding volume oversample level\n\n"
-                "\t%s -p normal [options]\n"
-                "\t\t-R r0,r1 . . . Radius range\n",
+                "\t%s -p extrema\n\n"
+                "\t%s -p query\n",
 
-                exe, exe, exe, exe, exe, exe, exe, exe);
-
-    else if (strcmp(p, "extrema") == 0)
-        r = extrema(argc, argv);
+                exe, exe, exe, exe, exe, exe, exe, exe, exe, exe);
 
     else if (strcmp(p, "convert") == 0)
         r = convert(argc, argv, o, n, d, b, g, A, N, E, L, P);
@@ -133,6 +131,9 @@ int main(int argc, char **argv)
 
     else if (strcmp(p, "combine") == 0)
         r = combine(argc, argv, o, m);
+
+    else if (strcmp(p, "normal") == 0)
+        r = normal (argc, argv, o, R);
 
     else if (strcmp(p, "mipmap") == 0)
         r = mipmap (argc, argv, o, m, A);
@@ -149,8 +150,11 @@ int main(int argc, char **argv)
     else if (strcmp(p, "polish") == 0)
         r = polish (argc, argv);
 
-    else if (strcmp(p, "normal") == 0)
-        r = normal (argc, argv, o, R);
+    else if (strcmp(p, "extrema") == 0)
+        r = extrema(argc, argv);
+
+    else if (strcmp(p, "query")   == 0)
+        r = query  (argc, argv);
 
     else if (strcmp(p, "sample") == 0)
         r = sample (argc, argv, R, d);

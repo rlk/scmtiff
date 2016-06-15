@@ -28,6 +28,7 @@ int polish (int, char **);
 
 int sample (int, char **, const float *, int);
 int extrema(int, char **);
+int query  (int, char **);
 
 int rectify(int, char **, const char *, int,
            const float *, const double *, const double *, const double *);
